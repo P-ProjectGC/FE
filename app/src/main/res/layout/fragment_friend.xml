@@ -11,20 +11,21 @@
 
 
     <!-- "나의 친구" 제목 -->
+
+    <!-- 친구 추가 버튼 (피그마 스타일 반영) -->
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="나의 친구"
-        android:textStyle="bold"
-        android:textSize="30sp"
+        android:textSize="40sp"
         android:textColor="#B3000000"
-        android:paddingTop="12dp"
+        android:includeFontPadding="false"
+        android:fontFamily="@font/dongle_regular"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:fontFamily="@font/dongle_bold"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 친구 추가 버튼 (피그마 스타일 반영) -->
+
     <LinearLayout
         android:id="@+id/btn_add_friend"
         android:layout_width="100dp"
@@ -60,7 +61,7 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:background="@drawable/bg_search_border"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         app:layout_constraintTop_toBottomOf="@id/tv_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -126,24 +127,23 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="아직 친구가 없어요"
-            android:textSize="25sp"
+            android:textSize="20sp"
             android:textColor="#000000"
-            android:fontFamily="@font/dongle_bold"
             android:layout_marginTop="16dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="친구 추가 버튼을 눌러\n첫 번째 친구를 추가해보세요!"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textColor="#99000000"
             android:gravity="center"
             android:layout_marginTop="8dp" />
 
         <LinearLayout
             android:id="@+id/btn_add_friend_empty"
-            android:layout_width="150dp"
-            android:layout_height="40dp"
+            android:layout_width="170dp"
+            android:layout_height="45dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:background="@drawable/bg_add_friend_button"

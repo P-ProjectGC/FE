@@ -17,7 +17,7 @@ class FriendFragment : Fragment() {
     private lateinit var friendAdapter: FriendAdapter
 
     //  더미데이터 ON/OFF 스위치 (원하면 true/false만 바꾸면 됨, false로 하면 더미데이터 없는 초기 친구추가 화면 확인 가능)
-    private val USE_DUMMY_DATA = true
+    private val USE_DUMMY_DATA = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
