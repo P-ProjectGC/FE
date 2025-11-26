@@ -4,6 +4,6 @@
     <solid android:color="#FFFFFF" />   <!-- 흰색 배경 -->
     <corners android:radius="50dp" />   <!-- 완전한 동그라미 -->
     <size
-        android:width="50dp"
-        android:height="50dp" />        <!-- 프로필 버튼 크기 -->
+        android:width="80dp"
+        android:height="80dp" />        <!-- 프로필 버튼 크기 -->
 </shape>

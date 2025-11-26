@@ -54,6 +54,7 @@ class FriendFragment : Fragment() {
         } else {
             emptyList()
         }
+        binding.tvFriendCount.text = "친구 (${dummyFriends.size})" //친구 숫자 반영하게 함
 
         // 4) empty 화면 vs 친구 리스트 화면 토글
         if (dummyFriends.isEmpty()) {
