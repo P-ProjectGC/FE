@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--그라데이션 디자인을 정의하는 xml문서-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#51BDEB"
+        android:centerColor="#A8DEF5"
+        android:endColor="#80FFFFFF"
+        android:centerY="0.6" />
+</shape>
+
+
