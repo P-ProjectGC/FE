@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base Theme -->
+    <style name="Base.Theme.PlanGo" parent="Theme.Material3.DayNight.NoActionBar">
+
+        <!-- BottomNavigationView Active Indicator 제거 -->
+        <item name="bottomNavigationStyle">@style/NoActiveIndicator</item>
+
+    </style>
+
+    <style name="Theme.PlanGo" parent="Base.Theme.PlanGo" />
+
+    <!-- BottomNavigationView의 Active Indicator 제거 스타일 -->
+    <style name="NoActiveIndicator" parent="Widget.Material3.BottomNavigationView">
+        <!-- 요청하신 transparent 개념을 정상 XML로 변환한 부분 -->
+        <item name="itemActiveIndicatorStyle">@null</item>
+    </style>
+
+</resources>
