@@ -30,17 +30,17 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.menu_friends -> {
-                    Toast.makeText(this, "친구 목록 탭 클릭", Toast.LENGTH_SHORT).show()
+
                     // TODO: 친구 목록 화면으로 전환
                     true
                 }
                 R.id.menu_home -> {
-                    Toast.makeText(this, "홈 탭 클릭", Toast.LENGTH_SHORT).show()
+
                     // TODO: 홈 화면으로 전환
                     true
                 }
                 R.id.menu_rooms -> {
-                    Toast.makeText(this, "방 목록 탭 클릭", Toast.LENGTH_SHORT).show()
+
                     // TODO: 방 목록 화면으로 전환
                     true
                 }
