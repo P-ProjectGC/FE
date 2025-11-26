@@ -2,6 +2,7 @@ package com.example.plango
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -27,6 +28,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         initBottomNavigation()
+
+        // 처음에는 알림 아이콘 숨겨두기 (홈 화면 기준)
+        showAlarmIcon(false)
 
         // 초기 nav = Home
         binding.bottomNav.selectedItemId = R.id.menu_home
@@ -67,5 +71,11 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
+    }
+
+    //  알림 아이콘 보이기/숨기기 제어
+    fun showAlarmIcon(show: Boolean) {
+        val alarm = findViewById<ImageView>(R.id.iv_alarm)
+        alarm.visibility = if (show) View.VISIBLE else View.GONE
     }
 }

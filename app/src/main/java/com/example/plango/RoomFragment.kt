@@ -19,4 +19,9 @@ class RoomFragment : Fragment() {
 
         return binding.root
     }
+    override fun onResume() {
+        super.onResume()
+        // 친구 화면일 때만 알림 아이콘 보이게
+        (activity as? MainActivity)?.showAlarmIcon(false)
+    }
 }
