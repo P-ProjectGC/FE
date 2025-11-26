@@ -2,53 +2,70 @@ package com.example.plango
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.plango.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
 
-        // edge-to-edge 적용 (루트 레이아웃 id: main)
-        val root: View = findViewById(R.id.main)
-        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // 시스템 인셋 처리
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // BottomNavigationView 설정
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        initBottomNavigation()
 
-        bottomNav.setOnItemSelectedListener { item ->
+        // 초기 nav = Home
+        binding.bottomNav.selectedItemId = R.id.menu_home
+    }
+
+    // 하단 네비게이션 탭 클릭 시 프래그먼트 전환
+    private fun initBottomNavigation() {
+
+        // 초기 화면 = HomeFragment
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.main_frm, HomeFragment())
+            .commitAllowingStateLoss()
+
+        binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.menu_friends -> {
 
-                    // TODO: 친구 목록 화면으로 전환
-                    true
-                }
                 R.id.menu_home -> {
-
-                    // TODO: 홈 화면으로 전환
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.main_frm, HomeFragment())
+                        .commitAllowingStateLoss()
                     true
                 }
+
+                R.id.menu_friends -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.main_frm, FriendFragment())
+                        .commitAllowingStateLoss()
+                    true
+                }
+
                 R.id.menu_rooms -> {
-
-                    // TODO: 방 목록 화면으로 전환
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.main_frm, RoomFragment())
+                        .commitAllowingStateLoss()
                     true
                 }
+
                 else -> false
             }
         }
-
-        // 앱 시작 시 기본으로 선택될 탭 (홈)
-        bottomNav.selectedItemId = R.id.menu_home
     }
 }
