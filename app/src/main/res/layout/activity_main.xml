@@ -32,8 +32,8 @@
         <!--프로필-->
         <ImageView
             android:id="@+id/iv_profile"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/icon_profile"
             android:layout_marginTop="40dp"
             android:layout_marginEnd="20dp"
@@ -48,8 +48,8 @@
         <!-- 알림 버튼 (왼쪽) 홈화면에서는 안보이지만 친구목록 관련 화면에서 필요함 -->
         <ImageView
             android:id="@+id/iv_alarm"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/icon_alarm"
             android:padding="5dp"
             android:background="@drawable/bg_profile_button"
