@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/testContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- fragment_room_schedule 레이아웃 전체를 그대로 포함 -->
+    <include layout="@layout/fragment_room_schedule" />
+
+</FrameLayout>

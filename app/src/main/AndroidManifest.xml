@@ -11,15 +11,27 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PlanGo">
+
+        <!-- 기존 MainActivity (런처 역할 제거) -->
         <activity
             android:name=".MainActivity"
+            android:exported="true" >
+            <!-- 여기서는 LAUNCHER 제거 -->
+        </activity>
+
+        <!-- 테스트용 액티비티: RoomScheduleTestActivity -->
+        <activity
+            android:name=".RoomScheduleTestActivity"
             android:exported="true">
+
+            <!-- 임시로 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+
     </application>
 
 </manifest>
