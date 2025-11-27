@@ -46,19 +46,48 @@
 
 
         <!-- 알림 버튼 (왼쪽) 홈화면에서는 안보이지만 친구목록 관련 화면에서 필요함 -->
-        <ImageView
-            android:id="@+id/iv_alarm"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/icon_alarm"
-            android:padding="5dp"
-            android:background="@drawable/bg_profile_button"
-            android:clickable="true"
-            android:focusable="true"
+        <!-- 알림 버튼 + 배지 (왼쪽) -->
+        <!-- 알림 버튼 + 배지 -->
+        <FrameLayout
+            android:id="@+id/layout_alarm"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginStart="20dp"
             android:layout_marginTop="40dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- 동그란 알림 아이콘 (가운데 40dp) -->
+            <ImageView
+                android:id="@+id/iv_alarm"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:src="@drawable/icon_alarm"
+                android:padding="5dp"
+                android:background="@drawable/bg_profile_button"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- 🔴 배지 (위쪽-오른쪽, 살짝 밖으로 나와 보이는 위치) -->
+            <TextView
+                android:id="@+id/tv_alarm_badge"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:background="@drawable/bg_badge_red"
+                android:visibility="gone"
+                android:text="0"
+                android:layout_gravity="end|top"
+                android:padding="1dp" />
+
+        </FrameLayout>
+
+
+
+
 
 
 
