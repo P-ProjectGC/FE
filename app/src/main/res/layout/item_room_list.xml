@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="10dp"
-    android:layout_marginBottom="4dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
     app:cardCornerRadius="16dp"
-    app:cardUseCompatPadding="true"
-    app:cardElevation="3dp">
+    app:cardElevation="3dp"
+    app:cardUseCompatPadding="false"
+    app:cardBackgroundColor="@android:color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,8 +17,8 @@
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
 
         <!-- 방 제목 -->
         <TextView
@@ -34,7 +35,7 @@
             android:id="@+id/layoutDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
@@ -43,7 +44,7 @@
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:src="@drawable/icon_room_date"
-                 />
+                app:tint="#9AA4B2" />
 
             <TextView
                 android:id="@+id/tvRoomDate"
@@ -55,21 +56,22 @@
                 android:textColor="#50555C" />
         </LinearLayout>
 
-        <!-- 메모 행 -->
+        <!-- 메모 + 인원 수 행 -->
         <LinearLayout
             android:id="@+id/layoutMemo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <!-- 메모 -->
             <ImageView
                 android:id="@+id/ivMemoIcon"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:src="@drawable/icon_room_memo"
-                 />
+                app:tint="#9AA4B2" />
 
             <TextView
                 android:id="@+id/tvRoomMemo"
@@ -96,7 +98,7 @@
                     android:layout_height="16dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/icon_room_member"
-                    />
+                    app:tint="#9AA4B2" />
 
                 <TextView
                     android:id="@+id/tvMemberCount"
@@ -111,4 +113,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

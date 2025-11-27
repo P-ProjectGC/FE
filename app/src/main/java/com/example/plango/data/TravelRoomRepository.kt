@@ -34,6 +34,13 @@ object TravelRoomRepository {
                 dateText = "12월 10일 - 12월 12일",
                 memo = "팬티투어 by 신진성",
                 memberCount = 3
+            ),
+            TravelRoom(
+                id=5L,
+                title="겨울 황천길 여행",
+                dateText="12월 14일-12월 16일",
+                memo=" 가봅시다",
+                memberCount=4
             )
         )
     }

@@ -51,12 +51,12 @@ class RoomFragment : Fragment() {
         // 더미 데이터 로드
         loadRooms()
     }
-
+    //val rooms = TravelRoomRepository.getEmptyRooms()->빈 방 목록 시 확인
     private fun loadRooms() {
         // 지금은 더미 데이터, 나중에 이 한 줄만 서버 코드로 교체
         val rooms: List<TravelRoom> = TravelRoomRepository.getRooms()
         // 빈 화면 테스트하고 싶으면:
-        // val rooms = TravelRoomRepository.getEmptyRooms()
+         //val rooms = TravelRoomRepository.getEmptyRooms()
 
         if (rooms.isEmpty()) {
             binding.rvRoomList.visibility = View.GONE
