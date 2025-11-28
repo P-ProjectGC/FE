@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@android:color/white">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- 프로필 사진 -->
+        <ImageView
+            android:id="@+id/iv_profile"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/profile_basic"
+            android:scaleType="centerCrop"
+            android:padding="2dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 카카오 뱃지 -->
+        <ImageView
+            android:id="@+id/iv_kakao_badge"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/kakao"
+            app:layout_constraintBottom_toBottomOf="@id/iv_profile"
+            app:layout_constraintStart_toEndOf="@id/iv_profile"
+            android:layout_marginStart="-12dp" />
+
+        <!-- 닉네임 + 실명 텍스트 블록 -->
+
+        <LinearLayout
+            android:id="@+id/text_block"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toStartOf="@id/btn_accept"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@id/iv_profile"
+            app:layout_constraintTop_toTopOf="@id/iv_profile">
+
+            <!-- 닉네임 -->
+            <TextView
+                android:id="@+id/tv_nickname"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="닉네임"
+                android:textColor="#0A0A0A"
+                android:textSize="18sp" />
+
+            <!-- 실명 -->
+            <TextView
+                android:id="@+id/tv_real_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="실명"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_requested_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3시간 전"
+            android:textSize="11sp"
+            android:textColor="#888888"
+            android:layout_marginTop="-4dp"
+            android:layout_marginBottom="5dp"
+            android:layout_marginEnd="4dp"
+            app:layout_constraintBottom_toTopOf="@id/btn_accept"
+            app:layout_constraintTop_toTopOf="@id/text_block"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+
+
+        <!-- 거절 버튼 -->
+        <TextView
+            android:id="@+id/btn_reject"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="거절"
+            android:textSize="12sp"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:background="@drawable/bg_friend_reject"
+            android:textColor="#555555"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_accept"
+            android:layout_marginEnd="6dp" />
+
+        <!-- 수락 버튼 -->
+        <TextView
+            android:id="@+id/btn_accept"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="수락"
+            android:textSize="12sp"
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:background="@drawable/bg_friend_accept"
+            android:textColor="@android:color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>
