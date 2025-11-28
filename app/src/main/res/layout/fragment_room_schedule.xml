@@ -3,7 +3,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    >
 
     <!-- 상단 앱바: 뒤로가기 + 방 제목 -->
     <androidx.appcompat.widget.Toolbar
@@ -12,14 +14,26 @@
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
         android:background="@android:color/white"
-        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIcon="@drawable/icon_back"
         app:title="여름 부산 여행"
         app:titleTextColor="@android:color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 날짜 탭 영역: 첫째 날 / 둘째 날 / 셋째 날 -->
+
+<!--선나누기-->
+    <View
+        android:id="@+id/dividerTitle"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#E3E8ED"
+        app:layout_constraintTop_toBottomOf="@id/toolbarRoomTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
+    <!-- 날짜 탭 영역 (일정 모드에서만 사용) -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayoutDay"
         android:layout_width="0dp"
@@ -31,7 +45,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 지도 영역 (Google Map) -->
+    <!-- 지도 영역 (일정 모드에서만 사용) -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/mapContainer"
         android:name="com.google.android.gms.maps.SupportMapFragment"
@@ -41,7 +55,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 지도와 타임라인 사이 구분선 -->
+    <!-- 지도와 아래 영역 사이 구분선 -->
     <View
         android:id="@+id/dividerTop"
         android:layout_width="0dp"
@@ -51,21 +65,90 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 편집 버튼 (일정 편집) -->
-    <ImageButton
+    <!-- 🔵 위시리스트 헤더 (위시리스트 모드에서만 보여줌) -->
+    <!-- 참여자들이 추가한 장소 + 장소 추가 버튼 영역 (위시리스트 모드에서만 보임) -->
+    <LinearLayout
+        android:id="@+id/layoutWishlistHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/dividerTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 제목 텍스트 -->
+        <TextView
+            android:id="@+id/textWishlistTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="참여자들이 추가한 장소"
+            android:textSize="18sp"
+            android:textColor="#6A7282" />
+
+        <!-- Figma 스타일 + 장소 추가 버튼 -->
+        <Button
+            android:id="@+id/btnAddWishlistPlace"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:background="@drawable/bg_wishlist_add_place"
+            android:text="+ 장소 추가"
+            android:textSize="13sp"
+            android:textColor="#4AA5FF"
+            android:gravity="center"
+            app:backgroundTint="@null" />
+
+    </LinearLayout>
+
+
+    <!-- 일정 편집 버튼 (일정 모드에서만 사용) -->
+    <LinearLayout
         android:id="@+id/btnEditSchedule"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        android:padding="8dp"
-        android:contentDescription="@string/edit_schedule"
-        android:src="@drawable/ic_edit"
-        app:tint="@color/black"
+        android:layout_height="32dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/bg_schedule_edit_button"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"
         app:layout_constraintTop_toBottomOf="@id/dividerTop"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/recyclerTimeline" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- 일정 타임라인 리스트 -->
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            app:srcCompat="@drawable/icon_edit" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="편집"
+            android:textSize="12sp"
+            android:textColor="#000000"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+
+
+
+
+    <!-- 일정 / 위시리스트 공용 타임라인 리스트 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerTimeline"
         android:layout_width="0dp"
@@ -73,24 +156,63 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/dividerTop"
+        app:layout_constraintTop_toBottomOf="@id/btnEditSchedule"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavRoom" />
+        app:layout_constraintBottom_toTopOf="@id/dividerBottomNav" />
 
-    <!-- 방 내부 하단 네비게이션: 위시리스트 / 일정 / 채팅 -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavRoom"
+    <!-- 하단 바텀바 위 구분선 -->
+    <View
+        android:id="@+id/dividerBottomNav"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="1dp"
+        android:background="#EEEEEE"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:labelVisibilityMode="labeled"
-        app:itemIconTint="@color/selector_room_bottom_nav"
-        app:itemTextColor="@color/selector_room_bottom_nav"
-        app:menu="@menu/menu_room_bottom" />
-    <!-- menu_room_bottom 은 나중에 위시리스트/일정/채팅 3개짜리 메뉴 파일 만들면 됨 -->
+        app:layout_constraintBottom_toTopOf="@id/layoutBottomNav" />
+
+    <!-- 바텀 내비 모양 -->
+    <LinearLayout
+        android:id="@+id/layoutBottomNav"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@android:color/white"
+        android:weightSum="3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/tabWishlist"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="위시리스트"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/tabSchedule"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="일정"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/tabChat"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="채팅"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
