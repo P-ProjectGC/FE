@@ -1,5 +1,6 @@
 package com.example.plango
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.NumberPicker
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.example.plango.model.TravelScheduleItem
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
@@ -26,6 +28,8 @@ class EditScheduleBottomSheet(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val btnClose = view.findViewById<View>(R.id.btnCloseSheet)
 
         val textPlaceName = view.findViewById<TextView>(R.id.textPlaceNameEdit)
         val textAddress = view.findViewById<TextView>(R.id.textAddressEdit)
@@ -51,27 +55,24 @@ class EditScheduleBottomSheet(
         setupTimePickers(npEndAmPm, npEndHour, npEndMinute)
 
         // 기존 시간값으로 초기화
-        // schedule.timeLabel = "HH:mm" / schedule.timeRange = "HH:mm ~ HH:mm" 가정
         applyTimeToPickers(schedule.timeLabel, npStartAmPm, npStartHour, npStartMinute)
 
-        val endTimeFromRange = extractEndTime(schedule.timeRange)  // "16:00" 형태
+        val endTimeFromRange = extractEndTime(schedule.timeRange)  // "16:00"
         applyTimeToPickers(endTimeFromRange, npEndAmPm, npEndHour, npEndMinute)
 
-        // 버튼들 동작
-        btnCancel.setOnClickListener {
-            dismiss()
-        }
+        // 버튼 동작들
+        btnClose.setOnClickListener { dismiss() }
+        btnCancel.setOnClickListener { dismiss() }
 
+        // ✅ 삭제 버튼 → 확인 다이얼로그
         btnDelete.setOnClickListener {
-            onDeleted()
-            dismiss()
+            showDeleteConfirmDialog()
         }
 
         btnConfirm.setOnClickListener {
             val startTime = formatTimeFromPickers(npStartAmPm, npStartHour, npStartMinute)
             val endTime = formatTimeFromPickers(npEndAmPm, npEndHour, npEndMinute)
 
-            // 시작/종료 유효성 체크
             if (!isTimeRangeValid(startTime, endTime)) {
                 Toast.makeText(requireContext(), "종료 시간이 시작 시간보다 빠릅니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -82,6 +83,33 @@ class EditScheduleBottomSheet(
         }
     }
 
+    // ----------------------------------------------------------
+    // 삭제 확인 다이얼로그
+    // ----------------------------------------------------------
+    private fun showDeleteConfirmDialog() {
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("일정을 삭제하시겠습니까?")
+            .setMessage("이 일정은 위시리스트로 다시 이동됩니다.")
+            .setPositiveButton("삭제") { _, _ ->
+                // 실제 삭제 콜백 실행 (RoomScheduleTestActivity 쪽에서
+                // 일정 제거 + 위시리스트로 이동 처리)
+                onDeleted()
+                dismiss()
+            }
+            .setNegativeButton("취소", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(Color.parseColor("#FF3B30"))
+        }
+
+        dialog.show()
+    }
+
+    // ----------------------------------------------------------
+    // 시간 관련 유틸들
+    // ----------------------------------------------------------
     private fun setupTimePickers(
         npAmPm: NumberPicker,
         npHour: NumberPicker,
@@ -144,7 +172,7 @@ class EditScheduleBottomSheet(
     private fun extractEndTime(timeRange: String): String {
         // "14:00 ~ 16:00" → "16:00"
         val parts = timeRange.split("~")
-        if (parts.size != 2) return schedule.timeLabel  // 실패 시 시작시간으로 fallback
+        if (parts.size != 2) return schedule.timeLabel
         return parts[1].trim()
     }
 
