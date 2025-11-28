@@ -120,11 +120,12 @@ class AddFriendDialogFragment : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // 다이얼로그 너비 조절 (필요에 따라 수정 가능)
-        dialog?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        // 팝업 바깥 배경을 투명하게 — 이게 핵심!
+        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // 팝업 너비를 적당히 (친구요청 팝업과 동일하게)
+        val width = (resources.displayMetrics.widthPixels * 0.9).toInt()
+        dialog?.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onDestroyView() {
