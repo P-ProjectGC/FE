@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="20dp"
+    android:background="@drawable/bg_friend_dialog_request">
+
+    <!-- 상단 타이틀 (가운데 정렬) -->
+    <TextView
+        android:id="@+id/tvTitleFriendRequest"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="친구 요청 (0)"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textAlignment="center"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 닫기(X) 버튼 - 오른쪽 상단 -->
+    <ImageView
+        android:id="@+id/ivClose"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:padding="4dp"
+        android:src="@drawable/x_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 친구 요청 리스트 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvFriendRequests"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/tvTitleFriendRequest"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- 0명일 때 가운데 아이콘 -->
+    <ImageView
+        android:id="@+id/ivEmptyIcon"
+        android:layout_width="65dp"
+        android:layout_height="65dp"
+        android:layout_marginTop="100dp"
+        android:src="@drawable/icon_friend_request"
+        app:layout_constraintTop_toBottomOf="@id/tvTitleFriendRequest"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 0명일 때 텍스트 -->
+    <TextView
+        android:id="@+id/tvEmptyFriendRequest"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="받은 친구 요청이 없습니다"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/ivEmptyIcon"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
