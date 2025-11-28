@@ -88,7 +88,8 @@ class ScheduleTimelineAdapter(
             textAddress.text = item.address
 
             // 4) 편집 모드에 따라 연필 아이콘 show/hide
-            imageEdit.visibility = if (isEditMode) View.VISIBLE else View.GONE
+            imageEdit.visibility = if (isEditMode) View.VISIBLE else View.INVISIBLE
+
 
             // 5) 카드 전체 클릭 → 항상 지도 포커스
             cardContainer.setOnClickListener {

@@ -19,7 +19,15 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.*
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.Polyline
+import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
@@ -49,11 +57,11 @@ class RoomScheduleTestActivity :
 
     private lateinit var mapContainer: View
     private lateinit var dividerTop: View
-    private lateinit var btnEditSchedule: View        // 편집 버튼(LinearLayout)
+    private lateinit var btnEditSchedule: View        // 상단 "편집" 버튼 (LinearLayout)
     private lateinit var wishlistHeader: View
     private lateinit var btnAddWishlistPlace: Button
 
-    // 편집 모드 플래그
+    // 일정 편집 모드 플래그
     private var isEditMode: Boolean = false
 
     // 지도 캐시
@@ -79,11 +87,10 @@ class RoomScheduleTestActivity :
 
         // Places 초기화 (이미 되어 있으면 패스)
         if (!Places.isInitialized()) {
-            // google_maps_key 는 기존 지도에서 쓰고 있는 키라고 가정
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
 
-        // 데이터 준비: 더미 대신 "빈 일정 / 빈 위시리스트"부터 시작
+        // 데이터 준비: "빈 일정 / 빈 위시리스트"부터 시작
         dailySchedules = createInitialDailySchedules()
         wishlistItems = mutableListOf()
 
@@ -125,6 +132,7 @@ class RoomScheduleTestActivity :
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // 카드 클릭 / 연필 클릭 콜백 분리
         // 🔵 새 어댑터 생성 방식: 카드 클릭 / 연필 클릭 콜백 분리
         scheduleAdapter = ScheduleTimelineAdapter(
             onItemClick = { item ->
@@ -134,15 +142,60 @@ class RoomScheduleTestActivity :
                 }
             },
             onItemEditClick = { item ->
-                // 연필 아이콘 클릭 → 일단 토스트로 확인 (나중에 바텀시트 연결)
-                Toast.makeText(
-                    this,
-                    "${item.placeName} 일정 편집 클릭",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // TODO: 추후 openEditScheduleBottomSheet(item) 연결
+                // 연필 아이콘 클릭 → 해당 day 내 인덱스 찾기
+                val day = dailySchedules[currentDayIndex]
+                val indexInDay = day.items.indexOf(item)
+                if (indexInDay == -1) {
+                    Toast.makeText(this, "일정을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    return@ScheduleTimelineAdapter
+                }
+
+                val bottomSheet = EditScheduleBottomSheet(
+                    schedule = item,
+                    onUpdated = { newStart, newEnd ->
+                        // ✅ 시간 수정
+                        val old = day.items[indexInDay]
+                        val updated = old.copy(
+                            timeLabel = newStart,
+                            timeRange = "$newStart ~ $newEnd"
+                        )
+                        day.items[indexInDay] = updated
+
+                        // 타임라인 & 지도 갱신
+                        showDay(currentDayIndex)
+                        Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                    },
+                    onDeleted = {
+                        // ✅ 1) day 에서 제거
+                        val removed = day.items.removeAt(indexInDay)
+
+                        // ✅ 2) 위시리스트 아이템으로 변환해서 추가
+                        val wishlistItem = WishlistPlaceItem(
+                            placeName = removed.placeName,
+                            address = removed.address,
+                            lat = removed.lat,
+                            lng = removed.lng,
+                            addedBy = "나"   // TODO: 나중에 실제 유저 닉네임
+                        )
+                        wishlistItems.add(wishlistItem)
+
+                        // ✅ 3) UI 갱신
+                        // - 일정 탭: 타임라인 & 지도 새로 그림
+                        showDay(currentDayIndex)
+
+                        // - 위시리스트 탭 열려 있으면 리스트 새로고침
+                        if (currentBottomTab == BottomTab.WISHLIST) {
+                            wishlistAdapter.refresh()
+                        }
+
+                        Toast.makeText(this, "일정이 삭제되고 위시리스트로 이동했습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                bottomSheet.show(supportFragmentManager, "EditScheduleBottomSheet")
             }
         )
+
 
         wishlistAdapter = WishlistAdapter(wishlistItems) { place ->
             openConfirmScheduleBottomSheet(place)
@@ -154,6 +207,8 @@ class RoomScheduleTestActivity :
     // 편집 버튼(우측 상단 LinearLayout) 클릭 시 편집 모드 토글
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
+            if (currentBottomTab != BottomTab.SCHEDULE) return@setOnClickListener
+
             isEditMode = !isEditMode
             scheduleAdapter.isEditMode = isEditMode
 
