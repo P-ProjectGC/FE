@@ -21,7 +21,9 @@
             android:layout_height="20dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:buttonTint="@color/friend_checkbox_tint_rm" />
+
 
         <!-- 프로필 사진 -->
         <ImageView

@@ -63,7 +63,8 @@
             android:id="@+id/iv_selected_icon"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:src="@drawable/icon_friend" />
+            android:src="@drawable/icon_friend"
+            app:tint="#47A8D4"/>
 
         <TextView
             android:id="@+id/tv_selected_count"
@@ -72,7 +73,7 @@
             android:layout_marginStart="6dp"
             android:text="0명 선택됨"
             android:textSize="12sp"
-            android:textColor="#555555" />
+            android:textColor="#47A8D4" />
     </LinearLayout>
 
 
