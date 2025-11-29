@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 체크된 상태: 검정 -->
+    <item
+        android:state_checked="true"
+        android:color="#000000" />
+
+    <!-- 기본(미체크) 상태: 연한 회색 -->
+    <item
+        android:color="#DDDDDD" />
+
+</selector>

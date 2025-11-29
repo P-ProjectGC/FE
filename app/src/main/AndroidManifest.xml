@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
@@ -12,29 +11,33 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PlanGo">
 
+        <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <!-- 기존 MainActivity (런처 역할 제거) -->
+        <!-- MainActivity: 나중에 홈 화면과 통합 예정 (지금은 런처 아님) -->
         <activity
             android:name=".MainActivity"
-            android:exported="true" >
-            <!-- 여기서는 LAUNCHER 제거 -->
-        </activity>
+            android:exported="false" />
 
-        <!-- 테스트용 액티비티: RoomScheduleTestActivity -->
+        <!-- 여행방 생성 화면: 앱 실행 시 가장 먼저 뜨는 액티비티 -->
         <activity
-            android:name=".RoomScheduleTestActivity"
+            android:name=".CreateRoomActivity"
             android:exported="true">
 
-            <!-- 임시로 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
+            <!-- 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
+
+        <!-- 여행방 일정/지도 테스트용 액티비티 -->
+        <activity
+            android:name=".RoomScheduleTestActivity"
+            android:exported="true" />
 
     </application>
 
