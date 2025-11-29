@@ -170,7 +170,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/layoutBottomNav" />
 
-    <!-- 바텀 내비 모양 -->
+    <!-- 방 내부 바텀 내비게이션 -->
     <LinearLayout
         android:id="@+id/layoutBottomNav"
         android:layout_width="0dp"
@@ -178,40 +178,95 @@
         android:orientation="horizontal"
         android:background="@android:color/white"
         android:weightSum="3"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <TextView
-            android:id="@+id/tabWishlist"
+        <!-- 위시리스트 탭 -->
+        <LinearLayout
+            android:id="@+id/layoutTabWishlist"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="위시리스트"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tabSchedule"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="일정"
-            android:textStyle="bold"
-            android:textSize="12sp"
-            android:textColor="@android:color/black" />
+            <ImageView
+                android:id="@+id/iconWishlist"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/icon_wishlist_h"
+                app:tint="#47A8D4"
+                 />
 
-        <TextView
-            android:id="@+id/tabChat"
+            <TextView
+                android:id="@+id/tabWishlist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="위시리스트"
+                android:textSize="11sp"
+                android:textColor="#47A8D4" />
+        </LinearLayout>
+
+        <!-- 일정 탭 (기본 선택 상태) -->
+        <LinearLayout
+            android:id="@+id/layoutTabSchedule"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="채팅"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray" />
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/iconSchedule"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/icon_tripplan_h"
+                app:tint="#47A8D4"
+                 />
+
+            <TextView
+                android:id="@+id/tabSchedule"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="일정"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#47A8D4" />
+        </LinearLayout>
+
+        <!-- 채팅 탭 -->
+        <LinearLayout
+            android:id="@+id/layoutTabChat"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/iconChat"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/icon_chat_h"
+                app:tint="#47A8D4"
+             />
+
+            <TextView
+                android:id="@+id/tabChat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="채팅"
+                android:textSize="11sp"
+                android:textColor="#47A8D4" />
+        </LinearLayout>
+
     </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

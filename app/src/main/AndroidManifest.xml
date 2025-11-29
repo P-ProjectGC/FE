@@ -16,14 +16,9 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <!-- MainActivity: 나중에 홈 화면과 통합 예정 (지금은 런처 아님) -->
+        <!-- ✅ 앱 실행 시 가장 먼저 뜨는 액티비티: MainActivity -->
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
-
-        <!-- 여행방 생성 화면: 앱 실행 시 가장 먼저 뜨는 액티비티 -->
-        <activity
-            android:name=".CreateRoomActivity"
             android:exported="true">
 
             <!-- 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
@@ -33,6 +28,11 @@
             </intent-filter>
 
         </activity>
+
+        <!-- 여행방 생성 화면: 이제는 MainActivity에서 진입하는 화면 -->
+        <activity
+            android:name=".CreateRoomActivity"
+            android:exported="false" />
 
         <!-- 여행방 일정/지도 테스트용 액티비티 -->
         <activity

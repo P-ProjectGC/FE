@@ -1,20 +1,22 @@
 package com.example.plango
 
 import android.app.Activity
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.model.TravelScheduleItem
-import com.google.android.material.tabs.TabLayout
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -32,7 +34,7 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
-import androidx.appcompat.widget.Toolbar
+import com.google.android.material.tabs.TabLayout
 
 class RoomScheduleTestActivity :
     AppCompatActivity(),
@@ -45,7 +47,6 @@ class RoomScheduleTestActivity :
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
 
-
     private lateinit var googleMap: GoogleMap
 
     // 일정 / 위시리스트 데이터
@@ -53,21 +54,31 @@ class RoomScheduleTestActivity :
     private var currentDayIndex: Int = 0
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
 
-    // UI
+    // UI - 리스트
     private lateinit var recyclerView: RecyclerView
     private lateinit var scheduleAdapter: ScheduleTimelineAdapter
     private lateinit var wishlistAdapter: WishlistAdapter
 
+    // UI - 상단 날짜 탭 / 지도 / 편집 버튼 / 위시리스트 헤더
     private lateinit var tabLayoutDay: TabLayout
-    private lateinit var tabWishlistText: TextView
-    private lateinit var tabScheduleText: TextView
-    private lateinit var tabChatText: TextView
-
     private lateinit var mapContainer: View
     private lateinit var dividerTop: View
     private lateinit var btnEditSchedule: View        // 편집 버튼(LinearLayout)
     private lateinit var wishlistHeader: View
     private lateinit var btnAddWishlistPlace: Button
+
+    // UI - 바텀 내비 (텍스트 + 부모 레이아웃 + 아이콘)
+    private lateinit var tabWishlistText: TextView
+    private lateinit var tabScheduleText: TextView
+    private lateinit var tabChatText: TextView
+
+    private lateinit var layoutTabWishlist: View
+    private lateinit var layoutTabSchedule: View
+    private lateinit var layoutTabChat: View
+
+    private lateinit var iconWishlist: ImageView
+    private lateinit var iconSchedule: ImageView
+    private lateinit var iconChat: ImageView
 
     // 편집 모드 플래그
     private var isEditMode: Boolean = false
@@ -77,7 +88,6 @@ class RoomScheduleTestActivity :
     private var routePolyline: Polyline? = null
 
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
-
     private var currentBottomTab: BottomTab = BottomTab.SCHEDULE
 
     // Places Autocomplete 결과 받기
@@ -108,22 +118,33 @@ class RoomScheduleTestActivity :
             finish()   // ← 뒤로가기 동작
         }
 
-
         // Places 초기화 (이미 되어 있으면 패스)
         if (!Places.isInitialized()) {
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
 
-        // 데이터 준비: 더미 대신 "빈 일정 / 빈 위시리스트"부터 시작
+        // 데이터 준비: 빈 일정 / 빈 위시리스트부터 시작
         dailySchedules = createInitialDailySchedules()
         wishlistItems = mutableListOf()
 
-        // 뷰 찾기
+        // ===== 뷰 찾기 =====
         recyclerView = findViewById(R.id.recyclerTimeline)
         tabLayoutDay = findViewById(R.id.tabLayoutDay)
+
+        // 바텀 내비 텍스트
         tabWishlistText = findViewById(R.id.tabWishlist)
         tabScheduleText = findViewById(R.id.tabSchedule)
         tabChatText = findViewById(R.id.tabChat)
+
+        // 바텀 내비 레이아웃(전체 클릭 영역)
+        layoutTabWishlist = findViewById(R.id.layoutTabWishlist)
+        layoutTabSchedule = findViewById(R.id.layoutTabSchedule)
+        layoutTabChat = findViewById(R.id.layoutTabChat)
+
+        // 바텀 내비 아이콘
+        iconWishlist = findViewById(R.id.iconWishlist)
+        iconSchedule = findViewById(R.id.iconSchedule)
+        iconChat = findViewById(R.id.iconChat)
 
         mapContainer = findViewById(R.id.mapContainer)
         dividerTop = findViewById(R.id.dividerTop)
@@ -337,12 +358,22 @@ class RoomScheduleTestActivity :
     // 바텀바
     // ============================================================
     private fun setupBottomNav() {
+        // ✅ 전체 레이아웃 클릭 시 탭 전환
+        layoutTabWishlist.setOnClickListener { switchBottomTab(BottomTab.WISHLIST) }
+        layoutTabSchedule.setOnClickListener { switchBottomTab(BottomTab.SCHEDULE) }
+        layoutTabChat.setOnClickListener {
+            switchBottomTab(BottomTab.CHAT)
+            Toast.makeText(this, "채팅 화면은 나중에 붙이자 😅", Toast.LENGTH_SHORT).show()
+        }
+
+        // 텍스트만 눌러도 동작하게 하고 싶으면 유지
         tabWishlistText.setOnClickListener { switchBottomTab(BottomTab.WISHLIST) }
         tabScheduleText.setOnClickListener { switchBottomTab(BottomTab.SCHEDULE) }
         tabChatText.setOnClickListener {
             switchBottomTab(BottomTab.CHAT)
             Toast.makeText(this, "채팅 화면은 나중에 붙이자 😅", Toast.LENGTH_SHORT).show()
         }
+
         updateBottomNavUI()
     }
 
@@ -376,20 +407,41 @@ class RoomScheduleTestActivity :
                 wishlistAdapter.refresh()
             }
 
-            BottomTab.CHAT -> {}
+            BottomTab.CHAT -> {
+                // TODO: 채팅 붙이면 여기서 처리
+            }
         }
     }
 
     private fun updateBottomNavUI() {
-        fun TextView.setActive(active: Boolean) {
-            val colorRes = if (active) android.R.color.black else android.R.color.darker_gray
-            setTextColor(ContextCompat.getColor(context, colorRes))
-            setTypeface(null, if (active) Typeface.BOLD else Typeface.NORMAL)
+        val activeColor = Color.parseColor("#47A8D4")
+        val inactiveColor = Color.parseColor("#B3B3B3")
+
+        fun setTabState(
+            isActive: Boolean,
+            textView: TextView,
+            iconView: ImageView
+        ) {
+            textView.setTextColor(if (isActive) activeColor else inactiveColor)
+            textView.setTypeface(null, if (isActive) Typeface.BOLD else Typeface.NORMAL)
+            iconView.setColorFilter(if (isActive) activeColor else inactiveColor)
         }
 
-        tabWishlistText.setActive(currentBottomTab == BottomTab.WISHLIST)
-        tabScheduleText.setActive(currentBottomTab == BottomTab.SCHEDULE)
-        tabChatText.setActive(currentBottomTab == BottomTab.CHAT)
+        setTabState(
+            currentBottomTab == BottomTab.WISHLIST,
+            tabWishlistText,
+            iconWishlist
+        )
+        setTabState(
+            currentBottomTab == BottomTab.SCHEDULE,
+            tabScheduleText,
+            iconSchedule
+        )
+        setTabState(
+            currentBottomTab == BottomTab.CHAT,
+            tabChatText,
+            iconChat
+        )
     }
 
     // ============================================================
@@ -427,7 +479,7 @@ class RoomScheduleTestActivity :
         routePolyline = null
 
         val polylineOptions = PolylineOptions()
-            .color(android.graphics.Color.parseColor("#2A80FF"))
+            .color(Color.parseColor("#2A80FF"))
             .width(8f)
             .pattern(listOf(Dot(), Gap(10f), Dash(30f), Gap(10f)))
 
@@ -520,7 +572,7 @@ class RoomScheduleTestActivity :
     }
 }
 
-    // ====== 모델 ======
+// ====== 모델 ======
 data class TravelDailySchedule(
     val dayIndex: Int,
     val dayTitle: String,

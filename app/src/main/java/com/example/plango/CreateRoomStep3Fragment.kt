@@ -1,5 +1,6 @@
 package com.example.plango
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
@@ -10,7 +11,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import android.content.Intent
+import com.example.plango.data.TravelRoomRepository
+import com.example.plango.model.TravelRoom
 
 class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
@@ -79,30 +81,51 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
             val selectedNicknames = activity.selectedFriendNicknames
 
             // 안전 방어 (정상 플로우면 안 걸림)
-            if (start == null || end == null || selectedNicknames.isEmpty()) {
-                // TODO: 필요하면 토스트 띄워도 됨
+            if (start == null || end == null) {
+                // TODO: 필요하면 토스트 띄우기
                 return@setOnClickListener
             }
 
-            // ✅ 여행방 생성 후, 일정/지도 화면으로 이동
+            // 📅 리스트에 보여줄 날짜 텍스트 (더미 데이터 스타일 맞추기)
+            // 예: "8월 3일 - 8월 5일"
+            val dateText = "${start.monthValue}월 ${start.dayOfMonth}일 - " +
+                    "${end.monthValue}월 ${end.dayOfMonth}일"
+
+            // 👥 인원 수 (나중에 실제 멤버 수로 바꿔도 됨)
+            val memberCount = selectedNicknames.size.takeIf { it > 0 } ?: 1
+
+            // ✅ 1) 새 TravelRoom 객체 생성
+            val newRoom = TravelRoom(
+                id = System.currentTimeMillis(),
+                title = roomName,
+                startDate = start.toString(),   // "2025-11-29"
+                endDate = end.toString(),       // "2025-12-02"
+                dateText = dateText,            // "11월 29일 - 12월 2일"
+                memo = roomMemo,
+                memberCount = memberCount
+            )
+
+
+            // ✅ 2) Repository에 방 추가 -> 방 목록에서 사용할 데이터
+            TravelRoomRepository.addRoom(newRoom)
+
+            // ✅ 3) 일정/지도 화면으로 이동 (지금까지 쓰던 테스트용 플로우 유지)
             val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
                 putExtra("ROOM_NAME", roomName)
                 putExtra("ROOM_MEMO", roomMemo)
-                putExtra("START_DATE", start.toString())   // "2025-11-29" 이런 형식
+                putExtra("START_DATE", start.toString())   // "2025-11-29" 형식
                 putExtra("END_DATE", end.toString())
                 putStringArrayListExtra(
                     "MEMBER_NICKNAMES",
-                    ArrayList(selectedNicknames)           // ⭐ 닉네임 리스트만 전달
+                    ArrayList(selectedNicknames)           // ⭐ 닉네임 리스트 전달
                 )
             }
             startActivity(intent)
 
-            // CreateRoomActivity는 스택에서 제거 (뒤로가기 시 다시 안 보이게)
+            // CreateRoomActivity는 스택에서 제거 (뒤로가기 시 방 목록으로)
             requireActivity().finish()
         }
     }
-
-
 
     private fun updateMemoCount() {
         val length = etRoomMemo.text?.length ?: 0
