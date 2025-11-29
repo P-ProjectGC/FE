@@ -32,10 +32,19 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import androidx.appcompat.widget.Toolbar
 
 class RoomScheduleTestActivity :
     AppCompatActivity(),
     OnMapReadyCallback {
+
+    // ⭐⭐⭐ 여행 생성 화면에서 넘어온 정보들 ⭐⭐⭐
+    private lateinit var roomName: String
+    private var roomMemo: String? = null
+    private lateinit var startDate: String
+    private lateinit var endDate: String
+    private var memberNicknames: List<String> = emptyList()
+
 
     private lateinit var googleMap: GoogleMap
 
@@ -68,6 +77,7 @@ class RoomScheduleTestActivity :
     private var routePolyline: Polyline? = null
 
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
+
     private var currentBottomTab: BottomTab = BottomTab.SCHEDULE
 
     // Places Autocomplete 결과 받기
@@ -83,6 +93,21 @@ class RoomScheduleTestActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_room_schedule)
+
+        // ⭐⭐⭐ 여행 생성 화면에서 넘어온 정보 받기 ⭐⭐⭐
+        roomName = intent.getStringExtra("ROOM_NAME") ?: ""
+        roomMemo = intent.getStringExtra("ROOM_MEMO")
+        startDate = intent.getStringExtra("START_DATE") ?: ""
+        endDate = intent.getStringExtra("END_DATE") ?: ""
+        memberNicknames =
+            intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
+
+        val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
+        toolbar.title = roomName
+        toolbar.setNavigationOnClickListener {
+            finish()   // ← 뒤로가기 동작
+        }
+
 
         // Places 초기화 (이미 되어 있으면 패스)
         if (!Places.isInitialized()) {
@@ -121,7 +146,6 @@ class RoomScheduleTestActivity :
     // 현재 dayIndex 기준으로 시간 순으로 정렬된 일정 리스트
     private fun getSortedItemsForDay(dayIndex: Int): List<TravelScheduleItem> {
         val day = dailySchedules[dayIndex]
-        // timeLabel = "HH:mm" 형식이라고 가정
         return day.items.sortedBy { it.timeLabel }
     }
 
@@ -131,16 +155,13 @@ class RoomScheduleTestActivity :
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // 카드 클릭 / 연필 클릭 콜백 분리
         scheduleAdapter = ScheduleTimelineAdapter(
             onItemClick = { item ->
-                // 카드 전체 클릭 → 일정 탭일 때 지도 포커스
                 if (currentBottomTab == BottomTab.SCHEDULE) {
                     focusMapOnItem(item)
                 }
             },
             onItemEditClick = { item ->
-                // 연필 아이콘 클릭 → 해당 day 내 인덱스 찾기
                 val day = dailySchedules[currentDayIndex]
                 val indexInDay = day.items.indexOf(item)
                 if (indexInDay == -1) {
@@ -151,7 +172,6 @@ class RoomScheduleTestActivity :
                 val bottomSheet = EditScheduleBottomSheet(
                     schedule = item,
                     onUpdated = { newStart, newEnd ->
-                        // ✅ 시간 수정
                         val old = day.items[indexInDay]
                         val updated = old.copy(
                             timeLabel = newStart,
@@ -159,29 +179,23 @@ class RoomScheduleTestActivity :
                         )
                         day.items[indexInDay] = updated
 
-                        // 타임라인 & 지도 갱신
                         showDay(currentDayIndex)
                         Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
                     },
                     onDeleted = {
-                        // ✅ 1) day 에서 제거
                         val removed = day.items.removeAt(indexInDay)
 
-                        // ✅ 2) 위시리스트 아이템으로 변환해서 추가
                         val wishlistItem = WishlistPlaceItem(
                             placeName = removed.placeName,
                             address = removed.address,
                             lat = removed.lat,
                             lng = removed.lng,
-                            addedBy = "나"   // TODO: 나중에 실제 유저 닉네임
+                            addedBy = "나"
                         )
                         wishlistItems.add(wishlistItem)
 
-                        // ✅ 3) UI 갱신
-                        // - 일정 탭: 타임라인 & 지도 새로 그림
                         showDay(currentDayIndex)
 
-                        // - 위시리스트 탭 열려 있으면 리스트 새로고침
                         if (currentBottomTab == BottomTab.WISHLIST) {
                             wishlistAdapter.refresh()
                         }
@@ -205,7 +219,6 @@ class RoomScheduleTestActivity :
         recyclerView.adapter = scheduleAdapter
     }
 
-    // 편집 버튼(우측 상단 LinearLayout) 클릭 시 편집 모드 토글
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
             if (currentBottomTab != BottomTab.SCHEDULE) return@setOnClickListener
@@ -218,7 +231,6 @@ class RoomScheduleTestActivity :
         }
     }
 
-    // RecyclerView의 top 제약 변경
     private fun setRecyclerTopTo(targetViewId: Int) {
         val params = recyclerView.layoutParams as ConstraintLayout.LayoutParams
         params.topToBottom = targetViewId
@@ -274,7 +286,7 @@ class RoomScheduleTestActivity :
     }
 
     // ============================================================
-    // 위시리스트 헤더 (+ 장소 추가)
+    // 위시리스트 헤더
     // ============================================================
     private fun setupWishlistHeader() {
         btnAddWishlistPlace.setOnClickListener {
@@ -310,7 +322,7 @@ class RoomScheduleTestActivity :
             address = place.address ?: "",
             lat = latLng.latitude,
             lng = latLng.longitude,
-            addedBy = "나"   // TODO: 나중에 실제 사용자 닉네임으로 교체
+            addedBy = "나"
         )
 
         wishlistItems.add(newItem)
@@ -351,6 +363,7 @@ class RoomScheduleTestActivity :
                 recyclerView.adapter = scheduleAdapter
                 showDay(currentDayIndex)
             }
+
             BottomTab.WISHLIST -> {
                 mapContainer.visibility = View.GONE
                 tabLayoutDay.visibility = View.GONE
@@ -362,9 +375,8 @@ class RoomScheduleTestActivity :
                 recyclerView.adapter = wishlistAdapter
                 wishlistAdapter.refresh()
             }
-            BottomTab.CHAT -> {
-                // 아직 별도 UI 없음
-            }
+
+            BottomTab.CHAT -> {}
         }
     }
 
@@ -381,7 +393,7 @@ class RoomScheduleTestActivity :
     }
 
     // ============================================================
-    // 일정 모드: 날짜별 일정 표시
+    // 일정 모드
     // ============================================================
     private fun showDay(dayIndex: Int) {
         if (dailySchedules.isEmpty()) return
@@ -441,9 +453,6 @@ class RoomScheduleTestActivity :
         googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
     }
 
-    // ============================================================
-    // 일정 모드: 아이템 클릭 → 지도 포커스
-    // ============================================================
     private fun focusMapOnItem(item: TravelScheduleItem) {
         if (!::googleMap.isInitialized) return
         val target = LatLng(item.lat, item.lng)
@@ -458,7 +467,8 @@ class RoomScheduleTestActivity :
             place = place,
             days = dailySchedules,
             onConfirmed = { dayIndex, startTime, endTime ->
-                val targetDay = dailySchedules.getOrNull(dayIndex) ?: return@ConfirmScheduleBottomSheet
+                val targetDay =
+                    dailySchedules.getOrNull(dayIndex) ?: return@ConfirmScheduleBottomSheet
 
                 val newSchedule = TravelScheduleItem(
                     timeLabel = startTime,
@@ -470,10 +480,8 @@ class RoomScheduleTestActivity :
                 )
                 targetDay.items.add(newSchedule)
 
-                // 위시리스트에서 제거
                 wishlistItems.remove(place)
 
-                // UI 갱신
                 if (currentBottomTab == BottomTab.WISHLIST) {
                     wishlistAdapter.refresh()
                 } else if (currentBottomTab == BottomTab.SCHEDULE) {
@@ -488,20 +496,31 @@ class RoomScheduleTestActivity :
     }
 
     // ============================================================
-    // 초기 데이터: 일정은 빈 리스트, 날짜만 존재
+    // 초기 데이터
     // ============================================================
     private fun createInitialDailySchedules(): MutableList<TravelDailySchedule> {
-        val day1Items = mutableListOf<TravelScheduleItem>()
-        val day2Items = mutableListOf<TravelScheduleItem>()
+        // startDate / endDate 는 "2025-11-29" 이런 형식의 문자열이라고 가정
+        val start = java.time.LocalDate.parse(startDate)
+        val end = java.time.LocalDate.parse(endDate)
 
-        return mutableListOf(
-            TravelDailySchedule(0, "1일차", day1Items),
-            TravelDailySchedule(1, "2일차", day2Items)
-        )
+        // 총 일수 = 종료 - 시작 + 1
+        val days = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
+
+        val list = mutableListOf<TravelDailySchedule>()
+        for (i in 0 until days) {
+            list.add(
+                TravelDailySchedule(
+                    dayIndex = i,
+                    dayTitle = "${i + 1}일차",
+                    items = mutableListOf()
+                )
+            )
+        }
+        return list
     }
 }
 
-// ====== 모델 ======
+    // ====== 모델 ======
 data class TravelDailySchedule(
     val dayIndex: Int,
     val dayTitle: String,

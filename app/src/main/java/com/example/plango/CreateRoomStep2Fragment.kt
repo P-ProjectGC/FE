@@ -90,8 +90,16 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     }
 
     private fun setupButtons() {
+        updateNextButtonState()
+
         btnNext.setOnClickListener {
             if (selectedNicknames.isNotEmpty()) {
+
+                // ⭐ 선택된 닉네임들을 Activity에 저장
+                (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+                    createRoomActivity.selectedFriendNicknames = selectedNicknames.toList()
+                }
+
                 parentFragmentManager.beginTransaction()
                     .replace(
                         R.id.fcv_create_room_container,
@@ -102,6 +110,8 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
             }
         }
     }
+
+
 
     private fun setupSearch() {
         etSearchNickname.addTextChangedListener(object : TextWatcher {
@@ -128,9 +138,21 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
 
     private fun loadFriends() {
         allFriends = FriendRepository.getFriends()
+
+        // ⭐ Activity에 이전에 저장된 선택 닉네임이 있으면 복원
+        (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+            if (createRoomActivity.selectedFriendNicknames.isNotEmpty()) {
+                selectedNicknames.clear()
+                selectedNicknames.addAll(createRoomActivity.selectedFriendNicknames)
+            }
+        }
+
         applyFilter(etSearchNickname.text?.toString()?.trim().orEmpty())
         updateSelectedSummary()
+        updateNextButtonState()
     }
+
+
 
     // 검색: 내 친구 목록에서 닉네임/실명으로 필터
     private fun applyFilter(keyword: String) {

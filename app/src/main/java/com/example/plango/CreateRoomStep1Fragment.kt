@@ -43,6 +43,12 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
 
         (activity as? CreateRoomActivity)?.setStep(1)
 
+        // ⭐ Activity에 저장되어 있던 날짜를 Fragment로 복원
+        (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+            startDate = createRoomActivity.startDate
+            endDate = createRoomActivity.endDate
+        }
+
         initViews(view)
         setupCalendar()
         setupButtons()
@@ -104,6 +110,13 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
             // 버튼은 startDate / endDate 둘 다 있을 때만 enable 상태라,
             // 여기서는 바로 Step2로 전환해도 됨.
             if (startDate != null && endDate != null) {
+
+                // ⭐ 현재 선택된 날짜를 Activity에 저장
+                (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+                    createRoomActivity.startDate = startDate
+                    createRoomActivity.endDate = endDate
+                }
+
                 parentFragmentManager.beginTransaction()
                     .replace(
                         R.id.fcv_create_room_container,
@@ -114,6 +127,7 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
             }
         }
     }
+
 
     /**
      * 날짜 하나 탭했을 때 출발/도착 선택 로직

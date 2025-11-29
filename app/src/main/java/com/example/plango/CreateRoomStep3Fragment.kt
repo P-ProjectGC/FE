@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import android.content.Intent
 
 class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
@@ -66,18 +67,42 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         updateCompleteButtonState()
 
         btnComplete.setOnClickListener {
-            if (btnComplete.isEnabled) {
-                val roomName = etRoomName.text.toString().trim()
-                val roomMemo = etRoomMemo.text.toString().trim()
+            if (!btnComplete.isEnabled) return@setOnClickListener
 
-                // TODO: 여기서 실제 방 생성/서버 전송 로직 호출
-                // 예: (activity as? CreateRoomActivity)?.createRoom(roomName, roomMemo)
+            val roomName = etRoomName.text.toString().trim()
+            val roomMemo = etRoomMemo.text.toString().trim()
 
-                // 일단은 액티비티 종료로 마무리 (임시)
-                activity?.finish()
+            // ⭐ Activity에서 날짜 + 친구 닉네임 가져오기
+            val activity = activity as? CreateRoomActivity ?: return@setOnClickListener
+            val start = activity.startDate
+            val end = activity.endDate
+            val selectedNicknames = activity.selectedFriendNicknames
+
+            // 안전 방어 (정상 플로우면 안 걸림)
+            if (start == null || end == null || selectedNicknames.isEmpty()) {
+                // TODO: 필요하면 토스트 띄워도 됨
+                return@setOnClickListener
             }
+
+            // ✅ 여행방 생성 후, 일정/지도 화면으로 이동
+            val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
+                putExtra("ROOM_NAME", roomName)
+                putExtra("ROOM_MEMO", roomMemo)
+                putExtra("START_DATE", start.toString())   // "2025-11-29" 이런 형식
+                putExtra("END_DATE", end.toString())
+                putStringArrayListExtra(
+                    "MEMBER_NICKNAMES",
+                    ArrayList(selectedNicknames)           // ⭐ 닉네임 리스트만 전달
+                )
+            }
+            startActivity(intent)
+
+            // CreateRoomActivity는 스택에서 제거 (뒤로가기 시 다시 안 보이게)
+            requireActivity().finish()
         }
     }
+
+
 
     private fun updateMemoCount() {
         val length = etRoomMemo.text?.length ?: 0

@@ -15,7 +15,6 @@
         android:minHeight="?attr/actionBarSize"
         android:background="@android:color/white"
         app:navigationIcon="@drawable/icon_back"
-        app:title="여름 부산 여행"
         app:titleTextColor="@android:color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"

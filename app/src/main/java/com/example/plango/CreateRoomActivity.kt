@@ -9,6 +9,7 @@ import com.example.plango.adapter.CalendarAdapter_rm
 import com.example.plango.model.CalendarDay_rm
 import com.example.plango.data.FriendRepository
 import com.example.plango.model.Friend
+import java.time.LocalDate
 
 class CreateRoomActivity : AppCompatActivity() {
 
@@ -23,6 +24,10 @@ class CreateRoomActivity : AppCompatActivity() {
     private lateinit var tvStep2Label: TextView
     private lateinit var tvStep3Circle: TextView
     private lateinit var tvStep3Label: TextView
+    // ⭐ [여행방 생성에 필요한 상태들 저장용 필드]
+    var startDate: LocalDate? = null
+    var endDate: LocalDate? = null
+    var selectedFriendNicknames: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
