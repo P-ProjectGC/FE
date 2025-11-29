@@ -92,7 +92,7 @@
                     android:id="@+id/iv_room_memo_icon"
                     android:layout_width="16dp"
                     android:layout_height="16dp"
-                    android:src="@drawable/icon_room_memo" />
+                    android:src="@drawable/icon_room_memo_rm" />
 
                 <TextView
                     android:id="@+id/tv_memo_label"
