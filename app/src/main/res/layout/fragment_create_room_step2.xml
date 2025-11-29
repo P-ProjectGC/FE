@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_step2_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
+
+    <!-- 🔹 검색 박스 카드 (배경색 + 테두리 + 돋보기 아이콘) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_search_friend"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="#EDF8FD"
+        app:strokeColor="#A8DEF5"
+        app:strokeWidth="1dp"
+        app:cardCornerRadius="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="16dp">
+
+            <ImageView
+                android:id="@+id/iv_search_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/icon_friend_search" />
+
+            <EditText
+                android:id="@+id/et_search_nickname"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@android:color/transparent"
+                android:hint="닉네임으로 검색"
+                android:singleLine="true"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+
+    <!-- 🔹 선택된 인원 표시 영역 -->
+    <LinearLayout
+        android:id="@+id/layout_selected_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:id="@+id/iv_selected_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/icon_friend" />
+
+        <TextView
+            android:id="@+id/tv_selected_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="0명 선택됨"
+            android:textSize="12sp"
+            android:textColor="#555555" />
+    </LinearLayout>
+
+
+    <!-- 🔹 선택된 친구 칩 리스트 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_selected_friends"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never"
+        android:layout_marginBottom="8dp" />
+
+
+    <!-- 🔹 친구 리스트 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_friend_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:overScrollMode="never" />
+
+    <!-- 🔹 하단 '다음' 버튼 -->
+    <Button
+        android:id="@+id/btn_next_step2"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="다음"
+        android:enabled="false"
+        android:textColor="#B3FFFFFF"
+        android:background="@drawable/bg_btn_next_disabled"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@null" />
+
+
+</LinearLayout>

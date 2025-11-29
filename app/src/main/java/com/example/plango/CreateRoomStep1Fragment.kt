@@ -1,5 +1,6 @@
 package com.example.plango
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -14,7 +15,7 @@ import com.example.plango.model.CalendarDay_rm
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import android.graphics.Color
+
 class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
 
     private lateinit var rvCalendar: RecyclerView
@@ -45,6 +46,9 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
         initViews(view)
         setupCalendar()
         setupButtons()
+
+        // 🔹 이미 선택된 날짜가 있으면 상단 카드/텍스트 복원
+        updateDateInfoBox()
     }
 
     private fun initViews(view: View) {
@@ -61,7 +65,7 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
 
     private fun setupCalendar() {
         calendarAdapter = CalendarAdapter_rm { day ->
-            // 이전/다음 달 날짜는 선택 안 되게 막고 싶으면 여기서 필터링
+            // 이전/다음 달 날짜는 선택 안 되게 막으려면 여기서 필터링
             if (!day.isCurrentMonth) return@CalendarAdapter_rm
 
             handleDateClick(day.date)
@@ -97,8 +101,17 @@ class CreateRoomStep1Fragment : Fragment(R.layout.fragment_create_room_step1) {
         updateNextButtonState()
 
         btnNext.setOnClickListener {
-            // TODO: 나중에 2단계로 넘어갈 때 startDate / endDate 넘겨주기
-            // (activity as? CreateRoomActivity)?.goToStep2(startDate, endDate)
+            // 버튼은 startDate / endDate 둘 다 있을 때만 enable 상태라,
+            // 여기서는 바로 Step2로 전환해도 됨.
+            if (startDate != null && endDate != null) {
+                parentFragmentManager.beginTransaction()
+                    .replace(
+                        R.id.fcv_create_room_container,
+                        CreateRoomStep2Fragment()
+                    )
+                    .addToBackStack(null) // 뒤로가기 시 Step1으로 돌아오도록
+                    .commit()
+            }
         }
     }
 
