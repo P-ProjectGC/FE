@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="#111827" />      <!-- 아주 진한 남색/검정 느낌 -->
+    <corners android:radius="999dp" />     <!-- 완전 동그랗게 -->
+</shape>
