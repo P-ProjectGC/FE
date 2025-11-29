@@ -42,7 +42,6 @@ class RoomScheduleTestActivity :
     // 일정 / 위시리스트 데이터
     private lateinit var dailySchedules: MutableList<TravelDailySchedule>
     private var currentDayIndex: Int = 0
-
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
 
     // UI
@@ -57,11 +56,11 @@ class RoomScheduleTestActivity :
 
     private lateinit var mapContainer: View
     private lateinit var dividerTop: View
-    private lateinit var btnEditSchedule: View        // 상단 "편집" 버튼 (LinearLayout)
+    private lateinit var btnEditSchedule: View        // 편집 버튼(LinearLayout)
     private lateinit var wishlistHeader: View
     private lateinit var btnAddWishlistPlace: Button
 
-    // 일정 편집 모드 플래그
+    // 편집 모드 플래그
     private var isEditMode: Boolean = false
 
     // 지도 캐시
@@ -90,7 +89,7 @@ class RoomScheduleTestActivity :
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
 
-        // 데이터 준비: "빈 일정 / 빈 위시리스트"부터 시작
+        // 데이터 준비: 더미 대신 "빈 일정 / 빈 위시리스트"부터 시작
         dailySchedules = createInitialDailySchedules()
         wishlistItems = mutableListOf()
 
@@ -133,7 +132,6 @@ class RoomScheduleTestActivity :
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         // 카드 클릭 / 연필 클릭 콜백 분리
-        // 🔵 새 어댑터 생성 방식: 카드 클릭 / 연필 클릭 콜백 분리
         scheduleAdapter = ScheduleTimelineAdapter(
             onItemClick = { item ->
                 // 카드 전체 클릭 → 일정 탭일 때 지도 포커스
@@ -188,14 +186,17 @@ class RoomScheduleTestActivity :
                             wishlistAdapter.refresh()
                         }
 
-                        Toast.makeText(this, "일정이 삭제되고 위시리스트로 이동했습니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this,
+                            "일정이 삭제되고 위시리스트로 이동했습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
 
                 bottomSheet.show(supportFragmentManager, "EditScheduleBottomSheet")
             }
         )
-
 
         wishlistAdapter = WishlistAdapter(wishlistItems) { place ->
             openConfirmScheduleBottomSheet(place)
