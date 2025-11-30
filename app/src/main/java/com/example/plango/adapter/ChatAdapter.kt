@@ -114,7 +114,12 @@ class ChatAdapter(
         fun bind(message: ChatMessage) {
             val uri = message.imageUri
             if (uri != null) {
-                ivImage.setImageURI(uri)
+                try {
+                    ivImage.setImageURI(uri)
+                } catch (e: SecurityException) {
+                    // 예전 포토피커 URI 등, 권한이 사라진 경우
+                    ivImage.setImageDrawable(null)
+                }
             } else {
                 ivImage.setImageDrawable(null)
             }
@@ -131,7 +136,11 @@ class ChatAdapter(
             tvSenderName.text = message.senderName
             val uri = message.imageUri
             if (uri != null) {
-                ivImage.setImageURI(uri)
+                try {
+                    ivImage.setImageURI(uri)
+                } catch (e: SecurityException) {
+                    ivImage.setImageDrawable(null)
+                }
             } else {
                 ivImage.setImageDrawable(null)
             }

@@ -23,10 +23,18 @@ class ImageGalleryAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        Glide.with(holder.itemView.context)
-            .load(uris[position])
-            .into(holder.imageView)
+        val uri = uris[position]
+
+        try {
+            Glide.with(holder.itemView.context)
+                .load(uri)
+                .into(holder.imageView)
+        } catch (e: SecurityException) {
+            // 권한 없으면 이 아이템은 빈칸처럼 보여도 됨
+            holder.imageView.setImageDrawable(null)
+        }
     }
+
 
     override fun getItemCount(): Int = uris.size
 }
