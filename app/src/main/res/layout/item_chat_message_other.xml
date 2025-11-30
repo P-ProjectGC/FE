@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <!-- 보낸 사람 이름 -->
+    <TextView
+        android:id="@+id/tvSenderName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="포또누나"
+        android:textColor="#6A7282"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start"
+        android:layout_marginTop="2dp">
+
+        <!-- (필요하면 프로필 이미지 자리에) -->
+        <!-- 지금은 그냥 여백용 뷰로 남겨두고 나중에 이미지 넣어도 됨 -->
+        <View
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="8dp" />
+
+        <!-- 말풍선 -->
+        <TextView
+            android:id="@+id/tvMessageOther"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_chat_bubble_other"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            android:text="안녕하세요! 여행 기대되네요 😄"
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
+
+        <!-- 시간 -->
+        <TextView
+            android:id="@+id/tvTimeOther"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="10:23"
+            android:textColor="#A0A7B5"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+</LinearLayout>

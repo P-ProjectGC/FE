@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 전체 네모 바 색상 -->
+    <solid android:color="#F8F9FB" />
+
+    <!-- 모서리를 네모로 (radius 0) -->
+    <corners android:radius="0dp" />
+
+    <!-- 살짝 위쪽 라인 주고 싶으면 -->
+    <stroke
+        android:width="1dp"
+        android:color="#E6E9EE" />
+
+    <!-- 위아래 살짝 여유 -->
+    <padding
+        android:left="0dp"
+        android:top="4dp"
+        android:right="0dp"
+        android:bottom="4dp" />
+</shape>

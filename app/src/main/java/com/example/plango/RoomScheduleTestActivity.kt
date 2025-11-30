@@ -6,6 +6,8 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -13,10 +15,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.model.TravelScheduleItem
+import com.example.plango.model.ChatMessage
+import com.example.plango.adapter.ChatAdapter
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -58,6 +61,7 @@ class RoomScheduleTestActivity :
     private lateinit var recyclerView: RecyclerView
     private lateinit var scheduleAdapter: ScheduleTimelineAdapter
     private lateinit var wishlistAdapter: WishlistAdapter
+    private lateinit var chatAdapter: ChatAdapter
 
     // UI - 상단 날짜 탭 / 지도 / 편집 버튼 / 위시리스트 헤더
     private lateinit var tabLayoutDay: TabLayout
@@ -80,6 +84,12 @@ class RoomScheduleTestActivity :
     private lateinit var iconSchedule: ImageView
     private lateinit var iconChat: ImageView
 
+    // UI - 채팅 입력
+    private lateinit var layoutChatInput: View
+    private lateinit var etChatMessage: android.widget.EditText
+    private lateinit var btnSendChat: ImageButton
+    private lateinit var btnPickPhoto: ImageButton
+
     // 편집 모드 플래그
     private var isEditMode: Boolean = false
 
@@ -88,7 +98,34 @@ class RoomScheduleTestActivity :
     private var routePolyline: Polyline? = null
 
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
-    private var currentBottomTab: BottomTab = BottomTab.SCHEDULE
+
+    // ⚠️ 초기값은 SCHEDULE 말고 다른 걸 주어야 switchBottomTab(SCHEDULE)이 처음에 동작함
+    private var currentBottomTab: BottomTab = BottomTab.WISHLIST
+
+    // 🔵 테스트용 더미 채팅 데이터
+    private val dummyMessages = listOf(
+        ChatMessage(
+            id = 1L,
+            senderName = "금연호소인",
+            message = "안녕하세요! 여행 기대되네요 😄",
+            timeText = "10:23",
+            isMe = false
+        ),
+        ChatMessage(
+            id = 2L,
+            senderName = "로또누나",
+            message = "저도요! 날씨 좋았으면 좋겠어요.",
+            timeText = "10:25",
+            isMe = false
+        ),
+        ChatMessage(
+            id = 3L,
+            senderName = "나",
+            message = "해운대 꼭 가보고 싶었어요!",
+            timeText = "10:27",
+            isMe = true
+        )
+    )
 
     // Places Autocomplete 결과 받기
     private val placeSearchLauncher = registerForActivityResult(
@@ -151,6 +188,12 @@ class RoomScheduleTestActivity :
         btnEditSchedule = findViewById(R.id.btnEditSchedule)
         wishlistHeader = findViewById(R.id.layoutWishlistHeader)
         btnAddWishlistPlace = findViewById(R.id.btnAddWishlistPlace)
+
+        // 🔵 채팅 입력바
+        layoutChatInput = findViewById(R.id.layoutChatInput)
+        etChatMessage = findViewById(R.id.etChatMessage)
+        btnSendChat = findViewById(R.id.btnSendChat)
+        btnPickPhoto = findViewById(R.id.btnPickPhoto)
 
         setupRecyclerView()
         setupMap()
@@ -237,8 +280,59 @@ class RoomScheduleTestActivity :
             openConfirmScheduleBottomSheet(place)
         }
 
+        // 🔵 채팅 어댑터 초기화 + 더미 메시지 주입
+        chatAdapter = ChatAdapter()
+        chatAdapter.submitList(dummyMessages)
+
         recyclerView.adapter = scheduleAdapter
+
+        btnSendChat.setOnClickListener {
+            sendChatMessage()
+        }
+        btnPickPhoto.setOnClickListener {
+            Toast.makeText(this, "사진 전송은 나중에!", Toast.LENGTH_SHORT).show()
+        }
+
+
+
     }
+
+
+
+    private fun sendChatMessage() {
+        val text = findViewById<EditText>(R.id.etChatMessage).text.toString().trim()
+
+        if (text.isEmpty()) return
+
+        // 현재 시간 (예: 10:43)
+        val currentMillis = System.currentTimeMillis()
+        val timeText = java.text.SimpleDateFormat(
+            "HH:mm",
+            java.util.Locale.getDefault()
+        ).format(java.util.Date(currentMillis))
+
+
+        val message = ChatMessage(
+            id = System.currentTimeMillis(),
+            senderName = "나",
+            message = text,
+            timeText = timeText,
+            isMe = true
+        )
+
+        // 리스트에 추가
+        chatAdapter.addMessage(message)
+
+        // 입력창 비우기
+        findViewById<EditText>(R.id.etChatMessage).setText("")
+
+        // 맨 아래로 스크롤
+        recyclerView.post {
+            recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+        }
+    }
+
+
 
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
@@ -361,18 +455,12 @@ class RoomScheduleTestActivity :
         // ✅ 전체 레이아웃 클릭 시 탭 전환
         layoutTabWishlist.setOnClickListener { switchBottomTab(BottomTab.WISHLIST) }
         layoutTabSchedule.setOnClickListener { switchBottomTab(BottomTab.SCHEDULE) }
-        layoutTabChat.setOnClickListener {
-            switchBottomTab(BottomTab.CHAT)
-            Toast.makeText(this, "채팅 화면은 나중에 붙이자 😅", Toast.LENGTH_SHORT).show()
-        }
+        layoutTabChat.setOnClickListener { switchBottomTab(BottomTab.CHAT) }
 
-        // 텍스트만 눌러도 동작하게 하고 싶으면 유지
+        // 텍스트만 눌러도 동작하게
         tabWishlistText.setOnClickListener { switchBottomTab(BottomTab.WISHLIST) }
         tabScheduleText.setOnClickListener { switchBottomTab(BottomTab.SCHEDULE) }
-        tabChatText.setOnClickListener {
-            switchBottomTab(BottomTab.CHAT)
-            Toast.makeText(this, "채팅 화면은 나중에 붙이자 😅", Toast.LENGTH_SHORT).show()
-        }
+        tabChatText.setOnClickListener { switchBottomTab(BottomTab.CHAT) }
 
         updateBottomNavUI()
     }
@@ -384,31 +472,59 @@ class RoomScheduleTestActivity :
 
         when (tab) {
             BottomTab.SCHEDULE -> {
+                // 일정 모드: 지도 + 날짜 탭 + 편집 버튼 + 일정 리스트
                 mapContainer.visibility = View.VISIBLE
                 tabLayoutDay.visibility = View.VISIBLE
                 dividerTop.visibility = View.VISIBLE
                 btnEditSchedule.visibility = View.VISIBLE
                 wishlistHeader.visibility = View.GONE
 
+                // 채팅 입력바는 숨기기
+                layoutChatInput.visibility = View.GONE
+
+                // RecyclerView는 편집 버튼 아래에서 시작
                 setRecyclerTopTo(R.id.btnEditSchedule)
                 recyclerView.adapter = scheduleAdapter
                 showDay(currentDayIndex)
             }
 
             BottomTab.WISHLIST -> {
+                // 위시리스트 모드: 위시리스트 헤더 + 리스트
                 mapContainer.visibility = View.GONE
                 tabLayoutDay.visibility = View.GONE
                 dividerTop.visibility = View.GONE
                 btnEditSchedule.visibility = View.GONE
                 wishlistHeader.visibility = View.VISIBLE
 
+                // 채팅 입력바는 숨기기
+                layoutChatInput.visibility = View.GONE
+
+                // RecyclerView는 위시리스트 헤더 아래에서 시작
                 setRecyclerTopTo(R.id.layoutWishlistHeader)
                 recyclerView.adapter = wishlistAdapter
                 wishlistAdapter.refresh()
             }
 
             BottomTab.CHAT -> {
-                // TODO: 채팅 붙이면 여기서 처리
+                // 채팅 모드: 지도/날짜/편집/위시리스트 헤더는 다 숨김
+                mapContainer.visibility = View.GONE
+                tabLayoutDay.visibility = View.GONE
+                dividerTop.visibility = View.GONE
+                btnEditSchedule.visibility = View.GONE
+                wishlistHeader.visibility = View.GONE
+
+                // 채팅 입력바는 보이기
+                layoutChatInput.visibility = View.VISIBLE
+
+                // RecyclerView는 상단 타이틀 아래 선(dividerTitle) 밑에서 시작
+                setRecyclerTopTo(R.id.dividerTitle)
+
+                // 채팅용 어댑터 사용
+                recyclerView.adapter = chatAdapter
+                recyclerView.post {
+                    recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                }
+
             }
         }
     }
