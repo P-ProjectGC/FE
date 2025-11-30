@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,10 +19,12 @@ import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.plango.model.TravelScheduleItem
-import com.example.plango.model.ChatMessage
 import com.example.plango.adapter.ChatAdapter
+import com.example.plango.data.ChatRepository
+import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.ChatContentType
+import com.example.plango.model.ChatMessage
+import com.example.plango.model.TravelScheduleItem
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -40,53 +43,64 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.tabs.TabLayout
+import com.example.plango.RoomMenuDialogFragment
+
+
 
 class RoomScheduleTestActivity :
     AppCompatActivity(),
     OnMapReadyCallback {
 
-    // ⭐⭐⭐ 여행 생성 화면에서 넘어온 정보들 ⭐⭐⭐
+    // ⭐ 여행방 기본 정보
+    private var roomId: Long = -1L
     private lateinit var roomName: String
     private var roomMemo: String? = null
     private lateinit var startDate: String
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
 
+    // 지도
     private lateinit var googleMap: GoogleMap
+    private val markerList = mutableListOf<Marker>()
+    private var routePolyline: Polyline? = null
 
     // 일정 / 위시리스트 데이터
     private lateinit var dailySchedules: MutableList<TravelDailySchedule>
     private var currentDayIndex: Int = 0
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
 
-    // UI - 리스트
+    // RecyclerView + 어댑터
     private lateinit var recyclerView: RecyclerView
     private lateinit var scheduleAdapter: ScheduleTimelineAdapter
     private lateinit var wishlistAdapter: WishlistAdapter
     private lateinit var chatAdapter: ChatAdapter
 
-    // UI - 상단 날짜 탭 / 지도 / 편집 버튼 / 위시리스트 헤더
+    // 상단 / 지도 / 버튼 / 헤더
     private lateinit var tabLayoutDay: TabLayout
     private lateinit var mapContainer: View
     private lateinit var dividerTop: View
-    private lateinit var btnEditSchedule: View        // 편집 버튼(LinearLayout)
+    private lateinit var btnEditSchedule: View
     private lateinit var wishlistHeader: View
     private lateinit var btnAddWishlistPlace: Button
+    private lateinit var layoutRoomHeader: LinearLayout
 
-    // UI - 바텀 내비 (텍스트 + 부모 레이아웃 + 아이콘)
+    // 헤더 내 텍스트/버튼
+    private lateinit var tvRoomTitle: TextView
+    private lateinit var tvRoomMemberCount: TextView
+    private lateinit var btnRoomMenu: ImageButton
+
+    // 바텀 내비 (텍스트 + 부모 레이아웃 + 아이콘)
     private lateinit var tabWishlistText: TextView
     private lateinit var tabScheduleText: TextView
     private lateinit var tabChatText: TextView
-
     private lateinit var layoutTabWishlist: View
     private lateinit var layoutTabSchedule: View
     private lateinit var layoutTabChat: View
-
     private lateinit var iconWishlist: ImageView
     private lateinit var iconSchedule: ImageView
     private lateinit var iconChat: ImageView
 
-    // UI - 채팅 입력
+    // 채팅 입력
     private lateinit var layoutChatInput: View
     private lateinit var etChatMessage: EditText
     private lateinit var btnSendChat: ImageButton
@@ -95,41 +109,12 @@ class RoomScheduleTestActivity :
     // 편집 모드 플래그
     private var isEditMode: Boolean = false
 
-    // 지도 캐시
-    private val markerList = mutableListOf<Marker>()
-    private var routePolyline: Polyline? = null
-
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
 
-    // ⚠️ 초기값은 SCHEDULE 말고 다른 걸 주어야 switchBottomTab(SCHEDULE)이 처음에 동작함
+    // 초기값을 WISHLIST로 두고, onCreate에서 SCHEDULE로 전환
     private var currentBottomTab: BottomTab = BottomTab.WISHLIST
 
-    // 🔵 테스트용 더미 채팅 데이터
-    private val dummyMessages = listOf(
-        ChatMessage(
-            id = 1L,
-            senderName = "금연호소인",
-            message = "안녕하세요! 여행 기대되네요 😄",
-            timeText = "10:23",
-            isMe = false
-        ),
-        ChatMessage(
-            id = 2L,
-            senderName = "로또누나",
-            message = "저도요! 날씨 좋았으면 좋겠어요.",
-            timeText = "10:25",
-            isMe = false
-        ),
-        ChatMessage(
-            id = 3L,
-            senderName = "나",
-            message = "해운대 꼭 가보고 싶었어요!",
-            timeText = "10:27",
-            isMe = true
-        )
-    )
-
-    // Places Autocomplete 결과 받기
+    // Places Autocomplete 결과
     private val placeSearchLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -139,7 +124,7 @@ class RoomScheduleTestActivity :
         }
     }
 
-    // 이미지 픽커 런처
+    // 이미지 픽커
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -148,6 +133,115 @@ class RoomScheduleTestActivity :
         }
     }
 
+    // ------------------------------------------------------------
+    // onCreate
+    // ------------------------------------------------------------
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.fragment_room_schedule)
+
+        // 1) 인텐트로 넘어온 방 정보 받기
+        roomId = intent.getLongExtra("ROOM_ID", -1L)
+        roomName = intent.getStringExtra("ROOM_NAME") ?: ""
+        roomMemo = intent.getStringExtra("ROOM_MEMO")
+        startDate = intent.getStringExtra("START_DATE") ?: ""
+        endDate = intent.getStringExtra("END_DATE") ?: ""
+        memberNicknames =
+            intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
+
+        // 🔍 ROOM_ID 기준으로 레포에서 방 정보 보정
+        if (roomId != -1L) {
+            val room = TravelRoomRepository.getRooms().find { it.id == roomId }
+
+            if (room != null) {
+                if (roomName.isBlank()) roomName = room.title
+                if (startDate.isBlank()) startDate = room.startDate
+                if (endDate.isBlank()) endDate = room.endDate
+            }
+        }
+
+        // 2) Toolbar 설정
+        val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
+        toolbar.title = roomName
+        toolbar.setNavigationOnClickListener { finish() }
+
+        // 3) Places 초기화
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+
+        // 4) 데이터 초기화
+        dailySchedules = createInitialDailySchedules()
+        wishlistItems = mutableListOf()
+
+        // ===== View 바인딩 =====
+        recyclerView = findViewById(R.id.recyclerTimeline)
+        tabLayoutDay = findViewById(R.id.tabLayoutDay)
+        mapContainer = findViewById(R.id.mapContainer)
+        dividerTop = findViewById(R.id.dividerTop)
+        btnEditSchedule = findViewById(R.id.btnEditSchedule)
+        wishlistHeader = findViewById(R.id.layoutWishlistHeader)
+        btnAddWishlistPlace = findViewById(R.id.btnAddWishlistPlace)
+
+        // 헤더
+        layoutRoomHeader = findViewById(R.id.layoutRoomHeader)
+        tvRoomTitle = findViewById(R.id.tvRoomTitle)
+        tvRoomMemberCount = findViewById(R.id.tvRoomMemberCount)
+        btnRoomMenu = findViewById(R.id.btnRoomMenu)
+
+        // 바텀 내비 텍스트/레이아웃/아이콘
+        tabWishlistText = findViewById(R.id.tabWishlist)
+        tabScheduleText = findViewById(R.id.tabSchedule)
+        tabChatText = findViewById(R.id.tabChat)
+        layoutTabWishlist = findViewById(R.id.layoutTabWishlist)
+        layoutTabSchedule = findViewById(R.id.layoutTabSchedule)
+        layoutTabChat = findViewById(R.id.layoutTabChat)
+        iconWishlist = findViewById(R.id.iconWishlist)
+        iconSchedule = findViewById(R.id.iconSchedule)
+        iconChat = findViewById(R.id.iconChat)
+
+        // 채팅 입력바
+        layoutChatInput = findViewById(R.id.layoutChatInput)
+        etChatMessage = findViewById(R.id.etChatMessage)
+        btnSendChat = findViewById(R.id.btnSendChat)
+        btnPickPhoto = findViewById(R.id.btnPickPhoto)
+
+        // ===== 헤더 내용 세팅 =====
+        tvRoomTitle.text = roomName
+
+        val memberCountFromList = memberNicknames.size
+        val roomFromRepo = if (roomId != -1L) {
+            TravelRoomRepository.getRooms().find { it.id == roomId }
+        } else null
+
+        val memberCount = when {
+            memberCountFromList > 0 -> memberCountFromList
+            roomFromRepo?.memberCount != null && roomFromRepo.memberCount > 0 -> roomFromRepo.memberCount
+            else -> 1
+        }
+        tvRoomMemberCount.text = "${memberCount}명"
+
+        // 메뉴 버튼
+        btnRoomMenu.setOnClickListener {
+            openRoomMenu()
+        }
+
+        // ===== 나머지 셋업 =====
+        setupRecyclerView()
+        setupMap()
+        setupTabLayout()
+        setupBottomNav()
+        setupWishlistHeader()
+        setupEditButton()
+
+        // 기본: 일정 탭 + 1일차
+        switchBottomTab(BottomTab.SCHEDULE)
+        showDay(0)
+    }
+
+    // ------------------------------------------------------------
+    // 이미지 선택 / 채팅 이미지 메시지
+    // ------------------------------------------------------------
     private fun handleImagePicked(uri: Uri) {
         val currentMillis = System.currentTimeMillis()
         val timeText = java.text.SimpleDateFormat(
@@ -167,93 +261,22 @@ class RoomScheduleTestActivity :
 
         chatAdapter.addMessage(message)
 
+        if (roomId != -1L) {
+            ChatRepository.addMessage(roomId, message)
+        }
+
         recyclerView.post {
             recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.fragment_room_schedule)
-
-        // ⭐⭐⭐ 여행 생성 화면에서 넘어온 정보 받기 ⭐⭐⭐
-        roomName = intent.getStringExtra("ROOM_NAME") ?: ""
-        roomMemo = intent.getStringExtra("ROOM_MEMO")
-        startDate = intent.getStringExtra("START_DATE") ?: ""
-        endDate = intent.getStringExtra("END_DATE") ?: ""
-        memberNicknames =
-            intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
-
-        val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
-        toolbar.title = roomName
-        toolbar.setNavigationOnClickListener {
-            finish()
-        }
-
-        // Places 초기화 (이미 되어 있으면 패스)
-        if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, getString(R.string.google_maps_key))
-        }
-
-        // 데이터 준비: 빈 일정 / 빈 위시리스트부터 시작
-        dailySchedules = createInitialDailySchedules()
-        wishlistItems = mutableListOf()
-
-        // ===== 뷰 찾기 =====
-        recyclerView = findViewById(R.id.recyclerTimeline)
-        tabLayoutDay = findViewById(R.id.tabLayoutDay)
-
-        // 바텀 내비 텍스트
-        tabWishlistText = findViewById(R.id.tabWishlist)
-        tabScheduleText = findViewById(R.id.tabSchedule)
-        tabChatText = findViewById(R.id.tabChat)
-
-        // 바텀 내비 레이아웃(전체 클릭 영역)
-        layoutTabWishlist = findViewById(R.id.layoutTabWishlist)
-        layoutTabSchedule = findViewById(R.id.layoutTabSchedule)
-        layoutTabChat = findViewById(R.id.layoutTabChat)
-
-        // 바텀 내비 아이콘
-        iconWishlist = findViewById(R.id.iconWishlist)
-        iconSchedule = findViewById(R.id.iconSchedule)
-        iconChat = findViewById(R.id.iconChat)
-
-        mapContainer = findViewById(R.id.mapContainer)
-        dividerTop = findViewById(R.id.dividerTop)
-        btnEditSchedule = findViewById(R.id.btnEditSchedule)
-        wishlistHeader = findViewById(R.id.layoutWishlistHeader)
-        btnAddWishlistPlace = findViewById(R.id.btnAddWishlistPlace)
-
-        // 🔵 채팅 입력바
-        layoutChatInput = findViewById(R.id.layoutChatInput)
-        etChatMessage = findViewById(R.id.etChatMessage)
-        btnSendChat = findViewById(R.id.btnSendChat)
-        btnPickPhoto = findViewById(R.id.btnPickPhoto)
-
-        setupRecyclerView()
-        setupMap()
-        setupTabLayout()
-        setupBottomNav()
-        setupWishlistHeader()
-        setupEditButton()
-
-        // 기본: 일정 탭 + 1일차
-        switchBottomTab(BottomTab.SCHEDULE)
-        showDay(0)
-    }
-
-    // 현재 dayIndex 기준으로 시간 순으로 정렬된 일정 리스트
-    private fun getSortedItemsForDay(dayIndex: Int): List<TravelScheduleItem> {
-        val day = dailySchedules[dayIndex]
-        return day.items.sortedBy { it.timeLabel }
-    }
-
-    // ============================================================
-    // RecyclerView
-    // ============================================================
+    // ------------------------------------------------------------
+    // RecyclerView / 어댑터
+    // ------------------------------------------------------------
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // 일정 어댑터
         scheduleAdapter = ScheduleTimelineAdapter(
             onItemClick = { item ->
                 if (currentBottomTab == BottomTab.SCHEDULE) {
@@ -277,13 +300,11 @@ class RoomScheduleTestActivity :
                             timeRange = "$newStart ~ $newEnd"
                         )
                         day.items[indexInDay] = updated
-
                         showDay(currentDayIndex)
                         Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
                     },
                     onDeleted = {
                         val removed = day.items.removeAt(indexInDay)
-
                         val wishlistItem = WishlistPlaceItem(
                             placeName = removed.placeName,
                             address = removed.address,
@@ -292,7 +313,6 @@ class RoomScheduleTestActivity :
                             addedBy = "나"
                         )
                         wishlistItems.add(wishlistItem)
-
                         showDay(currentDayIndex)
 
                         if (currentBottomTab == BottomTab.WISHLIST) {
@@ -311,21 +331,29 @@ class RoomScheduleTestActivity :
             }
         )
 
+        // 위시리스트 어댑터
         wishlistAdapter = WishlistAdapter(wishlistItems) { place ->
             openConfirmScheduleBottomSheet(place)
         }
 
-        // 🔵 채팅 어댑터 초기화 + 더미 메시지 주입
+        // 채팅 어댑터
         chatAdapter = ChatAdapter()
-        chatAdapter.submitList(dummyMessages)
+
+        // roomId 기준으로 저장된 채팅 불러오기
+        if (roomId != -1L) {
+            val savedMessages = ChatRepository.getMessages(roomId)
+            if (savedMessages.isNotEmpty()) {
+                chatAdapter.submitList(savedMessages.toList())
+            }
+        }
 
         recyclerView.adapter = scheduleAdapter
 
+        // 채팅 입력
         btnSendChat.setOnClickListener {
             sendChatMessage()
         }
         btnPickPhoto.setOnClickListener {
-            // 추후 이미지 전송으로 교체
             imagePickerLauncher.launch("image/*")
         }
     }
@@ -349,6 +377,10 @@ class RoomScheduleTestActivity :
         )
 
         chatAdapter.addMessage(message)
+
+        if (roomId != -1L) {
+            ChatRepository.addMessage(roomId, message)
+        }
 
         etChatMessage.setText("")
 
@@ -375,9 +407,9 @@ class RoomScheduleTestActivity :
         recyclerView.layoutParams = params
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 지도
-    // ============================================================
+    // ------------------------------------------------------------
     private fun setupMap() {
         val mapFragment =
             supportFragmentManager.findFragmentById(R.id.mapContainer) as SupportMapFragment
@@ -398,9 +430,9 @@ class RoomScheduleTestActivity :
         }
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 날짜 탭
-    // ============================================================
+    // ------------------------------------------------------------
     private fun setupTabLayout() {
         dailySchedules.forEach { day ->
             tabLayoutDay.addTab(tabLayoutDay.newTab().setText(day.dayTitle))
@@ -423,9 +455,9 @@ class RoomScheduleTestActivity :
         })
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 위시리스트 헤더
-    // ============================================================
+    // ------------------------------------------------------------
     private fun setupWishlistHeader() {
         btnAddWishlistPlace.setOnClickListener {
             openPlaceSearch()
@@ -471,9 +503,9 @@ class RoomScheduleTestActivity :
         Toast.makeText(this, "위시리스트에 추가되었습니다.", Toast.LENGTH_SHORT).show()
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 바텀바
-    // ============================================================
+    // ------------------------------------------------------------
     private fun setupBottomNav() {
         layoutTabWishlist.setOnClickListener { switchBottomTab(BottomTab.WISHLIST) }
         layoutTabSchedule.setOnClickListener { switchBottomTab(BottomTab.SCHEDULE) }
@@ -499,6 +531,7 @@ class RoomScheduleTestActivity :
                 btnEditSchedule.visibility = View.VISIBLE
                 wishlistHeader.visibility = View.GONE
                 layoutChatInput.visibility = View.GONE
+                layoutRoomHeader.visibility = View.GONE
 
                 setRecyclerTopTo(R.id.btnEditSchedule)
                 recyclerView.adapter = scheduleAdapter
@@ -512,6 +545,7 @@ class RoomScheduleTestActivity :
                 btnEditSchedule.visibility = View.GONE
                 wishlistHeader.visibility = View.VISIBLE
                 layoutChatInput.visibility = View.GONE
+                layoutRoomHeader.visibility = View.GONE
 
                 setRecyclerTopTo(R.id.layoutWishlistHeader)
                 recyclerView.adapter = wishlistAdapter
@@ -525,13 +559,17 @@ class RoomScheduleTestActivity :
                 btnEditSchedule.visibility = View.GONE
                 wishlistHeader.visibility = View.GONE
 
+                layoutRoomHeader.visibility = View.VISIBLE
                 layoutChatInput.visibility = View.VISIBLE
 
-                setRecyclerTopTo(R.id.dividerTitle)
+                // 채팅은 헤더 아래에서 시작
+                setRecyclerTopTo(R.id.layoutRoomHeader)
 
                 recyclerView.adapter = chatAdapter
                 recyclerView.post {
-                    recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                    if (chatAdapter.itemCount > 0) {
+                        recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                    }
                 }
             }
         }
@@ -551,26 +589,19 @@ class RoomScheduleTestActivity :
             iconView.setColorFilter(if (isActive) activeColor else inactiveColor)
         }
 
-        setTabState(
-            currentBottomTab == BottomTab.WISHLIST,
-            tabWishlistText,
-            iconWishlist
-        )
-        setTabState(
-            currentBottomTab == BottomTab.SCHEDULE,
-            tabScheduleText,
-            iconSchedule
-        )
-        setTabState(
-            currentBottomTab == BottomTab.CHAT,
-            tabChatText,
-            iconChat
-        )
+        setTabState(currentBottomTab == BottomTab.WISHLIST, tabWishlistText, iconWishlist)
+        setTabState(currentBottomTab == BottomTab.SCHEDULE, tabScheduleText, iconSchedule)
+        setTabState(currentBottomTab == BottomTab.CHAT, tabChatText, iconChat)
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 일정 모드
-    // ============================================================
+    // ------------------------------------------------------------
+    private fun getSortedItemsForDay(dayIndex: Int): List<TravelScheduleItem> {
+        val day = dailySchedules[dayIndex]
+        return day.items.sortedBy { it.timeLabel }
+    }
+
     private fun showDay(dayIndex: Int) {
         if (dailySchedules.isEmpty()) return
         if (dayIndex !in dailySchedules.indices) return
@@ -635,9 +666,9 @@ class RoomScheduleTestActivity :
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15f))
     }
 
-    // ============================================================
+    // ------------------------------------------------------------
     // 위시리스트: 일정 확정 바텀시트
-    // ============================================================
+    // ------------------------------------------------------------
     private fun openConfirmScheduleBottomSheet(place: WishlistPlaceItem) {
         val bottomSheet = ConfirmScheduleBottomSheet(
             place = place,
@@ -671,13 +702,35 @@ class RoomScheduleTestActivity :
         bottomSheet.show(supportFragmentManager, "ConfirmScheduleBottomSheet")
     }
 
-    // ============================================================
-    // 초기 데이터
-    // ============================================================
+    // ------------------------------------------------------------
+    // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)
+    // ------------------------------------------------------------
+    private fun openRoomMenu() {
+        // 이 방에 저장된 이미지 메시지들만 모으기
+        val images = if (roomId != -1L) {
+            ChatRepository.getMessages(roomId)
+                .filter { it.type == ChatContentType.IMAGE }
+                .mapNotNull { it.imageUri }
+        } else {
+            emptyList()
+        }
+
+        val dialog = RoomMenuDialogFragment.newInstance(
+            roomName = roomName,
+            memberNicknames = memberNicknames,
+            imageUris = images
+        )
+        dialog.show(supportFragmentManager, "RoomMenuDialog")
+    }
+
+
+
+    // ------------------------------------------------------------
+    // 초기 데이터 생성
+    // ------------------------------------------------------------
     private fun createInitialDailySchedules(): MutableList<TravelDailySchedule> {
         val start = java.time.LocalDate.parse(startDate)
         val end = java.time.LocalDate.parse(endDate)
-
         val days = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
 
         val list = mutableListOf<TravelDailySchedule>()

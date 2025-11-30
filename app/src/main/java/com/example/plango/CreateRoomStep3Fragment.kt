@@ -111,6 +111,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
             // ✅ 3) 일정/지도 화면으로 이동 (지금까지 쓰던 테스트용 플로우 유지)
             val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
+                putExtra("ROOM_ID", newRoom.id) //방 id 추가
                 putExtra("ROOM_NAME", roomName)
                 putExtra("ROOM_MEMO", roomMemo)
                 putExtra("START_DATE", start.toString())   // "2025-11-29" 형식

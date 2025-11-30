@@ -33,6 +33,7 @@ class RoomFragment : Fragment() {
         // 카드 클릭 시 해당 방 내부 화면으로 이동
         roomAdapter = RoomAdapter(emptyList()) { room: TravelRoom ->
             val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
+                putExtra("ROOM_ID", room.id) //방 id 추가
                 putExtra("ROOM_NAME", room.title)
                 putExtra("ROOM_MEMO", room.memo)
                 putExtra("START_DATE", room.startDate)   // "2025-08-03" 같은 형식
@@ -42,6 +43,13 @@ class RoomFragment : Fragment() {
                     "MEMBER_NICKNAMES",
                     arrayListOf<String>()
                 )
+                // 룸멤버들닉네임
+                putStringArrayListExtra(
+                    "MEMBER_NICKNAMES",
+                    ArrayList(room.memberNicknames)
+                )
+
+
             }
             startActivity(intent)
         }
