@@ -133,6 +133,8 @@ class RoomScheduleTestActivity :
         }
     }
 
+
+
     // ------------------------------------------------------------
     // onCreate
     // ------------------------------------------------------------
@@ -240,6 +242,9 @@ class RoomScheduleTestActivity :
 
         // 🔹 1) 이 기기의 ID 가져오기
         val deviceId = DeviceIdManager.getDeviceId(this)
+
+        // 🔔 채팅 알림 채널 생성 (여러 번 호출해도 괜찮음)
+        NotificationHelper.createChatNotificationChannel(this)
 
         // 🔹 2) 현재 방 정보 가져오기 (예시: Repository에서)
         val roomId = intent.getLongExtra("ROOM_ID", -1L)
@@ -408,6 +413,13 @@ class RoomScheduleTestActivity :
 
         if (roomId != -1L) {
             ChatRepository.addMessage(roomId, message)
+            // 🔔 테스트용: 내가 보낸 메시지도 알림으로 띄워보기
+            NotificationHelper.showChatNotification(
+                context = this,
+                roomId = roomId,
+                roomName = roomName,
+                messagePreview = text
+            )
         }
 
         etChatMessage.setText("")
@@ -734,7 +746,6 @@ class RoomScheduleTestActivity :
     // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)
     // ------------------------------------------------------------
     private fun openRoomMenu() {
-        // 이 방에 저장된 이미지 메시지들만 모으기
         val images = if (roomId != -1L) {
             ChatRepository.getMessages(roomId)
                 .filter { it.type == ChatContentType.IMAGE }
@@ -744,12 +755,14 @@ class RoomScheduleTestActivity :
         }
 
         val dialog = RoomMenuDialogFragment.newInstance(
+            roomId = roomId,
             roomName = roomName,
             memberNicknames = memberNicknames,
             imageUris = images
         )
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
+
 
 
 
