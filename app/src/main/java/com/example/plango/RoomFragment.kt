@@ -2,6 +2,8 @@ package com.example.plango
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +19,9 @@ class RoomFragment : Fragment() {
     lateinit var binding: FragmentRoomBinding
     private lateinit var roomAdapter: RoomAdapter
 
+    // 🔹 전체 여행방 목록 (검색용 원본 리스트)
+    private var allRooms: List<TravelRoom> = emptyList()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -30,26 +35,18 @@ class RoomFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // 어댑터 생성 (초기엔 빈 리스트)
-        // 카드 클릭 시 해당 방 내부 화면으로 이동
         roomAdapter = RoomAdapter(emptyList()) { room: TravelRoom ->
             val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
-                putExtra("ROOM_ID", room.id) //방 id 추가
+                putExtra("ROOM_ID", room.id)
                 putExtra("ROOM_NAME", room.title)
                 putExtra("ROOM_MEMO", room.memo)
-                putExtra("START_DATE", room.startDate)   // "2025-08-03" 같은 형식
-                putExtra("END_DATE", room.endDate)       // "2025-08-05"
-                // 닉네임 리스트는 아직 없으니까 빈 리스트로 전달
-                putStringArrayListExtra(
-                    "MEMBER_NICKNAMES",
-                    arrayListOf<String>()
-                )
-                // 룸멤버들닉네임
+                putExtra("START_DATE", room.startDate)
+                putExtra("END_DATE", room.endDate)
+
                 putStringArrayListExtra(
                     "MEMBER_NICKNAMES",
                     ArrayList(room.memberNicknames)
                 )
-
-
             }
             startActivity(intent)
         }
@@ -70,6 +67,32 @@ class RoomFragment : Fragment() {
             navigateToCreateRoom()
         }
 
+        // 🔹 검색바 텍스트 감지
+        binding.etSearchRoom.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) {
+                // 사용 X
+            }
+
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) {
+                val query = s?.toString().orEmpty()
+                filterRooms(query)
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // 사용 X
+            }
+        })
+
         // 더미 데이터 로드
         loadRooms()
     }
@@ -80,21 +103,52 @@ class RoomFragment : Fragment() {
         startActivity(intent)
     }
 
-    //val rooms = TravelRoomRepository.getEmptyRooms() -> 빈 방 목록 시 확인용
     private fun loadRooms() {
         // 지금은 더미 데이터, 나중에 이 한 줄만 서버 코드로 교체
-        val rooms: List<TravelRoom> = TravelRoomRepository.getRooms()
-        // 빈 화면 테스트하고 싶으면:
-        // val rooms = TravelRoomRepository.getEmptyRooms()
+        allRooms = TravelRoomRepository.getRooms()
 
-        if (rooms.isEmpty()) {
+        if (allRooms.isEmpty()) {
+            // 실제로 방이 하나도 없을 때만 "아직 여행방이 없어요" 표시
             binding.rvRoomList.visibility = View.GONE
             binding.layoutEmptyRoom.visibility = View.VISIBLE
+            roomAdapter.submitList(emptyList())
         } else {
             binding.rvRoomList.visibility = View.VISIBLE
             binding.layoutEmptyRoom.visibility = View.GONE
-            roomAdapter.submitList(rooms)
+
+            // 🔹 현재 검색어 유지한 채로 갱신
+            val currentQuery = binding.etSearchRoom.text?.toString().orEmpty()
+            if (currentQuery.isBlank()) {
+                roomAdapter.submitList(allRooms)
+            } else {
+                filterRooms(currentQuery)
+            }
         }
+    }
+
+    // 🔍 검색어로 방 필터링
+    private fun filterRooms(query: String) {
+        if (allRooms.isEmpty()) {
+            // 원본이 비어 있으면 그냥 리턴
+            roomAdapter.submitList(emptyList())
+            return
+        }
+
+        if (query.isBlank()) {
+            // 검색어 없으면 전체 목록
+            roomAdapter.submitList(allRooms)
+            return
+        }
+
+        // 🔹 조건: 방 제목 / 메모에 검색어가 포함되면 표시 (대소문자 무시)
+        val lowerQuery = query.lowercase()
+        val filtered = allRooms.filter { room ->
+            room.title.lowercase().contains(lowerQuery) ||
+                    room.memo.lowercase().contains(lowerQuery)
+            // 장소 검색을 나중에 추가하면 여기서 필드만 더 붙이면 됨
+        }
+
+        roomAdapter.submitList(filtered)
     }
 
     override fun onResume() {
