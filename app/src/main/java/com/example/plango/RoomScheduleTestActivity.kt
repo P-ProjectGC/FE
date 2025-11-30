@@ -44,7 +44,7 @@ import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.tabs.TabLayout
 import com.example.plango.RoomMenuDialogFragment
-
+import com.example.plango.model.TravelRoom
 
 
 class RoomScheduleTestActivity :
@@ -237,6 +237,37 @@ class RoomScheduleTestActivity :
         // 기본: 일정 탭 + 1일차
         switchBottomTab(BottomTab.SCHEDULE)
         showDay(0)
+
+        // 🔹 1) 이 기기의 ID 가져오기
+        val deviceId = DeviceIdManager.getDeviceId(this)
+
+        // 🔹 2) 현재 방 정보 가져오기 (예시: Repository에서)
+        val roomId = intent.getLongExtra("ROOM_ID", -1L)
+        val room: TravelRoom? = TravelRoomRepository.getRoomById(roomId) // 네 구조에 맞게 수정
+
+        // 🔹 3) 방장 여부 판단
+        val isHost: Boolean = if (room == null) {
+            true // 혹시 null이면 일단 막지 말고 모두 허용
+        } else {
+            // hostId가 비어 있으면 옛 데이터 → 일단 모두 방장 취급
+            room.hostId.isBlank() || room.hostId == deviceId
+        }
+
+        // 🔹 4) 위시리스트 어댑터 생성 시 isHost 넘기기
+
+        wishlistAdapter = WishlistAdapter(
+            items = wishlistItems,
+            isHost = isHost,
+            onConfirmClick = { item ->
+                openConfirmScheduleBottomSheet(item)   // ← 여기!
+            }
+        )
+
+
+
+
+
+
     }
 
     // ------------------------------------------------------------
@@ -331,10 +362,7 @@ class RoomScheduleTestActivity :
             }
         )
 
-        // 위시리스트 어댑터
-        wishlistAdapter = WishlistAdapter(wishlistItems) { place ->
-            openConfirmScheduleBottomSheet(place)
-        }
+
 
         // 채팅 어댑터
         chatAdapter = ChatAdapter()

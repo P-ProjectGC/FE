@@ -46,4 +46,9 @@ object TravelRoomRepository {
     fun addRoom(room: TravelRoom) {
         rooms.add(0, room)
     }
+
+    fun getRoomById(id: Long): TravelRoom? {
+        return rooms.find { it.id == id }
+    }
+
 }

@@ -5,11 +5,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
 class WishlistAdapter(
     private val items: MutableList<WishlistPlaceItem>,
-    private val onConfirmClick: (WishlistPlaceItem) -> Unit
+    private val onConfirmClick: (WishlistPlaceItem) -> Unit,
+    private val isHost: Boolean
 ) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>() {
 
     inner class WishlistViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -32,7 +34,18 @@ class WishlistAdapter(
         holder.textAddress.text = item.address
         holder.textAddedBy.text = "추가: ${item.addedBy}"
 
+        // 👇 버튼 모양은 그대로 두고, 동작만 권한으로 막기
         holder.btnConfirm.setOnClickListener {
+            if (!isHost) {
+                Toast.makeText(
+                    holder.itemView.context,
+                    "방장만 일정 확정이 가능해요.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
+            // 방장일 때만 실제 일정 확정 로직 실행
             onConfirmClick(item)
         }
     }
