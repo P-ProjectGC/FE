@@ -19,8 +19,9 @@ import java.time.format.DateTimeFormatter
 import android.view.animation.DecelerateInterpolator
 import android.content.Intent
 import com.example.plango.data.TravelRoomRepository
+import com.example.plango.model.RoomRangeType
 import com.example.plango.model.TravelRoom
-
+import java.time.temporal.ChronoUnit
 @RequiresApi(Build.VERSION_CODES.O)
 class HomeFragment : Fragment() {
 
@@ -40,6 +41,7 @@ class HomeFragment : Fragment() {
 
     private val displayDateFormatter: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyy년 M월 d일")
+
 
 
 
@@ -117,11 +119,14 @@ class HomeFragment : Fragment() {
         val ym = currentYearMonth
         binding.tvMonth.text = "${ym.year}년 ${ym.monthValue}월"
 
-        val days = generateCalendarDays(ym)
+        val rangeMap = buildRoomRangeMap()   // 🔵 여행 기간 정보 계산
+        val days = generateCalendarDays(ym, rangeMap)
+
         calendarAdapter.submitList(days)
         calendarAdapter.setRange(selectedDate, selectedDate)
         updateSelectedDateText()
     }
+
 
     private fun handleDateClick(date: LocalDate) {
         selectedDate = date
@@ -139,7 +144,10 @@ class HomeFragment : Fragment() {
 
 
 
-    private fun generateCalendarDays(yearMonth: YearMonth): List<CalendarDay_rm> {
+    private fun generateCalendarDays(
+        yearMonth: YearMonth,
+        rangeMap: Map<LocalDate, RoomRangeType>
+    ): List<CalendarDay_rm> {
         val firstOfMonth = yearMonth.atDay(1)
         val firstDayOfWeekIndex = firstOfMonth.dayOfWeek.value % 7  // 일요일 0 기준
         val startDate = firstOfMonth.minusDays(firstDayOfWeekIndex.toLong())
@@ -148,10 +156,20 @@ class HomeFragment : Fragment() {
         for (i in 0 until 42) {
             val date = startDate.plusDays(i.toLong())
             val isCurrentMonth = (date.month == yearMonth.month)
-            days.add(CalendarDay_rm(date = date, isCurrentMonth = isCurrentMonth))
+
+            val type = rangeMap[date] ?: RoomRangeType.NONE
+
+            days.add(
+                CalendarDay_rm(
+                    date = date,
+                    isCurrentMonth = isCurrentMonth,
+                    roomRangeType = type
+                )
+            )
         }
         return days
     }
+
 
     /** 🔹 날짜 하나 탭했을 때 */
     private fun onDateSelected(date: LocalDate) {
@@ -230,6 +248,44 @@ class HomeFragment : Fragment() {
     }
 
 
+    // HomeFragment 안에 추가
+    private fun buildRoomRangeMap(): Map<LocalDate, RoomRangeType> {
+        val result = mutableMapOf<LocalDate, RoomRangeType>()
+        val rooms = TravelRoomRepository.getRooms()
+
+        for (room in rooms) {
+            val start = parseToLocalDate(room.startDate) ?: continue
+            val end = parseToLocalDate(room.endDate) ?: continue
+
+            // start > end 인 경우 방어
+            if (end.isBefore(start)) continue
+
+            val days = ChronoUnit.DAYS.between(start, end) + 1
+
+            if (days == 1L) {
+                // 1일짜리 여행
+                result[start] = RoomRangeType.SINGLE
+            } else {
+                var cur = start
+                while (!cur.isAfter(end)) {
+                    val type = when {
+                        cur == start -> RoomRangeType.START
+                        cur == end -> RoomRangeType.END
+                        else -> RoomRangeType.MIDDLE
+                    }
+
+                    // 이미 다른 방이 칠해져 있다면 덮어쓸지 말지는 취향대로
+                    result[cur] = type
+                    cur = cur.plusDays(1)
+                }
+            }
+        }
+
+        return result
+    }
+
+
+
 
 
 
@@ -271,69 +327,122 @@ class HomeFragment : Fragment() {
             binding.tvScrollArrow.alpha = 1f - ratio
         }
 
+        var downY = 0f
+        var isDragging = false
+        val touchSlop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+
         scroll.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP ||
-                event.action == MotionEvent.ACTION_CANCEL
-            ) {
-                if (pageHeight <= 0f || isSnapping) return@setOnTouchListener false
+            if (pageHeight <= 0f) return@setOnTouchListener false
 
-                val currentY = scroll.scrollY
-                val mid = pageHeight / 2f
-                val targetY = if (currentY < mid) 0 else pageHeight.toInt()
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downY = event.y
+                    isDragging = false
+                    false
+                }
 
-                isSnapping = true
-                scroll.post {
-                    scroll.smoothScrollTo(0, targetY)
+                MotionEvent.ACTION_MOVE -> {
+                    val dy = kotlin.math.abs(event.y - downY)
+                    if (dy > touchSlop) {
+                        isDragging = true
+                    }
+                    false
+                }
 
-                    if (targetY == pageHeight.toInt() && !isCalendarVisible) {
-                        // 🔵 두 번째 화면으로 넘어갈 때 → 검색바2 + 캘린더 사르르 등장
-                        card.alpha = 0f
-                        card.translationY = 40f
-                        search2.alpha = 0f
-                        search2.translationY = 20f
-                        search2.visibility = View.VISIBLE
-
-                        card.animate()
-                            .alpha(1f)
-                            .translationY(0f)
-                            .setDuration(350)
-                            .setInterpolator(DecelerateInterpolator())
-                            .start()
-
-                        search2.animate()
-                            .alpha(1f)
-                            .translationY(0f)
-                            .setDuration(300)
-                            .setInterpolator(DecelerateInterpolator())
-                            .withEndAction { isCalendarVisible = true }
-                            .start()
-
-                    } else if (targetY == 0 && isCalendarVisible) {
-                        // 🔵 첫 화면으로 돌아갈 때 → 둘 다 사르르 사라짐
-                        card.animate()
-                            .alpha(0f)
-                            .translationY(40f)
-                            .setDuration(250)
-                            .setInterpolator(DecelerateInterpolator())
-                            .start()
-
-                        search2.animate()
-                            .alpha(0f)
-                            .translationY(20f)
-                            .setDuration(220)
-                            .setInterpolator(DecelerateInterpolator())
-                            .withEndAction {
-                                search2.visibility = View.INVISIBLE
-                                isCalendarVisible = false
-                            }
-                            .start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    // 드래그가 아니면(탭이면) 스냅 X
+                    if (!isDragging || isSnapping) {
+                        isDragging = false
+                        return@setOnTouchListener false
                     }
 
-                    scroll.postDelayed({ isSnapping = false }, 260)
+                    val currentY = scroll.scrollY
+                    val pageTop2 = pageHeight.toInt()
+                    val snapBottomLimit = (pageHeight * 1.2f).toInt() // 이거 넘으면 스냅 안 함
+
+                    // 👉 2페이지 안쪽으로 충분히 내려왔으면(버튼 있는 위치) 스냅하지 않음
+                    if (currentY > snapBottomLimit) {
+                        isDragging = false
+                        return@setOnTouchListener false
+                    }
+
+                    val targetY = when {
+                        // 1페이지~2페이지 사이 구간 → 가까운 페이지로 스냅
+                        currentY < pageTop2 -> {
+                            val mid = pageHeight / 2f
+                            if (currentY < mid) 0 else pageTop2
+                        }
+                        // 2페이지 상단 근처 → 2페이지 맨 위로 스냅
+                        currentY in pageTop2..snapBottomLimit -> {
+                            pageTop2
+                        }
+                        else -> {
+                            // 이 케이스는 위 if에서 이미 걸러져서 거의 안 옴
+                            currentY
+                        }
+                    }
+
+                    isSnapping = true
+                    scroll.post {
+                        scroll.smoothScrollTo(0, targetY)
+
+                        if (targetY == pageTop2 && !isCalendarVisible) {
+                            // 두 번째 화면으로 넘어갈 때
+                            card.alpha = 0f
+                            card.translationY = 40f
+                            search2.alpha = 0f
+                            search2.translationY = 20f
+                            search2.visibility = View.VISIBLE
+
+                            card.animate()
+                                .alpha(1f)
+                                .translationY(0f)
+                                .setDuration(350)
+                                .setInterpolator(DecelerateInterpolator())
+                                .start()
+
+                            search2.animate()
+                                .alpha(1f)
+                                .translationY(0f)
+                                .setDuration(300)
+                                .setInterpolator(DecelerateInterpolator())
+                                .withEndAction { isCalendarVisible = true }
+                                .start()
+
+                        } else if (targetY == 0 && isCalendarVisible) {
+                            // 첫 화면으로 돌아갈 때
+                            card.animate()
+                                .alpha(0f)
+                                .translationY(40f)
+                                .setDuration(250)
+                                .setInterpolator(DecelerateInterpolator())
+                                .start()
+
+                            search2.animate()
+                                .alpha(0f)
+                                .translationY(20f)
+                                .setDuration(220)
+                                .setInterpolator(DecelerateInterpolator())
+                                .withEndAction {
+                                    search2.visibility = View.INVISIBLE
+                                    isCalendarVisible = false
+                                }
+                                .start()
+                        }
+
+                        scroll.postDelayed({
+                            isSnapping = false
+                            isDragging = false
+                        }, 260)
+                    }
+
+                    false
                 }
+
+                else -> false
             }
-            false
         }
     }
+
 
 }
