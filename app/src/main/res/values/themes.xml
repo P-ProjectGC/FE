@@ -27,7 +27,7 @@
         <item name="android:paddingBottom">4dp</item>
     </style>
 
-    <style name="Theme.PlanGo.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.PlanGo.Splash" parent="Base.Theme.PlanGo">
         <!-- 앱 아이콘 or 로고 표시 이미지 -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
 
@@ -37,9 +37,5 @@
         <!-- 스플래시 화면 이후 이동할 기본 테마 -->
         <item name="postSplashScreenTheme">@style/Theme.PlanGo</item>
     </style>
-
-
-
-
 
 </resources>

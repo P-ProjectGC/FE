@@ -7,4 +7,7 @@
     <color name="step_selected">#67C5ED</color>
     <color name="step_unselected">#E9EBEF</color>
 
+    // 로그인 화면 관련
+    <color name="plango_blue">#A8DEF5</color>
+    <color name="error_red">#FF4D4D</color>
 </resources>
