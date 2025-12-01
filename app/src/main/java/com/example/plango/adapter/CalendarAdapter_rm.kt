@@ -70,26 +70,5 @@ class CalendarAdapter_rm(
             tv.alpha = 0.3f
             tv.setTextColor(Color.parseColor("#999999"))
         }
-        tv.background = null
-
-        // 선택 범위 처리
-        val isStart = startDate != null && date == startDate
-        val isEnd = endDate != null && date == endDate
-        val isInRange =
-            startDate != null && endDate != null &&
-                    (date.isAfter(startDate) && date.isBefore(endDate))
-
-        when {
-            isStart || isEnd -> {
-                // 출발/도착 날짜 (동그란 진한 배경)
-                tv.setBackgroundResource(R.drawable.bg_calendar_selected_day)
-                tv.setTextColor(Color.WHITE)
-            }
-
-            isInRange && item.isCurrentMonth -> {
-                // 출발~도착 사이 날짜들 (텍스트 색만 포인트 컬러)
-                tv.setTextColor(Color.parseColor("#4F46E5"))
-            }
-        }
     }
 }

@@ -27,14 +27,21 @@
         <item name="android:paddingBottom">4dp</item>
     </style>
 
+    <style name="Dialog.RoomSearch" parent="Theme.MaterialComponents.Light.Dialog">
+        <!-- 제목줄 X / 투명 배경 다이얼로그를 위한 기본 설정 -->
+        <item name="android:windowIsTranslucent">true</item>
+
+        <!-- 🔥 시스템이 자동으로 까는 어두운 딤 제거 -->
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowCloseOnTouchOutside">false</item>
+
+        <!-- 기본 배경 투명 (우리가 XML에서 직접 배경 깔 거라서) -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
     <style name="Theme.PlanGo.Splash" parent="Base.Theme.PlanGo">
-        <!-- 앱 아이콘 or 로고 표시 이미지 -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
-
-        <!-- 배경색 (흰색) -->
         <item name="windowSplashScreenBackground">@color/white</item>
-
-        <!-- 스플래시 화면 이후 이동할 기본 테마 -->
         <item name="postSplashScreenTheme">@style/Theme.PlanGo</item>
     </style>
 
