@@ -6,13 +6,20 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.RetrofitClient
 import com.example.plango.data.TravelRoomRepository
+import com.example.plango.model.CreateRoomRequest
 import com.example.plango.model.TravelRoom
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
@@ -74,57 +81,116 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
             val roomName = etRoomName.text.toString().trim()
             val roomMemo = etRoomMemo.text.toString().trim()
 
-            // ⭐ Activity에서 날짜 + 친구 닉네임 가져오기
             val activity = activity as? CreateRoomActivity ?: return@setOnClickListener
             val start = activity.startDate
             val end = activity.endDate
             val selectedNicknames = activity.selectedFriendNicknames
 
-            // 안전 방어 (정상 플로우면 안 걸림)
             if (start == null || end == null) {
-                // TODO: 필요하면 토스트 띄우기
+                Toast.makeText(requireContext(), "날짜 정보가 없습니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 📅 리스트에 보여줄 날짜 텍스트 (더미 데이터 스타일 맞추기)
-            // 예: "8월 3일 - 8월 5일"
-            val dateText = "${start.monthValue}월 ${start.dayOfMonth}일 - " +
-                    "${end.monthValue}월 ${end.dayOfMonth}일"
-
-            // 👥 인원 수 (나중에 실제 멤버 수로 바꿔도 됨)
-            val memberCount = selectedNicknames.size.takeIf { it > 0 } ?: 1
-
-            // ✅ 1) 새 TravelRoom 객체 생성
-            val newRoom = TravelRoom(
-                id = System.currentTimeMillis(),
-                title = roomName,
-                startDate = start.toString(),   // "2025-11-29"
-                endDate = end.toString(),       // "2025-12-02"
-                dateText = dateText,            // "11월 29일 - 12월 2일"
-                memo = roomMemo,
-                memberCount = memberCount
+            // ✅ 서버까지 다녀온 뒤에 로컬 저장 + 화면 이동을 한 번에 처리
+            createRoomOnServerAndNavigate(
+                roomName = roomName,
+                roomMemo = roomMemo,
+                start = start,
+                end = end,
+                selectedNicknames = selectedNicknames
             )
+        }
+    }
 
+    // ✅ 서버 호출 + 로컬 저장 + 다음 화면 이동까지 담당
+    private fun createRoomOnServerAndNavigate(
+        roomName: String,
+        roomMemo: String,
+        start: LocalDate,
+        end: LocalDate,
+        selectedNicknames: List<String>
+    ) {
+        val memberIdHeader = 8L            // TODO: 나중에 로그인된 멤버 ID로 교체
+        val memberIdsBody = listOf(7L)     // TODO: 실제 멤버 ID 리스트로 교체
 
-            // ✅ 2) Repository에 방 추가 -> 방 목록에서 사용할 데이터
-            TravelRoomRepository.addRoom(newRoom)
+        val request = CreateRoomRequest(
+            roomName = roomName,
+            memo = roomMemo.ifBlank { null },
+            startDate = start.toString(),   // "yyyy-MM-dd"
+            endDate = end.toString(),
+            memberIds = memberIdsBody
+        )
 
-            // ✅ 3) 일정/지도 화면으로 이동 (지금까지 쓰던 테스트용 플로우 유지)
-            val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
-                putExtra("ROOM_ID", newRoom.id) //방 id 추가
-                putExtra("ROOM_NAME", roomName)
-                putExtra("ROOM_MEMO", roomMemo)
-                putExtra("START_DATE", start.toString())   // "2025-11-29" 형식
-                putExtra("END_DATE", end.toString())
-                putStringArrayListExtra(
-                    "MEMBER_NICKNAMES",
-                    ArrayList(selectedNicknames)           // ⭐ 닉네임 리스트 전달
-                )
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService
+                    .createRoom(memberIdHeader, request)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    Log.d("CreateRoomAPI", "response body = $body")
+
+                    if (body?.code == 0) {
+                        Toast.makeText(
+                            requireContext(),
+                            "서버 방 생성 성공 (roomId=${body.data?.roomId})",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // ✅ 여기서 로컬 TravelRoom 생성 + Repository에 저장
+                        val dateText = "${start.monthValue}월 ${start.dayOfMonth}일 - " +
+                                "${end.monthValue}월 ${end.dayOfMonth}일"
+                        val memberCount = selectedNicknames.size.takeIf { it > 0 } ?: 1
+
+                        val newRoom = TravelRoom(
+                            id = System.currentTimeMillis(),
+                            title = roomName,
+                            startDate = start.toString(),
+                            endDate = end.toString(),
+                            dateText = dateText,
+                            memo = roomMemo,
+                            memberCount = memberCount
+                        )
+
+                        TravelRoomRepository.addRoom(newRoom)
+
+                        // ✅ 그리고 나서 화면 이동
+                        val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
+                            putExtra("ROOM_ID", newRoom.id)
+                            putExtra("ROOM_NAME", roomName)
+                            putExtra("ROOM_MEMO", roomMemo)
+                            putExtra("START_DATE", start.toString())
+                            putExtra("END_DATE", end.toString())
+                            putStringArrayListExtra(
+                                "MEMBER_NICKNAMES",
+                                ArrayList(selectedNicknames)
+                            )
+                        }
+                        startActivity(intent)
+                        requireActivity().finish()
+
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "서버 응답 실패: ${body?.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "HTTP 오류: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Log.e("CreateRoomAPI", "error", e)
+                Toast.makeText(
+                    requireContext(),
+                    "네트워크 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            startActivity(intent)
-
-            // CreateRoomActivity는 스택에서 제거 (뒤로가기 시 방 목록으로)
-            requireActivity().finish()
         }
     }
 

@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -17,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.adapter.ChatAdapter
@@ -44,7 +46,13 @@ import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.tabs.TabLayout
 import com.example.plango.RoomMenuDialogFragment
+import com.example.plango.data.RetrofitClient
+import com.example.plango.model.CreateWishlistPlaceRequest
 import com.example.plango.model.TravelRoom
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+
 
 
 class RoomScheduleTestActivity :
@@ -560,16 +568,24 @@ class RoomScheduleTestActivity :
             address = place.address ?: "",
             lat = latLng.latitude,
             lng = latLng.longitude,
-            addedBy = "나"
+            addedBy = "나",
+            // 여기까지는 선택이지만, 이제는 placeId 도 같이 넣어줄 수 있음
+            googlePlaceId = place.id,
+            formattedAddress = place.address
         )
 
-        wishlistItems.add(newItem)
-        if (currentBottomTab == BottomTab.WISHLIST) {
-            wishlistAdapter.refresh()
-        }
+        // ✅ 여기서 **로컬 리스트에 직접 추가하지 말고**
+        //    서버 연동 함수만 호출
+        addPlaceToWishlistOnServer(newItem)
 
-        Toast.makeText(this, "위시리스트에 추가되었습니다.", Toast.LENGTH_SHORT).show()
+        // ❌ 아래 세 줄은 제거
+        // wishlistItems.add(newItem)
+        // if (currentBottomTab == BottomTab.WISHLIST) {
+        //     wishlistAdapter.refresh()
+        // }
+        // Toast는 addPlaceToWishlistOnServer 안에서 성공 시 한 번만 띄우는 걸로 유지
     }
+
 
     // ------------------------------------------------------------
     // 바텀바
@@ -769,6 +785,70 @@ class RoomScheduleTestActivity :
 
         bottomSheet.show(supportFragmentManager, "ConfirmScheduleBottomSheet")
     }
+    private fun addPlaceToWishlistOnServer(place: WishlistPlaceItem) {
+        val roomId = 2L   // 테스트용
+        val memberId = 8L // 테스트용
+
+        val request = CreateWishlistPlaceRequest(
+            name = place.placeName,
+            address = place.address,
+            googlePlaceId = place.googlePlaceId ?: "",
+            formattedAddress = place.formattedAddress ?: place.address,
+            latitude = place.lat,
+            longitude = place.lng
+        )
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService
+                    .createWishlistPlace(roomId, memberId, request)
+
+                // ★ 디버깅용 로그 (있으면 도움 됨)
+                Log.d("Wishlist", "request = $request")
+                Log.d("Wishlist", "response body = ${response.body()}")
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.code == 0) {
+                        wishlistItems.add(place)
+                        wishlistAdapter.refresh()
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "위시리스트에 추가됐어요.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "서버 응답 오류: ${body?.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        "HTTP 오류: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@RoomScheduleTestActivity,
+                    "네트워크 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
 
     // ------------------------------------------------------------
     // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)
@@ -790,6 +870,8 @@ class RoomScheduleTestActivity :
         )
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
+
+
 
 
 
@@ -828,5 +910,8 @@ data class WishlistPlaceItem(
     val address: String,
     val lat: Double,
     val lng: Double,
-    val addedBy: String
+    val addedBy: String,
+    // 🔽 서버 연동용으로 추가 (기존 코드 안 깨지게 기본값 설정)
+    val googlePlaceId: String? = null,
+    val formattedAddress: String? = null
 )
