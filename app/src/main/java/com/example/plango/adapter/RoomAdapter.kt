@@ -14,7 +14,7 @@ class RoomAdapter(
     private val usePopupStyle: Boolean = false,
     private val onClick: (TravelRoom) -> Unit
 )
- : RecyclerView.Adapter<RoomAdapter.RoomViewHolder>() {
+    : RecyclerView.Adapter<RoomAdapter.RoomViewHolder>() {
 
     inner class RoomViewHolder(
         private val binding: ItemRoomListBinding
