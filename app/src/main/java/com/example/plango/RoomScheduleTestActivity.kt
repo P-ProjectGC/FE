@@ -275,11 +275,8 @@ class RoomScheduleTestActivity :
                 openConfirmScheduleBottomSheet(item)   // ← 여기!
             }
         )
-
-
-
-
-
+        // ✅ 어댑터 세팅 끝난 뒤에 호출
+        loadWishlistFromServer()
 
     }
 
@@ -785,6 +782,7 @@ class RoomScheduleTestActivity :
 
         bottomSheet.show(supportFragmentManager, "ConfirmScheduleBottomSheet")
     }
+    //위시리스트 post용
     private fun addPlaceToWishlistOnServer(place: WishlistPlaceItem) {
         val roomId = 2L   // 테스트용
         val memberId = 8L // 테스트용
@@ -840,6 +838,69 @@ class RoomScheduleTestActivity :
             }
         }
     }
+   //wishlist post
+    private fun loadWishlistFromServer() {
+        val roomId = 2L   // TODO: 실제 roomId 로 교체 필요
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService
+                    .getWishlistPlaces(roomId)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body?.code == 0) {
+                        val dtoList = body.data ?: emptyList()
+
+                        // 기존 리스트 비우고 서버 데이터로 다시 채우기
+                        wishlistItems.clear()
+
+                        dtoList.forEach { dto ->
+                            val item = WishlistPlaceItem(
+                                placeName = dto.name,
+                                // formattedAddress 가 있으면 그걸, 없으면 address 사용
+                                address = if (dto.formattedAddress.isNotBlank()) {
+                                    dto.formattedAddress
+                                } else {
+                                    dto.address
+                                },
+                                lat = dto.latitude,
+                                lng = dto.longitude,
+                                // 지금은 createdByMemberId 를 문자열로 넣어두기 (닉네임 연동 전 임시)
+                                addedBy = dto.createdByMemberId.toString(),
+                                googlePlaceId = dto.googlePlaceId,
+                                formattedAddress = dto.formattedAddress
+                            )
+                            wishlistItems.add(item)
+                        }
+
+                        wishlistAdapter.refresh()
+
+                    } else {
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "서버 응답 오류: ${body?.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        "HTTP 오류: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@RoomScheduleTestActivity,
+                    "네트워크 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
 
 
 

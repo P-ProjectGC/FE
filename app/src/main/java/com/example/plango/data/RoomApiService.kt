@@ -7,6 +7,7 @@ import com.example.plango.model.RoomDto
 import com.example.plango.model.WishlistPlaceDto
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -25,5 +26,12 @@ interface RoomApiService {
         @Header("X-MEMBER-ID") memberId: Long,
         @Body request: CreateWishlistPlaceRequest
     ): Response<ApiResponse<WishlistPlaceDto>>
+
+
+    @GET("/api/rooms/{roomId}/places")
+    suspend fun getWishlistPlaces(
+        @Path("roomId") roomId: Long
+    ): Response<ApiResponse<List<WishlistPlaceDto>>>
+
 
 }

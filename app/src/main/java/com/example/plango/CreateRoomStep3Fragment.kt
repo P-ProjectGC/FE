@@ -110,8 +110,8 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         end: LocalDate,
         selectedNicknames: List<String>
     ) {
-        val memberIdHeader = 8L            // TODO: 나중에 로그인된 멤버 ID로 교체
-        val memberIdsBody = listOf(7L)     // TODO: 실제 멤버 ID 리스트로 교체
+        val memberIdHeader = 1L            // TODO: 나중에 로그인된 멤버 ID로 교체
+        val memberIdsBody = listOf(2L)     // TODO: 실제 멤버 ID 리스트로 교체
 
         val request = CreateRoomRequest(
             roomName = roomName,

@@ -9,7 +9,7 @@ object RetrofitClient {
 
     // 에뮬레이터 → 로컬 스프링 서버 접근
     // 🔁 호스트(네 컴퓨터) 실제 IP + 포트
-    private const val BASE_URL = "http://172.25.81.234:8080"
+    private const val BASE_URL = "http://172.25.81.234:8080/"
 
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
