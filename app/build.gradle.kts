@@ -59,6 +59,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.libraries.places:places:3.2.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
+    // splash_screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }
 
 

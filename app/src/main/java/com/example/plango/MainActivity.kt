@@ -1,15 +1,18 @@
 package com.example.plango
 
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.plango.databinding.ActivityMainBinding
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,7 +21,12 @@ class MainActivity : AppCompatActivity() {
     // 알림 아이콘 클릭 콜백 (FriendFragment에서 설정)
     private var alarmClickListener: (() -> Unit)? = null
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // 🔥🔥 Splash 적용 — 반드시 super.onCreate() 전에 실행해야 함
+        val splashScreen = installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -35,7 +43,7 @@ class MainActivity : AppCompatActivity() {
         initBottomNavigation()
         initAlarmIcon()
 
-        // 처음에는 알림 아이콘 숨겨두기 (홈 화면 기준)
+        // 처음에는 알림 아이콘 숨기기
         showAlarmIcon(false)
 
         // 초기 nav = Home
@@ -43,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 하단 네비게이션 탭 클릭 시 프래그먼트 전환
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun initBottomNavigation() {
 
         // 초기 화면 = HomeFragment
@@ -92,12 +101,12 @@ class MainActivity : AppCompatActivity() {
         ivAlarm.setOnClickListener(listener)
     }
 
-    // FriendFragment에서 알람 클릭 시 실행할 동작을 등록
+    // FriendFragment에서 알람 클릭 시 실행할 동작 등록
     fun setOnAlarmClickListener(listener: () -> Unit) {
         alarmClickListener = listener
     }
 
-    // 알림 아이콘 보이기/숨기기 제어 (이제는 FrameLayout 기준)
+    // 알림 아이콘 보이기/숨기기 제어
     fun showAlarmIcon(show: Boolean) {
         val layout = findViewById<FrameLayout>(R.id.layout_alarm)
         layout.visibility = if (show) View.VISIBLE else View.GONE

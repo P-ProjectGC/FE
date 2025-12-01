@@ -21,7 +21,8 @@
         <!-- ✅ 앱 실행 시 가장 먼저 뜨는 액티비티: MainActivity -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.PlanGo.Splash">
 
             <!-- 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
             <intent-filter>
