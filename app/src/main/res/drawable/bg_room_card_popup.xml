@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 그라디언트 배경 -->
+    <gradient
+        android:startColor="#67C5ED"
+        android:endColor="#47A8D4"
+        android:angle="270" />
+
+    <!-- 둥근 모서리 (리스트 카드랑 비슷하게) -->
+    <corners android:radius="16dp" />
+
+    <!-- 테두리는 살짝만 -->
+    <stroke
+        android:width="1dp"
+        android:color="#67C5ED" />
+
+</shape>

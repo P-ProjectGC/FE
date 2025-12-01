@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- 배경색: 회색 -->
+    <solid android:color="#E9EBEF" />
+
+    <!-- 원 크기 동일하게 유지 -->
+    <size
+        android:width="28dp"
+        android:height="28dp" />
+
+</shape>

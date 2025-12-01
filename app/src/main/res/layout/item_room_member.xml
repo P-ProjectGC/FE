@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="12dp"
+    android:layout_marginTop="8dp"
+    android:background="@drawable/bg_room_member_card">
+
+    <!-- 프로필 동그라미 -->
+    <ImageView
+        android:id="@+id/ivMemberProfile"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@drawable/profile_basic"
+        android:background="@android:color/transparent"
+        android:scaleType="centerCrop" />
+
+    <!-- 이름 영역 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvMemberNickname"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="닉네임"
+                android:textSize="15sp"
+                android:textColor="#222222"
+                android:textStyle="bold" />
+
+            <!-- 방장 왕관 뱃지 -->
+            <TextView
+                android:id="@+id/tvHostBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="👑"
+                android:textSize="14sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvMemberRealName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="실제 이름"
+            android:textSize="12sp"
+            android:textColor="#8A8A8A"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- 방장 양도 버튼 -->
+    <Button
+        android:id="@+id/btnTransferHost"
+        android:layout_width="wrap_content"
+        android:layout_height="35dp"
+        android:text="방장 양도"
+        android:textSize="10sp"
+        android:textColor="#47A8D4"
+        android:background="@drawable/bg_transfer_host_button"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:gravity="center"
+        android:backgroundTint="@null"
+        app:backgroundTint="@null" />
+
+</LinearLayout>

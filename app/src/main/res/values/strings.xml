@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PlanGo</string>
+    <string name="edit_schedule">일정 편집</string>
 </resources>

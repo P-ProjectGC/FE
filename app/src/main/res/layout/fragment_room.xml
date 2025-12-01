@@ -3,19 +3,141 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".RoomFragment">
 
-    <!-- 중앙에 텍스트를 배치하는 TextView -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="room"
+    <!-- 가운데 내용만 담당 (헤더/바텀네비는 MainActivity) -->
+    <LinearLayout
+        android:id="@+id/layoutContent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:background="@android:color/white"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 타이틀 + 새 여행방 버튼 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvMyRooms"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/dongle_bold"
+                android:layout_weight="1"
+                android:text="나의 여행방"
+                android:textSize="30sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <!-- 새 여행방 버튼(텍스트뷰로 구현) -->
+            <TextView
+                android:id="@+id/btnNewRoom"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_add_friend_button"
+                android:text="+ 새 여행방"
+                android:textSize="14sp"
+                android:textColor="@android:color/white"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- 검색창 -->
+        <EditText
+            android:id="@+id/etSearchRoom"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_search_border"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:hint="여행방 이름이나 장소를 검색하세요"
+            android:textSize="14sp"
+            android:drawableLeft="@drawable/icon_friend_search"
+            android:drawableStart="@drawable/icon_friend_search"
+            android:drawablePadding="8dp"
+            android:textColorHint="#A0A0A0"/>
+
+        <!-- 리스트 / 빈 화면 영역 -->
+        <FrameLayout
+            android:id="@+id/layoutRoomContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1">
+
+            <!-- 방 목록 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvRoomList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                tools:listitem="@layout/item_room_list" />
+
+            <!-- 빈 상태 -->
+            <LinearLayout
+                android:id="@+id/layoutEmptyRoom"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <ImageView
+                    android:id="@+id/ivEmptyIcon"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/icon_room_list_empty_re"
+                    android:alpha="0.9" />
+
+                <TextView
+                    android:id="@+id/tvEmptyTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="아직 여행방이 없어요"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/black" />
+
+                <TextView
+                    android:id="@+id/tvEmptyDesc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="새 여행방 버튼을 눌러\n첫 여행을 계획해보세요"
+                    android:textAlignment="center"
+                    android:textSize="13sp"
+                    android:textColor="#888888" />
+
+                <!-- 여행방 만들기 버튼(텍스트뷰로 구현) -->
+                <TextView
+                    android:id="@+id/btnCreateFirstRoom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    android:layout_marginTop="40dp"
+                    android:background="@drawable/bg_add_friend_button"
+                    android:text="+ 여행방 만들기"
+                    android:textSize="15sp"
+                    android:textColor="@android:color/white"
+                    android:gravity="center"
+                    android:paddingHorizontal="18dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
