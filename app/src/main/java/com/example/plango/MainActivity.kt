@@ -2,6 +2,8 @@ package com.example.plango
 
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -18,14 +20,31 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    // 알림 아이콘 클릭 콜백 (FriendFragment에서 설정)
+    // 알람 아이콘 콜백
     private var alarmClickListener: (() -> Unit)? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        // 🔥🔥 Splash 적용 — 반드시 super.onCreate() 전에 실행해야 함
+        // 🔥 Splash 적용 — super.onCreate() 전에 실행
         val splashScreen = installSplashScreen()
+
+        // 스플래쉬 유지시간 설정
+        var keepSplash = true
+        splashScreen.setKeepOnScreenCondition { keepSplash }
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            keepSplash = false
+        }, 800)  // 0.8초 유지
+
+        // fade-out 애니메이션
+        splashScreen.setOnExitAnimationListener { splashView ->
+            splashView.view.animate()
+                .alpha(0f)
+                .setDuration(300L)
+                .withEndAction { splashView.remove() }
+                .start()
+        }
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -33,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 시스템 인셋 처리
+        // 인셋 처리
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -43,14 +62,13 @@ class MainActivity : AppCompatActivity() {
         initBottomNavigation()
         initAlarmIcon()
 
-        // 처음에는 알림 아이콘 숨기기
+        // 처음에는 알람 아이콘 숨기기
         showAlarmIcon(false)
 
-        // 초기 nav = Home
+        // 초기 화면 = Home
         binding.bottomNav.selectedItemId = R.id.menu_home
     }
 
-    // 하단 네비게이션 탭 클릭 시 프래그먼트 전환
     @RequiresApi(Build.VERSION_CODES.O)
     private fun initBottomNavigation() {
 
@@ -88,7 +106,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 알람 아이콘(레이아웃 + 아이콘)에 클릭 리스너 연결
     private fun initAlarmIcon() {
         val layoutAlarm = findViewById<FrameLayout>(R.id.layout_alarm)
         val ivAlarm = findViewById<ImageView>(R.id.iv_alarm)
@@ -101,18 +118,15 @@ class MainActivity : AppCompatActivity() {
         ivAlarm.setOnClickListener(listener)
     }
 
-    // FriendFragment에서 알람 클릭 시 실행할 동작 등록
     fun setOnAlarmClickListener(listener: () -> Unit) {
         alarmClickListener = listener
     }
 
-    // 알림 아이콘 보이기/숨기기 제어
     fun showAlarmIcon(show: Boolean) {
         val layout = findViewById<FrameLayout>(R.id.layout_alarm)
         layout.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    // 알림 배지 숫자 갱신
     fun updateAlarmBadge(count: Int) {
         val badge = findViewById<TextView>(R.id.tv_alarm_badge)
 
