@@ -7,6 +7,7 @@ import com.example.plango.model.RoomDto
 import com.example.plango.model.WishlistPlaceDto
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -32,6 +33,13 @@ interface RoomApiService {
     suspend fun getWishlistPlaces(
         @Path("roomId") roomId: Long
     ): Response<ApiResponse<List<WishlistPlaceDto>>>
+
+    @DELETE("/api/rooms/{roomId}/places/{placeId}")
+    suspend fun deleteWishlistPlace(
+        @Path("roomId") roomId: Long,
+        @Path("placeId") placeId: Long
+    ): Response<ApiResponse<RoomDto>>
+
 
 
 }
