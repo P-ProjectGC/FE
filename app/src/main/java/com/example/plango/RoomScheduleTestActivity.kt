@@ -278,33 +278,61 @@ class RoomScheduleTestActivity :
     // ------------------------------------------------------------
     // 이미지 선택 / 채팅 이미지 메시지
     // ------------------------------------------------------------
-    private fun handleImagePicked(uri: Uri) {
+    private fun handleImagePicked(originalUri: Uri) {
         val currentMillis = System.currentTimeMillis()
         val timeText = java.text.SimpleDateFormat(
             "HH:mm",
             java.util.Locale.getDefault()
         ).format(java.util.Date(currentMillis))
 
+        // 🔹 1) 포토 피커 URI → 앱 내부(cacheDir) 파일로 복사
+        val localUri: Uri = try {
+            val inputStream = contentResolver.openInputStream(originalUri)
+                ?: throw Exception("Cannot open input stream")
+
+            val file = java.io.File(
+                cacheDir,
+                "chat_img_${System.currentTimeMillis()}.jpg"
+            )
+
+            inputStream.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            Uri.fromFile(file)   // ← 이 Uri는 앱 재실행해도 권한 안 사라짐
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // 실패 시 일단 원본 URI라도 사용 (앱 죽지 않게)
+            originalUri
+        }
+
+        // 🔹 2) 메시지 객체 생성
         val message = ChatMessage(
             id = System.currentTimeMillis(),
             senderName = "나",
             message = null,
             timeText = timeText,
             isMe = true,
-            imageUri = uri,
+            imageUri = localUri,    // ⭐ picker URI 대신 로컬 파일 Uri 저장
             type = ChatContentType.IMAGE
         )
 
+        // 🔹 3) UI에 메시지 추가
         chatAdapter.addMessage(message)
 
+        // 🔹 4) 로컬 저장소에도 추가
         if (roomId != -1L) {
             ChatRepository.addMessage(roomId, message)
         }
 
+        // 🔹 5) 스크롤을 맨 아래로
         recyclerView.post {
             recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
         }
     }
+
 
     // ------------------------------------------------------------
     // RecyclerView / 어댑터
