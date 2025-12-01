@@ -206,13 +206,17 @@
 
                         <Button
                             android:id="@+id/btn_create_trip"
+                            style="@style/Widget.AppCompat.Button"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="새로운 여행 만들기"
+                            android:text="+  새로운 여행 만들기"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:background="@drawable/bg_add_friend_button"
+                            android:backgroundTint="@null"
+                            app:backgroundTint="@null"
                             android:layout_marginTop="12dp" />
+
 
                     </LinearLayout>
 

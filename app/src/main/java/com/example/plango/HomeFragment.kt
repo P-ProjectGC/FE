@@ -17,6 +17,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import android.view.animation.DecelerateInterpolator
+import android.content.Intent
 
 @RequiresApi(Build.VERSION_CODES.O)
 class HomeFragment : Fragment() {
@@ -48,22 +49,25 @@ class HomeFragment : Fragment() {
         setupUi()
         setupCalendar()
         setupPageSnapAndFade()
+        // 🔹 홈 화면 "새로운 여행 만들기" 버튼 → 방 생성 플로우 진입
+        binding.btnCreateTrip.setOnClickListener {
+            val intent = Intent(requireContext(), CreateRoomActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun setupUi() {
-        val nickname = "남유정" // TODO: 로그인 정보에서 받아오기
+        val nickname = "남유정"
         binding.tvTitle.text = "“$nickname”의\nPlanGo"
 
-        // 🔹 검색바 공통 클릭 동작
+        // 🔹 검색창 클릭시 팝업 띄우기
         val searchClick: (View) -> Unit = {
-            // TODO: 여행방 검색 화면으로 이동
-            // val intent = Intent(requireContext(), SearchRoomActivity::class.java)
-            // startActivity(intent)
+            RoomSearchDialogFragment().show(parentFragmentManager, "RoomSearchDialog")
         }
-        binding.layoutSearch.setOnClickListener(searchClick)   // 첫 번째 화면 검색바
-        binding.layoutSearch2.setOnClickListener(searchClick)  // 두 번째 화면 검색바
+        binding.layoutSearch.setOnClickListener(searchClick)   // 첫 화면 검색바
+        binding.layoutSearch2.setOnClickListener(searchClick)  // 캘린더 화면 검색바
 
-        // 🔹 “아래로 스크롤하세요” / 화살표 누르면 캘린더 화면으로 스크롤
+        // 🔹 “아래로 스크롤하세요” 안내 → 캘린더로 스크롤
         val scrollToCalendar: (View) -> Unit = {
             if (pageHeight > 0f) {
                 binding.homeScroll.smoothScrollTo(0, pageHeight.toInt())
@@ -72,6 +76,7 @@ class HomeFragment : Fragment() {
         binding.tvScrollHint.setOnClickListener(scrollToCalendar)
         binding.tvScrollArrow.setOnClickListener(scrollToCalendar)
     }
+
 
     /** 🔵 rm 캘린더 사용 */
     private fun setupCalendar() {

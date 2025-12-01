@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1A000000">   <!-- 🔹 뒤를 어둡게 -->
+
+    <!-- 가운데 카드 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:background="@drawable/bg_dialog_card"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- 제목 + 닫기 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_dialog_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="여행방 검색"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:gravity="center_horizontal"
+                android:textColor="#222222" />
+
+            <TextView
+                android:id="@+id/tv_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✕"
+                android:textSize="18sp"
+                android:textColor="#666666"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <!-- 검색 입력 -->
+        <EditText
+            android:id="@+id/et_search_room"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_search_room_home"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:hint="여행방 이름이나 장소를 검색하세요"
+            android:textSize="14sp"
+            android:singleLine="true"/>
+
+        <!-- 검색 결과 리스트 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_search_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:overScrollMode="never"/>
+    </LinearLayout>
+
+</FrameLayout>
