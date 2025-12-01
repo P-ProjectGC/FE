@@ -18,6 +18,8 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import android.view.animation.DecelerateInterpolator
 import android.content.Intent
+import com.example.plango.data.TravelRoomRepository
+import com.example.plango.model.TravelRoom
 
 @RequiresApi(Build.VERSION_CODES.O)
 class HomeFragment : Fragment() {
@@ -34,6 +36,13 @@ class HomeFragment : Fragment() {
     private var selectedDate: LocalDate? = null
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
     private var isCalendarVisible = false
+
+
+    private val displayDateFormatter: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("yyyy년 M월 d일")
+
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -82,7 +91,8 @@ class HomeFragment : Fragment() {
     private fun setupCalendar() {
         calendarAdapter = CalendarAdapter_rm { day ->
             if (!day.isCurrentMonth) return@CalendarAdapter_rm
-            handleDateClick(day.date)
+            // ✅ 여기만 바뀜 (핵심!)
+            onDateSelected(day.date)
         }
 
         binding.rvCalendar.apply {
@@ -120,10 +130,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateSelectedDateText() {
-        binding.tvSelectedDate.text = selectedDate?.let {
-            it.format(dateFormatter) + " 일정 보기"
-        } ?: "날짜를 선택해주세요"
+        if (selectedDate == null) {
+            binding.layoutSelectedRoom.visibility = View.GONE
+            binding.tvSelectedDate.visibility = View.VISIBLE
+            binding.tvSelectedDate.text = "날짜를 선택해 보세요!"
+        }
     }
+
+
 
     private fun generateCalendarDays(yearMonth: YearMonth): List<CalendarDay_rm> {
         val firstOfMonth = yearMonth.atDay(1)
@@ -138,6 +152,101 @@ class HomeFragment : Fragment() {
         }
         return days
     }
+
+    /** 🔹 날짜 하나 탭했을 때 */
+    private fun onDateSelected(date: LocalDate) {
+        selectedDate = date
+
+        val allRooms = TravelRoomRepository.getRooms()
+
+        val matched = allRooms.filter { room ->
+            isDateInRoom(date, room)
+        }
+
+        val dateText = date.format(displayDateFormatter)
+
+        if (matched.isEmpty()) {
+            // 상태 2 — 날짜 선택 O + 방 없음
+            binding.layoutSelectedRoom.visibility = View.GONE
+            binding.tvSelectedDate.visibility = View.VISIBLE
+            binding.tvSelectedDate.text = "선택한 날짜에 일정이 없습니다\n$dateText"
+
+        } else {
+            // 상태 3 — 날짜 선택 O + 방 있음
+            val room = matched.first()
+
+            binding.layoutSelectedRoom.visibility = View.VISIBLE
+            binding.tvSelectedDate.visibility = View.GONE  // ⭐ 추가!
+
+            binding.tvHomeRoomTitle.text = room.title
+            binding.tvHomeRoomDate.text = room.dateText
+            binding.tvHomeRoomMemo.text = room.memo
+            binding.tvHomeRoomMemberCount.text = "${room.memberCount}명"
+
+            // 카드 눌렀을 때 해당 방으로 진입
+            binding.layoutSelectedRoom.setOnClickListener {
+                val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
+                    putExtra("ROOM_ID", room.id)
+                    putExtra("ROOM_NAME", room.title)
+                    putExtra("ROOM_MEMO", room.memo)
+                    putExtra("START_DATE", room.startDate)
+                    putExtra("END_DATE", room.endDate)
+                    putStringArrayListExtra(
+                        "MEMBER_NICKNAMES",
+                        ArrayList(room.memberNicknames)
+                    )
+                }
+                startActivity(intent)
+            }
+        }
+    }
+
+    //날짜파싱
+    private fun parseToLocalDate(text: String): LocalDate? {
+        return try {
+            when {
+                text.contains(".") -> {
+                    // 예: "25.10.28" 또는 "2025.10.28"
+                    val parts = text.split(".")
+                    return when (parts.size) {
+                        3 -> {
+                            val year = if (parts[0].length == 2) "20${parts[0]}" else parts[0]
+                            LocalDate.of(year.toInt(), parts[1].toInt(), parts[2].toInt())
+                        }
+                        else -> null
+                    }
+                }
+
+                text.contains("-") -> {
+                    // 예: "2025-10-28"
+                    LocalDate.parse(text)
+                }
+
+                else -> null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+
+
+
+
+    /** 🔹 date 가 room의 [startDate ~ endDate] 사이인지 체크 */
+    private fun isDateInRoom(date: LocalDate, room: TravelRoom): Boolean {
+        val start = parseToLocalDate(room.startDate)
+        val end = parseToLocalDate(room.endDate)
+
+        if (start == null || end == null) return false
+
+        return !date.isBefore(start) && !date.isAfter(end)
+    }
+
+
+
+
+
 
     /** 🔵 1페이지 ↔ 2페이지 스냅 + 캘린더 사르르 페이드인 */
     @SuppressLint("ClickableViewAccessibility")

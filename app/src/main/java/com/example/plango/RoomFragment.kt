@@ -57,6 +57,8 @@ class RoomFragment : Fragment() {
         binding.rvRoomList.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = roomAdapter
+            // 🔹 NestedScrollView 안에서는 이거 꼭!
+            isNestedScrollingEnabled = false
         }
 
         // 상단 "새 여행방" 버튼

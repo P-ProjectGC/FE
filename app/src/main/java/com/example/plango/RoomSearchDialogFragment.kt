@@ -26,9 +26,9 @@ class RoomSearchDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 기본 다이얼로그 스타일 사용 (배경은 직접 설정)
-        setStyle(STYLE_NORMAL, android.R.style.Theme_Material_Light_NoActionBar)
+        setStyle(STYLE_NO_TITLE, R.style.Dialog_RoomSearch)
     }
+
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = super.onCreateDialog(savedInstanceState)
@@ -38,15 +38,18 @@ class RoomSearchDialogFragment : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
+
         dialog?.window?.apply {
-            // 화면 전체 덮고, 배경은 투명 (XML의 반투명 FrameLayout이 보이도록)
             setLayout(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundDrawableResource(android.R.color.transparent)
+            // ⚠️ 여기서는 이제 dim 관련 설정은 안 해도 됨
         }
     }
+
+
 
 
     override fun onCreateView(
