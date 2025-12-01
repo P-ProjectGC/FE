@@ -16,6 +16,7 @@ class CalendarAdapter_rm(
 
     private var days: List<CalendarDay_rm> = emptyList()
 
+    // 선택 범위 (출발/도착)
     private var startDate: LocalDate? = null
     private var endDate: LocalDate? = null
 
@@ -24,6 +25,7 @@ class CalendarAdapter_rm(
         notifyDataSetChanged()
     }
 
+    /** 프래그먼트에서 선택 범위를 넘겨줄 때 사용 */
     fun setRange(start: LocalDate?, end: LocalDate?) {
         startDate = start
         endDate = end
@@ -57,8 +59,10 @@ class CalendarAdapter_rm(
         val tv = holder.tvDay
         val date = item.date
 
+        // 기본 숫자
         tv.text = date.dayOfMonth.toString()
 
+        // 이번 달 / 이전/다음 달 색
         if (item.isCurrentMonth) {
             tv.alpha = 1f
             tv.setTextColor(Color.parseColor("#333333"))
