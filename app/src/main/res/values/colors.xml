@@ -6,5 +6,6 @@
     <color name="bottom_nav_selected">#47A8D4</color>
     <color name="step_selected">#67C5ED</color>
     <color name="step_unselected">#E9EBEF</color>
+    <color name="gray_icon">#9AA4B2</color>
 
 </resources>
