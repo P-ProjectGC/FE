@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
 
     <application
         android:allowBackup="true"
@@ -11,15 +12,39 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PlanGo">
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
+        <!-- ✅ 앱 실행 시 가장 먼저 뜨는 액티비티: MainActivity -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.PlanGo.Splash">
+
+            <!-- 앱 실행 시 바로 이 Activity가 뜨게 하기 -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 여행방 생성 화면: 이제는 MainActivity에서 진입하는 화면 -->
+        <activity
+            android:name=".CreateRoomActivity"
+            android:exported="false" />
+
+        <!-- 여행방 일정/지도 테스트용 액티비티 -->
+        <activity
+            android:name=".RoomScheduleTestActivity"
+            android:exported="true" />
+
+        <activity
+            android:name=".ImageGalleryActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

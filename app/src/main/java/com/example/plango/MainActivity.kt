@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.plango.databinding.ActivityMainBinding
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
