@@ -80,7 +80,6 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
             val roomName = etRoomName.text.toString().trim()
             val roomMemo = etRoomMemo.text.toString().trim()
-
             val activity = activity as? CreateRoomActivity ?: return@setOnClickListener
             val start = activity.startDate
             val end = activity.endDate
@@ -191,6 +190,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
         }
     }
 

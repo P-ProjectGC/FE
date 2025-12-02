@@ -16,6 +16,7 @@ class RoomAdapter(
 )
  : RecyclerView.Adapter<RoomAdapter.RoomViewHolder>() {
 
+
     inner class RoomViewHolder(
         private val binding: ItemRoomListBinding
     ) : RecyclerView.ViewHolder(binding.root) {

@@ -16,13 +16,14 @@ class WishlistAdapter(
 ) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>()
  {
 
+
     inner class WishlistViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textPlaceName: TextView = itemView.findViewById(R.id.textPlaceNameWishlist)
         val textAddress: TextView = itemView.findViewById(R.id.textAddressWishlist)
         val textAddedBy: TextView = itemView.findViewById(R.id.textAddedBy)
         val btnConfirm: TextView = itemView.findViewById(R.id.btnConfirmSchedule)
-
         val btnDelete: TextView = itemView.findViewById(R.id.btnDeleteWishlist)   // ← 추가!!
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WishlistViewHolder {
@@ -56,10 +57,10 @@ class WishlistAdapter(
         holder.btnDelete.setOnClickListener {
             onDeleteClick(item)
         }
+
     }
 
     override fun getItemCount(): Int = items.size
-
      //아이템 삭제 함수
     fun refresh() {
         notifyDataSetChanged()
@@ -73,3 +74,4 @@ class WishlistAdapter(
      }
 
  }
+

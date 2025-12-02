@@ -39,10 +39,11 @@
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
-
-
-
-
-
+    <style name="Theme.PlanGo.Splash" parent="Base.Theme.PlanGo">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="postSplashScreenTheme">@style/Theme.PlanGo</item>
+    </style>
 
 </resources>
+

@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
+import android.util.Log 
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -53,6 +53,8 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import androidx.appcompat.app.AlertDialog
+
+
 
 
 class RoomScheduleTestActivity :
@@ -586,8 +588,6 @@ class RoomScheduleTestActivity :
         // }
         // Toast는 addPlaceToWishlistOnServer 안에서 성공 시 한 번만 띄우는 걸로 유지
     }
-
-
     // ------------------------------------------------------------
     // 바텀바
     // ------------------------------------------------------------
@@ -1013,16 +1013,6 @@ class RoomScheduleTestActivity :
         }
     }
 
-
-
-
-
-
-
-
-
-
-
     // ------------------------------------------------------------
     // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)
     // ------------------------------------------------------------
@@ -1043,10 +1033,6 @@ class RoomScheduleTestActivity :
         )
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
-
-
-
-
 
 
     // ------------------------------------------------------------
