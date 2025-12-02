@@ -35,6 +35,11 @@
 
         </activity>
 
+        <!-- SignupActivity 화면 -->
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="true" />
+
         <!-- mainActivity 화면 -->
         <activity
             android:name=".MainActivity"

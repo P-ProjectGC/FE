@@ -97,7 +97,8 @@ class LoginActivity : ComponentActivity() {
 
         /** 회원가입 */
         binding.tvSignup.setOnClickListener {
-            Toast.makeText(this, "회원가입 화면으로 이동", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, SignUpActivity::class.java)
+            startActivity(intent)
         }
 
     }
