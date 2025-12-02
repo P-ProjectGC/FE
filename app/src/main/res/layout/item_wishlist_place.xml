@@ -24,15 +24,42 @@
         android:paddingTop="18dp"
         android:paddingBottom="18dp">
 
-        <!-- 장소 이름 -->
-        <TextView
-            android:id="@+id/textPlaceNameWishlist"
+       
+        <!-- 첫 줄: 장소 이름 + 삭제 버튼 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="장소 이름"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#333333" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- 장소 이름 -->
+            <TextView
+                android:id="@+id/textPlaceNameWishlist"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="장소 이름"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333333" />
+
+            <!-- [삭제] 버튼 -->
+            <TextView
+                android:id="@+id/btnDeleteWishlist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="삭제"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FF4D4D"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
 
         <!-- 주소 -->
         <TextView

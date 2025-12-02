@@ -10,15 +10,20 @@ import androidx.recyclerview.widget.RecyclerView
 
 class WishlistAdapter(
     private val items: MutableList<WishlistPlaceItem>,
+    private val isHost: Boolean,
     private val onConfirmClick: (WishlistPlaceItem) -> Unit,
-    private val isHost: Boolean
-) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>() {
+    private val onDeleteClick: (WishlistPlaceItem) -> Unit
+) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>()
+ {
+
 
     inner class WishlistViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textPlaceName: TextView = itemView.findViewById(R.id.textPlaceNameWishlist)
         val textAddress: TextView = itemView.findViewById(R.id.textAddressWishlist)
         val textAddedBy: TextView = itemView.findViewById(R.id.textAddedBy)
         val btnConfirm: TextView = itemView.findViewById(R.id.btnConfirmSchedule)
+        val btnDelete: TextView = itemView.findViewById(R.id.btnDeleteWishlist)   // ← 추가!!
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WishlistViewHolder {
@@ -48,11 +53,25 @@ class WishlistAdapter(
             // 방장일 때만 실제 일정 확정 로직 실행
             onConfirmClick(item)
         }
+        // 🔴 삭제 버튼 클릭 시 → Activity/Fragment로 콜백 보내기
+        holder.btnDelete.setOnClickListener {
+            onDeleteClick(item)
+        }
+
     }
 
     override fun getItemCount(): Int = items.size
-
+     //아이템 삭제 함수
     fun refresh() {
         notifyDataSetChanged()
     }
-}
+     fun removeItem(item: WishlistPlaceItem) {
+         val index = items.indexOf(item)
+         if (index != -1) {
+             items.removeAt(index)
+             notifyItemRemoved(index)
+         }
+     }
+
+ }
+
