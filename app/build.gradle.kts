@@ -56,12 +56,24 @@ dependencies {
     // Glide
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
+    // splash-screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Google Maps & Places
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.libraries.places:places:3.2.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
-    // splash_screen
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp Logging
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+
+    // 코루틴 + lifecycleScope
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
 }
 
 

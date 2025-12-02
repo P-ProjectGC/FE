@@ -187,7 +187,8 @@
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="토" android:textSize="12sp" android:textColor="#999999"/>
                         </LinearLayout>
 
-                        <!-- 날짜 -->
+
+                        <!-- 날짜 리스트 -->
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/rv_calendar"
                             android:layout_width="match_parent"
@@ -195,24 +196,125 @@
                             android:nestedScrollingEnabled="false"
                             android:layout_marginTop="10dp" />
 
+                        <!-- 🔹 선택한 날짜에 포함되는 여행방 카드 (없을 땐 GONE) -->
+                        <LinearLayout
+                            android:id="@+id/layout_selected_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:orientation="vertical"
+                            android:background="@drawable/bg_room_card_popup"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="14dp"
+                            android:visibility="gone">
+
+                            <!-- 방 제목 -->
+                            <TextView
+                                android:id="@+id/tvHomeRoomTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="여름 부산 여행"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/white" />
+
+                            <!-- 날짜 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/icon_room_date_re"
+                                    app:tint="@android:color/white" />
+
+                                <TextView
+                                    android:id="@+id/tvHomeRoomDate"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:text="10월 28일 - 10월 30일"
+                                    android:textSize="13sp"
+                                    android:textColor="@android:color/white" />
+                            </LinearLayout>
+
+                            <!-- 메모 + 인원 수 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/icon_room_memo_re"
+                                    app:tint="@android:color/white" />
+
+                                <TextView
+                                    android:id="@+id/tvHomeRoomMemo"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="6dp"
+                                    android:text="해운대 방문 예정"
+                                    android:textSize="13sp"
+                                    android:textColor="@android:color/white"
+                                    android:maxLines="1"
+                                    android:ellipsize="end" />
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginStart="8dp"
+                                    android:src="@drawable/icon_friend"
+                                    app:tint="@android:color/white" />
+
+                                <TextView
+                                    android:id="@+id/tvHomeRoomMemberCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
+                                    android:text="4명"
+                                    android:textSize="13sp"
+                                    android:textColor="@android:color/white" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+
                         <TextView
                             android:id="@+id/tv_selected_date"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="날짜를 선택해주세요"
+                            android:text="날짜를 선택해주세요!"
                             android:textColor="#777777"
                             android:textSize="14sp"
-                            android:layout_marginTop="16dp"/>
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center"
+                            android:textAlignment="center"/>
 
                         <Button
                             android:id="@+id/btn_create_trip"
+                            style="@style/Widget.AppCompat.Button"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="새로운 여행 만들기"
+                            android:text="+  새로운 여행 만들기"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:background="@drawable/bg_add_friend_button"
+                            android:backgroundTint="@null"
+                            app:backgroundTint="@null"
                             android:layout_marginTop="12dp" />
+
 
                     </LinearLayout>
 

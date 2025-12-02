@@ -16,17 +16,17 @@ import com.example.plango.model.TravelRoom
 
 class RoomFragment : Fragment() {
 
-    lateinit var binding: FragmentRoomBinding
+    private lateinit var binding: FragmentRoomBinding
     private lateinit var roomAdapter: RoomAdapter
 
-    // 🔹 전체 여행방 목록 (검색용 원본 리스트)
+    // 전체 여행방 목록 (검색용 원본 리스트)
     private var allRooms: List<TravelRoom> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = FragmentRoomBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -34,15 +34,17 @@ class RoomFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 어댑터 생성 (초기엔 빈 리스트)
-        roomAdapter = RoomAdapter(emptyList()) { room: TravelRoom ->
+        // 어댑터 생성 (초기엔 빈 리스트) - 기본 리스트 스타일
+        roomAdapter = RoomAdapter(
+            emptyList(),
+            usePopupStyle = false
+        ) { room: TravelRoom ->
             val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
                 putExtra("ROOM_ID", room.id)
                 putExtra("ROOM_NAME", room.title)
                 putExtra("ROOM_MEMO", room.memo)
                 putExtra("START_DATE", room.startDate)
                 putExtra("END_DATE", room.endDate)
-
                 putStringArrayListExtra(
                     "MEMBER_NICKNAMES",
                     ArrayList(room.memberNicknames)
@@ -55,6 +57,8 @@ class RoomFragment : Fragment() {
         binding.rvRoomList.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = roomAdapter
+            // 🔹 NestedScrollView 안에서는 이거 꼭!
+            isNestedScrollingEnabled = false
         }
 
         // 상단 "새 여행방" 버튼
@@ -67,16 +71,14 @@ class RoomFragment : Fragment() {
             navigateToCreateRoom()
         }
 
-        // 🔹 검색바 텍스트 감지
+        // 검색바 텍스트 감지
         binding.etSearchRoom.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
                 s: CharSequence?,
                 start: Int,
                 count: Int,
                 after: Int
-            ) {
-                // 사용 X
-            }
+            ) { }
 
             override fun onTextChanged(
                 s: CharSequence?,
@@ -88,12 +90,10 @@ class RoomFragment : Fragment() {
                 filterRooms(query)
             }
 
-            override fun afterTextChanged(s: Editable?) {
-                // 사용 X
-            }
+            override fun afterTextChanged(s: Editable?) { }
         })
 
-        // 더미 데이터 로드
+        // 초기 데이터 로드
         loadRooms()
     }
 
@@ -116,7 +116,7 @@ class RoomFragment : Fragment() {
             binding.rvRoomList.visibility = View.VISIBLE
             binding.layoutEmptyRoom.visibility = View.GONE
 
-            // 🔹 현재 검색어 유지한 채로 갱신
+            // 현재 검색어 유지한 채로 갱신
             val currentQuery = binding.etSearchRoom.text?.toString().orEmpty()
             if (currentQuery.isBlank()) {
                 roomAdapter.submitList(allRooms)
@@ -126,26 +126,22 @@ class RoomFragment : Fragment() {
         }
     }
 
-    // 🔍 검색어로 방 필터링
+    // 검색어로 방 필터링
     private fun filterRooms(query: String) {
         if (allRooms.isEmpty()) {
-            // 원본이 비어 있으면 그냥 리턴
             roomAdapter.submitList(emptyList())
             return
         }
 
         if (query.isBlank()) {
-            // 검색어 없으면 전체 목록
             roomAdapter.submitList(allRooms)
             return
         }
 
-        // 🔹 조건: 방 제목 / 메모에 검색어가 포함되면 표시 (대소문자 무시)
         val lowerQuery = query.lowercase()
         val filtered = allRooms.filter { room ->
             room.title.lowercase().contains(lowerQuery) ||
                     room.memo.lowercase().contains(lowerQuery)
-            // 장소 검색을 나중에 추가하면 여기서 필드만 더 붙이면 됨
         }
 
         roomAdapter.submitList(filtered)
