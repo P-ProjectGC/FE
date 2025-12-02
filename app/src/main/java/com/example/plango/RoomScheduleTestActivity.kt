@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log 
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -45,16 +45,13 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.tabs.TabLayout
-import com.example.plango.RoomMenuDialogFragment
 import com.example.plango.data.RetrofitClient
 import com.example.plango.model.CreateWishlistPlaceRequest
 import com.example.plango.model.TravelRoom
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import androidx.appcompat.app.AlertDialog
-
-
+import com.example.plango.model.CreateScheduleRequest
+import com.example.plango.model.ScheduleDto
 
 
 class RoomScheduleTestActivity :
@@ -68,6 +65,7 @@ class RoomScheduleTestActivity :
     private lateinit var startDate: String
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
+    private var isHost: Boolean = false
 
     // 지도
     private lateinit var googleMap: GoogleMap
@@ -250,22 +248,26 @@ class RoomScheduleTestActivity :
         switchBottomTab(BottomTab.SCHEDULE)
         showDay(0)
 
-        // 🔹 1) 이 기기의 ID 가져오기
+        // 2) 이 기기의 ID 가져오기 (채팅 알림, 방장 판정 등에 사용)
         val deviceId = DeviceIdManager.getDeviceId(this)
 
-        // 🔔 채팅 알림 채널 생성 (여러 번 호출해도 괜찮음)
-        NotificationHelper.createChatNotificationChannel(this)
+        // 3) ROOM_ID 기준으로 레포에서 방 정보 보정 + 방장 여부 판정
+        if (roomId != -1L) {
+            val room = TravelRoomRepository.getRoomById(roomId)
 
-        // 🔹 2) 현재 방 정보 가져오기 (예시: Repository에서)
-        val roomId = intent.getLongExtra("ROOM_ID", -1L)
-        val room: TravelRoom? = TravelRoomRepository.getRoomById(roomId) // 네 구조에 맞게 수정
+            if (room != null) {
+                if (roomName.isBlank()) roomName = room.title
+                if (startDate.isBlank()) startDate = room.startDate
+                if (endDate.isBlank()) endDate = room.endDate
 
-        // 🔹 3) 방장 여부 판단
-        val isHost: Boolean = if (room == null) {
-            true // 혹시 null이면 일단 막지 말고 모두 허용
+                // ✅ 방장 여부: 이제는 서버/레포에서 정해준 isHost 사용
+                isHost = room.isHost
+            } else {
+                // 레포에 방 정보 없으면 일단 막지 말자
+                isHost = true
+            }
         } else {
-            // hostId가 비어 있으면 옛 데이터 → 일단 모두 방장 취급
-            room.hostId.isBlank() || room.hostId == deviceId
+            isHost = true
         }
 
         // 🔹 4) 위시리스트 어댑터 생성 시 isHost 넘기기
@@ -283,6 +285,8 @@ class RoomScheduleTestActivity :
 
         // ✅ 어댑터 세팅 끝난 뒤에 호출
         loadWishlistFromServer()
+        loadSchedulesFromServer()
+
 
     }
 
@@ -759,33 +763,106 @@ class RoomScheduleTestActivity :
             place = place,
             days = dailySchedules,
             onConfirmed = { dayIndex, startTime, endTime ->
-                val targetDay =
-                    dailySchedules.getOrNull(dayIndex) ?: return@ConfirmScheduleBottomSheet
 
-                val newSchedule = TravelScheduleItem(
-                    timeLabel = startTime,
-                    timeRange = "$startTime ~ $endTime",
-                    placeName = place.placeName,
-                    address = place.address,
-                    lat = place.lat,
-                    lng = place.lng
-                )
-                targetDay.items.add(newSchedule)
+                // 1) 서버에 일정 생성 요청
+                createScheduleOnServer(
+                    place = place,
+                    dayIndex = dayIndex,
+                    startTime = startTime,
+                    endTime = endTime
+                ) { success ->
+                    if (!success) {
+                        Toast.makeText(this, "일정 생성에 실패했어요.", Toast.LENGTH_SHORT).show()
+                        return@createScheduleOnServer
+                    }
 
-                wishlistItems.remove(place)
+                    // -------------------------------------
+                    // 2) 서버 일정 생성 성공 → 서버 위시리스트 삭제 요청
+                    // -------------------------------------
+                    deleteWishlistPlaceOnServer(place)
 
-                if (currentBottomTab == BottomTab.WISHLIST) {
-                    wishlistAdapter.refresh()
-                } else if (currentBottomTab == BottomTab.SCHEDULE) {
-                    showDay(currentDayIndex)
+                    // -------------------------------------
+                    // 3) 로컬 일정 리스트에 추가
+                    // -------------------------------------
+                    val targetDay = dailySchedules.getOrNull(dayIndex)
+                        ?: return@createScheduleOnServer
+
+                    val newSchedule = TravelScheduleItem(
+                        timeLabel = startTime,
+                        timeRange = "$startTime ~ $endTime",
+                        placeName = place.placeName,
+                        address = place.address,
+                        lat = place.lat,
+                        lng = place.lng
+                    )
+
+                    val newItems = targetDay.items.toMutableList().apply {
+                        add(newSchedule)
+                    }
+
+                    dailySchedules[dayIndex] = targetDay.copy(items = newItems)
+
+                    // -------------------------------------
+                    // 4) 로컬 위시리스트에서 제거
+                    // -------------------------------------
+                    wishlistItems.remove(place)
+
+                    // -------------------------------------
+                    // 5) UI 갱신
+                    // -------------------------------------
+                    when (currentBottomTab) {
+                        BottomTab.WISHLIST -> wishlistAdapter.refresh()
+                        BottomTab.SCHEDULE -> showDay(currentDayIndex)
+                        else -> Unit
+                    }
+
+                    Toast.makeText(this, "일정에 추가되었습니다.", Toast.LENGTH_SHORT).show()
                 }
-
-                Toast.makeText(this, "일정에 추가되었습니다.", Toast.LENGTH_SHORT).show()
             }
         )
 
         bottomSheet.show(supportFragmentManager, "ConfirmScheduleBottomSheet")
     }
+
+
+    //일정을 로컬에 붙이기
+    private fun addScheduleToLocalDay(
+        place: WishlistPlaceItem,
+        dayIndex: Int,
+        startTime: String,
+        endTime: String
+    ) {
+        if (dayIndex !in dailySchedules.indices) return
+
+        val day = dailySchedules[dayIndex]
+
+        val newItem = TravelScheduleItem(
+            timeLabel = startTime,
+            placeName = place.placeName,
+            timeRange = "$startTime ~ $endTime",
+            address = place.address,
+            lat = place.lat,
+            lng = place.lng
+        )
+
+        val newItems = day.items.toMutableList().apply {
+            add(newItem)
+        }
+
+        dailySchedules[dayIndex] = day.copy(items = newItems)
+
+        if (currentBottomTab == BottomTab.SCHEDULE) {
+            showDay(dayIndex)
+        }
+    }
+
+
+
+
+
+
+
+
 
     //위시리스트삭제 함수 팝업
     private fun openDeleteWishlistConfirmDialog(item: WishlistPlaceItem) {
@@ -799,7 +876,7 @@ class RoomScheduleTestActivity :
             .show()
     }
 
-    //위시리스트삭제함수
+    //위시리스트삭제함수(서버)
     private fun deleteWishlistPlaceOnServer(item: WishlistPlaceItem) {
         val roomId = this.roomId          // 이미 멤버 변수로 있는 값 사용
         val placeId = item.placeId
@@ -873,7 +950,13 @@ class RoomScheduleTestActivity :
 
     //위시리스트 post용
     private fun addPlaceToWishlistOnServer(place: WishlistPlaceItem) {
-        val roomId = 2L   // 테스트용
+        // 1) 방 ID 유효성 체크
+        if (roomId == -1L) {
+            Toast.makeText(this, "방 정보가 없어서 위시리스트를 추가할 수 없어요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val currentRoomId = roomId
         val memberId = 8L // 테스트용
 
         val request = CreateWishlistPlaceRequest(
@@ -950,7 +1033,13 @@ class RoomScheduleTestActivity :
     }
    //wishlist post
     private fun loadWishlistFromServer() {
-        val roomId = 2L   // TODO: 실제 roomId 로 교체 필요
+       // 1) roomId가 유효한지 먼저 체크
+       if (roomId == -1L) {
+           // 이 액티비티가 어떤 방인지 모르면 서버 호출 의미 없음
+           return
+       }
+
+       val currentRoomId = roomId   // 가독성용, 혹시 나중에 람다 안에서 써도 안정적
 
         lifecycleScope.launch {
             try {
@@ -1011,7 +1100,179 @@ class RoomScheduleTestActivity :
                 ).show()
             }
         }
+
+
+
+   }
+
+
+// 서버로부터   일정 확정(생성)
+private fun createScheduleOnServer(
+    place: WishlistPlaceItem,
+    dayIndex: Int,
+    startTime: String,
+    endTime: String,
+    onResult: (Boolean) -> Unit
+) {
+    // ✅ 방장 아니면 아예 요청 보내지 않음
+    if (!isHost) {
+        Toast.makeText(this, "방장만 일정을 생성할 수 있어요.", Toast.LENGTH_SHORT).show()
+        onResult(false)
+        return
     }
+
+    if (roomId == -1L) {
+        onResult(false)
+        return
+    }
+
+    val request = CreateScheduleRequest(
+        roomPlaceId = place.placeId,
+        dayIndex = dayIndex+1,
+        startTime = startTime,
+        endTime = endTime,
+        memo = null
+    )
+
+    lifecycleScope.launch {
+        try {
+            val response = RetrofitClient.roomApiService.createSchedule(
+                roomId = roomId,
+                memberId = 1L /* TODO: 실제 로그인한 memberId */,
+                request = request
+            )
+            val body = response.body()
+
+            if (response.isSuccessful && body?.code == 0) {
+                onResult(true)
+            } else {
+                // 🔍 실패 이유 로깅 + 토스트
+                val msg = body?.message ?: "알 수 없는 오류"
+                Log.e("ScheduleAPI", "일정 생성 실패: http=${response.code()}, code=${body?.code}, msg=$msg")
+                Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 실패: $msg", Toast.LENGTH_SHORT).show()
+                onResult(false)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this@RoomScheduleTestActivity, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            onResult(false)
+        }
+    }
+
+}
+
+    // 서버로부터 일정을 가져옴(조회)
+
+    // 🟦 이 방(roomId)의 전체 일자 일정들을 서버에서 불러와서 dailySchedules에 반영
+    private fun loadSchedulesFromServer() {
+        if (roomId == -1L) return
+
+        lifecycleScope.launch {
+            try {
+                // 0) 기존 일정은 서버 기준으로 다시 채울 거라서 일단 비움
+                for (i in dailySchedules.indices) {
+                    val day = dailySchedules[i]
+                    dailySchedules[i] = day.copy(items = mutableListOf())
+
+                }
+
+                // 1) 각 일차별로 일정 조회
+                for (localDayIndex in dailySchedules.indices) {
+                    // ✅ POST 때 dayIndex+1 했던 것과 맞추기 위해 GET도 +1 로 요청
+                    val dayIndexParam = localDayIndex + 1
+
+                    val response = RetrofitClient.roomApiService.getSchedules(
+                        roomId = roomId,
+                        dayIndex = dayIndexParam
+                    )
+
+                    if (response.isSuccessful) {
+                        val body = response.body()
+
+                        if (body?.code == 0) {
+                            val schedules = body.data ?: emptyList()
+                            applySchedulesForDay(localDayIndex, schedules)
+                        } else {
+                            // code != 0 : 서버 쪽 메시지 참고용 로그 정도만
+                            Log.w(
+                                "ScheduleAPI",
+                                "dayIndex=$dayIndexParam 일정 불러오기 실패: code=${body?.code}, msg=${body?.message}"
+                            )
+                        }
+                    } else {
+                        Log.w(
+                            "ScheduleAPI",
+                            "dayIndex=$dayIndexParam HTTP 오류: ${response.code()}"
+                        )
+                    }
+                }
+
+                // 2) 일정 탭을 보고 있었다면 화면 갱신
+                if (currentBottomTab == BottomTab.SCHEDULE) {
+                    showDay(currentDayIndex)
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(
+                    this@RoomScheduleTestActivity,
+                    "일정 불러오기 중 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+    // 🟩 특정 일차(localDayIndex)에 대해 서버에서 받아온 일정 리스트를 dailySchedules에 반영
+    private fun applySchedulesForDay(
+        localDayIndex: Int,              // 0-based (0 = 1일차)
+        schedules: List<ScheduleDto>     // 서버에서 내려온 일정들
+    ) {
+        if (localDayIndex !in dailySchedules.indices) return
+
+        val day = dailySchedules[localDayIndex]
+
+        // startTime 기준으로 정렬해서 예쁘게 보여주기
+        val items: List<TravelScheduleItem> = schedules
+            .sortedBy { it.startTime }
+            .map { dto ->
+                TravelScheduleItem(
+                    timeLabel = dto.startTime,
+                    timeRange = "${dto.startTime} ~ ${dto.endTime}",
+                    // ⚠️ 지금 ScheduleDto에는 placeName/address/lat/lng가 없으므로 임시 값 사용
+                    placeName = "장소 #${dto.roomPlaceId}",  // TODO: roomPlace 정보 연동 시 실제 이름으로 교체
+                    address = "",                           // TODO: 주소도 roomPlace에서 가져오기
+                    lat = 0.0,                              // TODO: 위도
+                    lng = 0.0                               // TODO: 경도
+                )
+            }
+
+        // 해당 일차의 items를 몽땅 서버 기준으로 교체
+        dailySchedules[localDayIndex] = day.copy(items = items as MutableList<TravelScheduleItem>)
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // ------------------------------------------------------------
     // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)

@@ -21,6 +21,9 @@ import com.example.plango.model.TravelRoom
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+
+
+
 class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
     private lateinit var etRoomName: EditText
@@ -90,7 +93,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                 return@setOnClickListener
             }
 
-            // ✅ 서버까지 다녀온 뒤에 로컬 저장 + 화면 이동을 한 번에 처리
+            // 서버까지 다녀온 뒤에 로컬 저장 + 화면 이동을 한 번에 처리
             createRoomOnServerAndNavigate(
                 roomName = roomName,
                 roomMemo = roomMemo,
@@ -101,7 +104,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         }
     }
 
-    // ✅ 서버 호출 + 로컬 저장 + 다음 화면 이동까지 담당
+    // 서버 호출 + 로컬 저장 + 다음 화면 이동까지 담당
     private fun createRoomOnServerAndNavigate(
         roomName: String,
         roomMemo: String,
@@ -119,7 +122,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
             endDate = end.toString(),
             memberIds = memberIdsBody
         )
-
+        Log.d("CreateRoomFinal", "start=$start / end=$end")
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
@@ -130,30 +133,44 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                     Log.d("CreateRoomAPI", "response body = $body")
 
                     if (body?.code == 0) {
+                        val roomDto = body.data
+
+                        if (roomDto == null) {
+                            Toast.makeText(
+                                requireContext(),
+                                "서버에서 방 정보를 받지 못했어요.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
+
                         Toast.makeText(
                             requireContext(),
-                            "서버 방 생성 성공 (roomId=${body.data?.roomId})",
+                            "서버 방 생성 성공! (roomId=${roomDto.roomId})",
                             Toast.LENGTH_SHORT
                         ).show()
 
-                        // ✅ 여기서 로컬 TravelRoom 생성 + Repository에 저장
+
                         val dateText = "${start.monthValue}월 ${start.dayOfMonth}일 - " +
                                 "${end.monthValue}월 ${end.dayOfMonth}일"
                         val memberCount = selectedNicknames.size.takeIf { it > 0 } ?: 1
 
                         val newRoom = TravelRoom(
-                            id = System.currentTimeMillis(),
+                            id = roomDto.roomId,
                             title = roomName,
                             startDate = start.toString(),
                             endDate = end.toString(),
                             dateText = dateText,
-                            memo = roomMemo,
-                            memberCount = memberCount
+                            memo = roomMemo.ifBlank { null },
+                            memberCount = selectedNicknames.size.coerceAtLeast(1),
+                            memberNicknames = selectedNicknames.ifEmpty { listOf("나") },
+                            isHost = true   // 생성자는 방장 확정
                         )
 
+                        // 로컬 저장
                         TravelRoomRepository.addRoom(newRoom)
 
-                        // ✅ 그리고 나서 화면 이동
+                        // 그리고 나서 방 내부 화면으로 이동
                         val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
                             putExtra("ROOM_ID", newRoom.id)
                             putExtra("ROOM_NAME", roomName)
@@ -190,7 +207,6 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                     Toast.LENGTH_SHORT
                 ).show()
             }
-
         }
     }
 

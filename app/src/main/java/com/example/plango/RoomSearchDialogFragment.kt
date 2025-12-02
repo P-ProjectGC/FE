@@ -142,9 +142,10 @@ class RoomSearchDialogFragment : DialogFragment() {
         val lowerQuery = query.lowercase()
         val filtered = allRooms.filter { room ->
             room.title.lowercase().contains(lowerQuery) ||
-                    room.memo.lowercase().contains(lowerQuery)
+                    (room.memo ?: "").lowercase().contains(lowerQuery)
         }
 
         roomAdapter.submitList(filtered)
     }
+
 }

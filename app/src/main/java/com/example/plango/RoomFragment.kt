@@ -13,6 +13,9 @@ import com.example.plango.adapter.RoomAdapter
 import com.example.plango.data.TravelRoomRepository
 import com.example.plango.databinding.FragmentRoomBinding
 import com.example.plango.model.TravelRoom
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import android.widget.Toast
 
 class RoomFragment : Fragment() {
 
@@ -104,27 +107,45 @@ class RoomFragment : Fragment() {
     }
 
     private fun loadRooms() {
-        // 지금은 더미 데이터, 나중에 이 한 줄만 서버 코드로 교체
-        allRooms = TravelRoomRepository.getRooms()
+        // 코루틴으로 서버 호출
+        viewLifecycleOwner.lifecycleScope.launch {
+            // TODO: 로그인 붙으면 실제 로그인된 멤버 ID로 교체
+            val memberId = 1L
 
-        if (allRooms.isEmpty()) {
-            // 실제로 방이 하나도 없을 때만 "아직 여행방이 없어요" 표시
-            binding.rvRoomList.visibility = View.GONE
-            binding.layoutEmptyRoom.visibility = View.VISIBLE
-            roomAdapter.submitList(emptyList())
-        } else {
-            binding.rvRoomList.visibility = View.VISIBLE
-            binding.layoutEmptyRoom.visibility = View.GONE
+            val success = TravelRoomRepository.fetchRoomsFromServer(memberId)
 
-            // 현재 검색어 유지한 채로 갱신
-            val currentQuery = binding.etSearchRoom.text?.toString().orEmpty()
-            if (currentQuery.isBlank()) {
-                roomAdapter.submitList(allRooms)
+            if (!success) {
+                // 서버 실패 시 → Repository 내부에서 기본 더미 1개 넣어둔 상태
+                Toast.makeText(
+                    requireContext(),
+                    "서버에서 여행방 목록을 불러오지 못했어요.\n기본 데이터를 표시합니다.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            // 항상 Repository에서 현재 rooms 가져오기
+            allRooms = TravelRoomRepository.getRooms()
+
+            if (allRooms.isEmpty()) {
+                // 실제로 방이 하나도 없을 때만 "아직 여행방이 없어요" 표시
+                binding.rvRoomList.visibility = View.GONE
+                binding.layoutEmptyRoom.visibility = View.VISIBLE
+                roomAdapter.submitList(emptyList())
             } else {
-                filterRooms(currentQuery)
+                binding.rvRoomList.visibility = View.VISIBLE
+                binding.layoutEmptyRoom.visibility = View.GONE
+
+                // 현재 검색어 유지한 채로 갱신
+                val currentQuery = binding.etSearchRoom.text?.toString().orEmpty()
+                if (currentQuery.isBlank()) {
+                    roomAdapter.submitList(allRooms)
+                } else {
+                    filterRooms(currentQuery)
+                }
             }
         }
     }
+
 
     // 검색어로 방 필터링
     private fun filterRooms(query: String) {
@@ -141,11 +162,12 @@ class RoomFragment : Fragment() {
         val lowerQuery = query.lowercase()
         val filtered = allRooms.filter { room ->
             room.title.lowercase().contains(lowerQuery) ||
-                    room.memo.lowercase().contains(lowerQuery)
+                    (room.memo ?: "").lowercase().contains(lowerQuery)
         }
 
         roomAdapter.submitList(filtered)
     }
+
 
     override fun onResume() {
         super.onResume()
