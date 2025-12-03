@@ -47,12 +47,12 @@ import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.tabs.TabLayout
 import com.example.plango.data.RetrofitClient
 import com.example.plango.model.CreateWishlistPlaceRequest
-import com.example.plango.model.TravelRoom
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AlertDialog
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
+import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
 
 
@@ -342,7 +342,7 @@ class RoomScheduleTestActivity :
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // 일정 어댑터
+        // 1. 일정 어댑터 설정
         scheduleAdapter = ScheduleTimelineAdapter(
             onItemClick = { item ->
                 if (currentBottomTab == BottomTab.SCHEDULE) {
@@ -360,36 +360,53 @@ class RoomScheduleTestActivity :
                 val bottomSheet = EditScheduleBottomSheet(
                     schedule = item,
                     onUpdated = { newStart, newEnd ->
-                        val old = day.items[indexInDay]
-                        val updated = old.copy(
-                            timeLabel = newStart,
-                            timeRange = "$newStart ~ $newEnd"
+                        // 🚨 [수정: 서버 수정 요청]
+                        patchScheduleOnServer(
+                            scheduleId = item.scheduleId,
+                            newStartTime = newStart,
+                            newEndTime = newEnd,
+                            oldMemo = item.memo, // 메모 수정 기능은 제외하고 기존 메모 전달
+                            onSuccess = {
+                                // 🚀 서버 통신 성공 시에만 로컬 데이터 업데이트 (기존 로직)
+                                val old = day.items[indexInDay]
+                                val updated = old.copy(
+                                    timeLabel = newStart,
+                                    timeRange = "$newStart ~ $newEnd"
+                                )
+                                day.items[indexInDay] = updated
+                                showDay(currentDayIndex)
+                                Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                            }
                         )
-                        day.items[indexInDay] = updated
-                        showDay(currentDayIndex)
-                        Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
                     },
                     onDeleted = {
-                        val removed = day.items.removeAt(indexInDay)
-                        val wishlistItem = WishlistPlaceItem(
-                            placeName = removed.placeName,
-                            address = removed.address,
-                            lat = removed.lat,
-                            lng = removed.lng,
-                            addedBy = "나"
+                        // 🚨 [수정: 서버 삭제 요청]
+                        deleteScheduleOnServer(
+                            scheduleId = item.scheduleId, // 삭제할 일정의 ID
+                            onSuccess = {
+                                // 🚀 서버 통신 성공 시에만 로컬 데이터 삭제 및 위시리스트 이동 (기존 로직)
+                                val removed = day.items.removeAt(indexInDay)
+                                val wishlistItem = WishlistPlaceItem(
+                                    placeName = removed.placeName,
+                                    address = removed.address,
+                                    lat = removed.lat,
+                                    lng = removed.lng,
+                                    addedBy = "나" // 임시로 "나" 설정
+                                )
+                                wishlistItems.add(wishlistItem)
+                                showDay(currentDayIndex)
+
+                                if (currentBottomTab == BottomTab.WISHLIST) {
+                                    wishlistAdapter.refresh()
+                                }
+
+                                Toast.makeText(
+                                    this,
+                                    "일정이 삭제되었습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         )
-                        wishlistItems.add(wishlistItem)
-                        showDay(currentDayIndex)
-
-                        if (currentBottomTab == BottomTab.WISHLIST) {
-                            wishlistAdapter.refresh()
-                        }
-
-                        Toast.makeText(
-                            this,
-                            "일정이 삭제되고 위시리스트로 이동했습니다.",
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
                 )
 
@@ -477,7 +494,7 @@ class RoomScheduleTestActivity :
             // 4. 화면 갱신: 모드가 바뀌었으니 일정 목록을 다시 보여주어 연필 버튼을 표시/숨김
             showDay(currentDayIndex)
 
-            val msg = if (isEditMode) "편집 모드를 켰습니다. (일정카드에 연필 버튼 표시)" else "편집 모드를 껐습니다."
+            val msg = if (isEditMode) "편집 모드를 켰습니다." else "편집 모드를 껐습니다."
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
     }
@@ -763,13 +780,15 @@ class RoomScheduleTestActivity :
             onConfirmed = { dayIndex, startTime, endTime ->
 
                 // 1) 서버에 일정 생성 요청
+                // 🚨 [수정]: 콜백에서 scheduleId(Long?)를 받습니다.
                 createScheduleOnServer(
                     place = place,
                     dayIndex = dayIndex,
                     startTime = startTime,
                     endTime = endTime
-                ) { success ->
-                    if (!success) {
+                ) { newScheduleId ->
+
+                    if (newScheduleId == null) { // scheduleId가 null이면 실패한 것
                         Toast.makeText(this, "일정 생성에 실패했어요.", Toast.LENGTH_SHORT).show()
                         return@createScheduleOnServer
                     }
@@ -786,6 +805,13 @@ class RoomScheduleTestActivity :
                         ?: return@createScheduleOnServer
 
                     val newSchedule = TravelScheduleItem(
+                        scheduleId = newScheduleId, // ✅ 기존에 해결한 scheduleId
+
+                        // 🚨 [수정]: place.placeId를 roomPlaceId로 전달
+                        // WishlistPlaceItem의 placeId는 Long? 타입이지만, 일정 생성 시점에서는 null 체크를 했으므로 Non-null로 사용합니다.
+                        roomPlaceId = place.placeId!!,
+
+                        memo = null,
                         timeLabel = startTime,
                         timeRange = "$startTime ~ $endTime",
                         placeName = place.placeName,
@@ -793,32 +819,13 @@ class RoomScheduleTestActivity :
                         lat = place.lat,
                         lng = place.lng
                     )
+                    targetDay.items.add(newSchedule)
+                    showDay(currentDayIndex)
 
-                    val newItems = targetDay.items.toMutableList().apply {
-                        add(newSchedule)
-                    }
-
-                    dailySchedules[dayIndex] = targetDay.copy(items = newItems)
-
-                    // -------------------------------------
-                    // 4) 로컬 위시리스트에서 제거
-                    // -------------------------------------
-                    wishlistItems.remove(place)
-
-                    // -------------------------------------
-                    // 5) UI 갱신
-                    // -------------------------------------
-                    when (currentBottomTab) {
-                        BottomTab.WISHLIST -> wishlistAdapter.refresh()
-                        BottomTab.SCHEDULE -> showDay(currentDayIndex)
-                        else -> Unit
-                    }
-
-                    Toast.makeText(this, "일정에 추가되었습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "일정이 생성되었습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
         )
-
         bottomSheet.show(supportFragmentManager, "ConfirmScheduleBottomSheet")
     }
 
@@ -896,19 +903,6 @@ class RoomScheduleTestActivity :
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     //위시리스트 post용
     private fun addPlaceToWishlistOnServer(place: WishlistPlaceItem) {
@@ -1063,42 +1057,41 @@ class RoomScheduleTestActivity :
    }
 
 
-// 서버로부터   일정 확정(생성)
+
+// 서버로부터 일정 확정(생성)
 private fun createScheduleOnServer(
     place: WishlistPlaceItem,
     dayIndex: Int,
     startTime: String,
     endTime: String,
-    onResult: (Boolean) -> Unit
+    // 🚨 [수정]: 성공 시 scheduleId를 Long? 타입으로 반환합니다.
+    onResult: (scheduleId: Long?) -> Unit
 ) {
-    // 1. ✅ 방장 권한 및 방 ID 유효성 체크 (기존 로직)
+    // 1. 권한 체크 및 방 ID 유효성 체크
     if (!isHost) {
         Toast.makeText(this, "방장만 일정을 생성할 수 있어요.", Toast.LENGTH_SHORT).show()
-        onResult(false)
+        onResult(null) // 실패 시 null 반환
         return
     }
 
     if (roomId == -1L) {
-        onResult(false)
+        onResult(null)
         return
     }
 
-    // 2. 🚨 roomPlaceId 유효성 체크 (수정된 핵심 로직)
-    // place.placeId가 null이면, 이 일정은 DB에 장소 정보 없이 저장됩니다.
-    // 이를 방지하고 사용자에게 경고합니다.
+    // 2. roomPlaceId 유효성 체크 및 추출 (기존 로직 유지)
     val roomPlaceId = place.placeId
     if (roomPlaceId == null) {
         Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
         Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
-        onResult(false)
+        onResult(null)
         return
     }
 
-    // 3. 요청 DTO 생성
+    // 3. 요청 DTO 생성 (기존 로직 유지)
     val request = CreateScheduleRequest(
-        // ⚠️ roomPlaceId는 Long? 타입이지만, 위에서 null이 아님을 확인했습니다.
         roomPlaceId = roomPlaceId,
-        dayIndex = dayIndex + 1, // 서버 스펙에 맞게 1-based index 사용
+        dayIndex = dayIndex + 1,
         startTime = startTime,
         endTime = endTime,
         memo = null
@@ -1109,30 +1102,39 @@ private fun createScheduleOnServer(
         try {
             val response = RetrofitClient.roomApiService.createSchedule(
                 roomId = roomId,
-                memberId=MemberSession.currentMemberId /* TODO: 실제 로그인한 memberId */,
+                memberId = MemberSession.currentMemberId /* TODO: 실제 로그인한 memberId */,
                 request = request
             )
             val body = response.body()
 
             if (response.isSuccessful && body?.code == 0) {
-                // 성공적으로 일정을 생성했으므로, 다시 서버에서 전체 일정을 불러옵니다.
-                // loadSchedulesFromServer()를 여기서 호출하거나, onResult(true) 후 호출하도록 구현되어 있을 것입니다.
-                onResult(true)
+
+                // 🚀 서버 응답에서 scheduleId 추출
+                val newScheduleId = body.data?.scheduleId
+
+                if (newScheduleId == null) {
+                    Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 성공, ID가 누락되었습니다.", Toast.LENGTH_LONG).show()
+                    onResult(null)
+                    return@launch
+                }
+
+                // ✅ 성공: 추출한 ID를 콜백으로 전달
+                onResult(newScheduleId)
+
             } else {
-                // 🔍 실패 이유 로깅 + 토스트
+                // 🔍 실패 처리
                 val msg = body?.message ?: "알 수 없는 오류"
                 Log.e("ScheduleAPI", "일정 생성 실패: http=${response.code()}, code=${body?.code}, msg=$msg")
                 Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 실패: $msg", Toast.LENGTH_SHORT).show()
-                onResult(false)
+                onResult(null)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this@RoomScheduleTestActivity, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
-            onResult(false)
+            onResult(null)
         }
     }
 }
-
     // 서버로부터 일정을 가져옴(조회)
 
     // 서버로부터 일정을 가져옴(조회)
@@ -1229,17 +1231,112 @@ private fun createScheduleOnServer(
     }
 
 
+    // 일정 수정 API 호출 (PATCH)
+    private fun patchScheduleOnServer(
+        scheduleId: Long,
+        newStartTime: String,
+        newEndTime: String,
+        oldMemo: String?,
+        onSuccess: () -> Unit
+    ) {
+        // 1. 클라이언트 측 방장 권한 체크 (UX)
+        if (!isHost) {
+            Toast.makeText(this, "방장만 일정을 수정할 수 있어요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (roomId == -1L) return
+
+        // 2. 🚨 [중요] 현재 멤버 ID 확인
+        val memberId = MemberSession.currentMemberId
+        if (memberId == -1L) { // ID가 유효하지 않으면 API 호출 중단
+            Toast.makeText(this, "인증 정보가 유효하지 않습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 3. API 호출
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService.updateSchedule(
+                    roomId = roomId,
+                    scheduleId = scheduleId,
+
+                    // 🚨 [수정]: 헤더로 전달할 memberId 추가
+                    memberId = memberId,
+
+                    startTime = newStartTime,
+                    endTime = newEndTime,
+                    memo = oldMemo
+                )
+
+                if (response.isSuccessful && response.body()?.code == 0) {
+                    onSuccess()
 
 
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val msg = response.body()?.message ?: "일정 수정 실패 (HTTP 코드: ${response.code()})"
 
+                    Log.e("ScheduleAPI", "일정 수정 실패: $msg")
+                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
 
+                    Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 실패: $msg", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    // 일정 삭제 API 호출 (DELETE)
+// 일정 삭제 API 호출 (DELETE)
+    private fun deleteScheduleOnServer(
+        scheduleId: Long,
+        onSuccess: () -> Unit
+    ) {
+        // 1. 클라이언트 측 방장 권한 체크 (UX)
+        if (!isHost) {
+            Toast.makeText(this, "방장만 일정을 삭제할 수 있어요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (roomId == -1L) return
 
+        // 2. 🚨 [중요] 현재 멤버 ID 확인 및 유효성 체크
+        val memberId = MemberSession.currentMemberId
+        if (memberId == -1L) {
+            Toast.makeText(this, "인증 정보가 유효하지 않습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
+        // 3. API 호출
+        lifecycleScope.launch {
+            try {
+                // Retrofit 인터페이스에 @Header("X-MEMBER-ID") memberId가 추가되어야 합니다.
+                val response = RetrofitClient.roomApiService.deleteSchedule(
+                    roomId = roomId,
+                    scheduleId = scheduleId,
+                    memberId = memberId // 👈 @Header("X-MEMBER-ID") 값으로 전달
+                )
 
+                if (response.isSuccessful && response.body()?.code == 0) {
+                    // ✅ 성공: 로컬 일정 목록에서 항목을 제거하는 로직이 onSuccess() 람다 내부에 있어야 합니다.
+                    onSuccess()
+                    Toast.makeText(this@RoomScheduleTestActivity, "일정이 완전히 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                } else {
+                    // 🚨 오류 발생 시 상세 로그 출력 및 메시지 처리
+                    val errorBody = response.errorBody()?.string()
+                    val msg = response.body()?.message ?: "일정 삭제 실패 (HTTP 코드: ${response.code()})"
 
+                    Log.e("ScheduleAPI", "일정 삭제 실패: $msg")
+                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
 
-
-
+                    Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 실패: $msg", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
 
 

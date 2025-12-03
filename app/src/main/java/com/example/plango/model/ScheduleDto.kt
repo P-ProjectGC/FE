@@ -19,6 +19,13 @@ data class ScheduleDto(
 
 fun ScheduleDto.toTravelScheduleItem(): TravelScheduleItem {
     return TravelScheduleItem(
+        scheduleId = this.scheduleId,
+
+        // 🚨 [필수 수정]: ScheduleDto의 roomPlaceId를 TravelScheduleItem에 전달합니다.
+        roomPlaceId = this.roomPlaceId,
+
+        memo = this.memo,
+
         timeLabel = this.startTime,
         timeRange = "${this.startTime} ~ ${this.endTime}",
 
@@ -28,6 +35,7 @@ fun ScheduleDto.toTravelScheduleItem(): TravelScheduleItem {
         // ⬇️ address가 null이면, '주소 정보 없음'으로 표시합니다.
         address = this.address ?: "주소 정보 없음",
 
+        // ⬇️ Nullable Double을 Non-Nullable Double로 변환 시 0.0으로 기본값 설정
         lat = this.lat ?: 0.0,
         lng = this.lng ?: 0.0
     )
