@@ -15,6 +15,8 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
+import com.example.plango.model.UpdateScheduleRequest
+import retrofit2.http.PATCH
 
 interface RoomApiService {
 
@@ -70,6 +72,26 @@ interface RoomApiService {
         @Path("roomId") roomId: Long,
         @Query("dayIndex") dayIndex: Int
     ): Response<ApiResponse<List<ScheduleDto>>>
+
+    // RoomApiService.kt 인터페이스 (수정)
+    // RoomApiService.kt 인터페이스 파일
+    @PATCH("api/rooms/{roomId}/schedules/{scheduleId}")
+    suspend fun updateSchedule(
+        @Path("roomId") roomId: Long,
+        @Path("scheduleId") scheduleId: Long,
+        @Header("X-MEMBER-ID") memberId: Long,
+        @Query("startTime") startTime: String,
+        @Query("endTime") endTime: String,
+        @Query("memo") memo: String? = null // 서버 테스트에 memo가 포함되므로 Nullable로 포함
+    ): Response<ApiResponse<Unit>>
+
+    // 🚨 [추가] 2. 일정 삭제 (DELETE) API 정의 (빨간 줄 해결)
+    @DELETE("/api/rooms/{roomId}/schedules/{scheduleId}")
+    suspend fun deleteSchedule(
+        @Path("roomId") roomId: Long,
+        @Path("scheduleId") scheduleId: Long,
+        @Header("X-MEMBER-ID") memberId: Long
+    ): Response<ApiResponse<Unit>> // 반환 데이터가 없으므로 Unit 사용
 
 
 

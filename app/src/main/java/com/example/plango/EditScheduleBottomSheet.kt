@@ -89,7 +89,7 @@ class EditScheduleBottomSheet(
     private fun showDeleteConfirmDialog() {
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("일정을 삭제하시겠습니까?")
-            .setMessage("이 일정은 위시리스트로 다시 이동됩니다.")
+            .setMessage("일정이 타임라인에서 삭제됩니다")
             .setPositiveButton("삭제") { _, _ ->
                 // 실제 삭제 콜백 실행 (RoomScheduleTestActivity 쪽에서
                 // 일정 제거 + 위시리스트로 이동 처리)
