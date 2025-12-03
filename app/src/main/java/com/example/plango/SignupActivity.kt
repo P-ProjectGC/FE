@@ -1,9 +1,12 @@
 package com.example.plango
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.plango.databinding.ActivitySignupBinding
 
@@ -17,6 +20,12 @@ class SignUpActivity : AppCompatActivity() {
         "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
     private val PW_REGEX =
         "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#\$%^&*]{6,20}$".toRegex()
+
+    // 중복확인 여부 플래그
+    private var isNicknameChecked = false
+    private var isIdChecked = false
+    private var isEmailChecked = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,10 +62,30 @@ class SignUpActivity : AppCompatActivity() {
     // ---------------------------
     private fun setupClickListeners() = with(binding) {
 
+        // 뒤로가기 → 로그인 화면 이동
+        btnBack.setOnClickListener {
+            startActivity(Intent(this@SignUpActivity, LoginActivity::class.java))
+            finish()
+        }
+
         // 회원가입 버튼
         signUpBtn.setOnClickListener {
-            // TODO: API 연동 예정
-            // 현재는 유효성 검사만 다 통과하면 가입 성공 처리
+
+            if (!isNicknameChecked) {
+                showError(signUpNicknameErrorTv, "✗ 닉네임 중복확인을 해주세요.")
+                return@setOnClickListener
+            }
+
+            if (!isIdChecked) {
+                showError(signUpIdErrorTv, "✗ 아이디 중복확인을 해주세요.")
+                return@setOnClickListener
+            }
+
+            if (!isEmailChecked) {
+                showError(signUpEmailErrorTv, "✗ 이메일 중복확인을 해주세요.")
+                return@setOnClickListener
+            }
+
             finish()
         }
 
@@ -65,8 +94,10 @@ class SignUpActivity : AppCompatActivity() {
             val nickname = signUpNicknameEt.text.toString()
 
             if (nickname.length in 2..10) {
+                isNicknameChecked = true
                 showSuccess(signUpNicknameErrorTv, "✓ 사용 가능한 닉네임입니다.")
             } else {
+                isNicknameChecked = false
                 showError(signUpNicknameErrorTv, "✗ 닉네임은 2~10자로 입력해주세요.")
             }
         }
@@ -76,8 +107,10 @@ class SignUpActivity : AppCompatActivity() {
             val id = signUpIdEt.text.toString()
 
             if (ID_REGEX.matches(id)) {
+                isIdChecked = true
                 showSuccess(signUpIdErrorTv, "✓ 사용 가능한 아이디입니다.")
             } else {
+                isIdChecked = false
                 showError(signUpIdErrorTv, "✗ 아이디는 영문 소문자+숫자 4~16자입니다.")
             }
         }
@@ -87,10 +120,24 @@ class SignUpActivity : AppCompatActivity() {
             val email = signUpEmailEt.text.toString()
 
             if (EMAIL_REGEX.matches(email)) {
+                isEmailChecked = true
                 showSuccess(signUpEmailErrorTv, "✓ 사용 가능한 이메일입니다.")
             } else {
+                isEmailChecked = false
                 showError(signUpEmailErrorTv, "✗ 이메일 형식이 올바르지 않습니다.")
             }
+        }
+
+        // 약관 전체보기
+        signUpTermsDetailTv.setOnClickListener {
+            showTermsDialog()
+            // TODO: 약관 전체보기 추가
+        }
+
+        // 카카오 가입
+        btnKakao.setOnClickListener {
+            Toast.makeText(this@SignUpActivity, "카카오 회원가입 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
+            // TODO: API 연동
         }
     }
 
@@ -274,4 +321,26 @@ class SignUpActivity : AppCompatActivity() {
             onChanged()
         }
     }
+
+    // ---------------------------
+    // 이용약관
+    // ---------------------------
+    private fun showTermsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.terms_dialog, null)
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // 닫기 버튼
+        val closeBtn = dialogView.findViewById<Button>(R.id.btn_terms_close)
+        closeBtn.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
 }

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@android:color/white">
+
+    <TextView
+        android:id="@+id/terms_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="이용약관"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#333333"
+        android:layout_marginBottom="12dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="300dp">
+
+        <!-- TODO: 약관 내용 적기 -->
+        <TextView
+            android:id="@+id/terms_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#555555"
+            android:lineSpacingExtra="4dp"
+            android:text="여기에 약관 내용을 적어주세요.\n\n1. 개인정보 수집 목적…\n2. 수집 항목…\n3. 보관 기간…\n\n(실제 약관 내용 넣으면 됨)"
+            />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btn_terms_close"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
+        android:text="닫기"
+        android:backgroundTint="@null"
+        app:backgroundTint="@null"
+        android:textSize="15sp"
+        android:textColor="@android:color/black"
+        android:background="#A8DEF5"/>
+</LinearLayout>
