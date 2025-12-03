@@ -14,6 +14,6 @@ data class LoginData(
     val nickname: String,
     val profileImageUrl: String?,
     val newMember: Boolean,
-    val accessToken: String
-//    val refreshToken: String?     // 추가 가능
+    val accessToken: String,
+    val refreshToken: String?
 )
