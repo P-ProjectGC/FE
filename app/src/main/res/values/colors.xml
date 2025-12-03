@@ -11,4 +11,5 @@
     // 로그인 화면 관련
     <color name="plango_blue">#A8DEF5</color>
     <color name="error_red">#FF4D4D</color>
+    <color name="success_green">#00A63E</color>
 </resources>
