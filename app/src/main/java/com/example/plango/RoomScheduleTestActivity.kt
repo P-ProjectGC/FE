@@ -53,6 +53,7 @@ import androidx.appcompat.app.AlertDialog
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
+import com.example.plango.model.toTravelScheduleItem
 
 
 class RoomScheduleTestActivity :
@@ -77,6 +78,8 @@ class RoomScheduleTestActivity :
     private lateinit var dailySchedules: MutableList<TravelDailySchedule>
     private var currentDayIndex: Int = 0
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
+
+    private var isEditMode: Boolean = false // 화면이 수정 모드인지 여부
 
     // RecyclerView + 어댑터
     private lateinit var recyclerView: RecyclerView
@@ -116,7 +119,7 @@ class RoomScheduleTestActivity :
     private lateinit var btnPickPhoto: ImageButton
 
     // 편집 모드 플래그
-    private var isEditMode: Boolean = false
+
 
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
 
@@ -458,12 +461,23 @@ class RoomScheduleTestActivity :
 
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
+            // 1. 현재 탭이 일정이 아니면 실행하지 않음 (기존 로직)
             if (currentBottomTab != BottomTab.SCHEDULE) return@setOnClickListener
 
-            isEditMode = !isEditMode
-            scheduleAdapter.isEditMode = isEditMode
+            // 2. 🚨 [추가] 방장 권한 체크
+            if (!isHost) {
+                Toast.makeText(this, "방장이 사용할 수 있습니다!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener // 🚨 방장이 아니면 여기서 함수 실행을 종료
+            }
 
-            val msg = if (isEditMode) "편집 모드를 켰습니다." else "편집 모드를 껐습니다."
+            // 3. 방장이 맞다면, 수정 모드 상태 토글 (기존 로직)
+            isEditMode = !isEditMode
+            scheduleAdapter.isEditMode = isEditMode // 👈 어댑터에 상태 전달 (매우 중요)
+
+            // 4. 화면 갱신: 모드가 바뀌었으니 일정 목록을 다시 보여주어 연필 버튼을 표시/숨김
+            showDay(currentDayIndex)
+
+            val msg = if (isEditMode) "편집 모드를 켰습니다. (일정카드에 연필 버튼 표시)" else "편집 모드를 껐습니다."
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
     }
@@ -1057,7 +1071,7 @@ private fun createScheduleOnServer(
     endTime: String,
     onResult: (Boolean) -> Unit
 ) {
-    // ✅ 방장 아니면 아예 요청 보내지 않음
+    // 1. ✅ 방장 권한 및 방 ID 유효성 체크 (기존 로직)
     if (!isHost) {
         Toast.makeText(this, "방장만 일정을 생성할 수 있어요.", Toast.LENGTH_SHORT).show()
         onResult(false)
@@ -1069,14 +1083,28 @@ private fun createScheduleOnServer(
         return
     }
 
+    // 2. 🚨 roomPlaceId 유효성 체크 (수정된 핵심 로직)
+    // place.placeId가 null이면, 이 일정은 DB에 장소 정보 없이 저장됩니다.
+    // 이를 방지하고 사용자에게 경고합니다.
+    val roomPlaceId = place.placeId
+    if (roomPlaceId == null) {
+        Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
+        Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
+        onResult(false)
+        return
+    }
+
+    // 3. 요청 DTO 생성
     val request = CreateScheduleRequest(
-        roomPlaceId = place.placeId,
-        dayIndex = dayIndex+1,
+        // ⚠️ roomPlaceId는 Long? 타입이지만, 위에서 null이 아님을 확인했습니다.
+        roomPlaceId = roomPlaceId,
+        dayIndex = dayIndex + 1, // 서버 스펙에 맞게 1-based index 사용
         startTime = startTime,
         endTime = endTime,
         memo = null
     )
 
+    // 4. API 호출
     lifecycleScope.launch {
         try {
             val response = RetrofitClient.roomApiService.createSchedule(
@@ -1087,6 +1115,8 @@ private fun createScheduleOnServer(
             val body = response.body()
 
             if (response.isSuccessful && body?.code == 0) {
+                // 성공적으로 일정을 생성했으므로, 다시 서버에서 전체 일정을 불러옵니다.
+                // loadSchedulesFromServer()를 여기서 호출하거나, onResult(true) 후 호출하도록 구현되어 있을 것입니다.
                 onResult(true)
             } else {
                 // 🔍 실패 이유 로깅 + 토스트
@@ -1101,8 +1131,9 @@ private fun createScheduleOnServer(
             onResult(false)
         }
     }
-
 }
+
+    // 서버로부터 일정을 가져옴(조회)
 
     // 서버로부터 일정을 가져옴(조회)
 
@@ -1124,12 +1155,21 @@ private fun createScheduleOnServer(
                     // ✅ POST 때 dayIndex+1 했던 것과 맞추기 위해 GET도 +1 로 요청
                     val dayIndexParam = localDayIndex + 1
 
+                    // 🚨 [로그1] 요청 파라미터 확인: 이 값을 Swagger에 넣어서 테스트해야 합니다.
+                    Log.d("ScheduleAPI_PARAM", "요청 파라미터: roomId=$roomId, dayIndex=$dayIndexParam")
+
                     val response = RetrofitClient.roomApiService.getSchedules(
                         roomId = roomId,
                         dayIndex = dayIndexParam
                     )
 
                     if (response.isSuccessful) {
+
+                        // 🚨 [로그2] 서버의 실제 응답 JSON 확인: placeName이 null인지 확인합니다!
+                        // response.body()를 문자열로 변환하여 원본 응답을 기록합니다.
+                        val rawBodyString = response.body()?.toString() ?: "Empty/Null Body"
+                        Log.d("ScheduleAPI_RAW", "roomId=${roomId}, dayIndex=${dayIndexParam} - 응답 원본: $rawBodyString")
+
                         val body = response.body()
 
                         if (body?.code == 0) {
@@ -1179,18 +1219,11 @@ private fun createScheduleOnServer(
         val items: MutableList<TravelScheduleItem> = schedules
             .sortedBy { it.startTime }
             .map { dto ->
-                TravelScheduleItem(
-                    timeLabel = dto.startTime,
-                    timeRange = "${dto.startTime} ~ ${dto.endTime}",
-                    // ⚠️ 지금 ScheduleDto에는 placeName/address/lat/lng가 없으므로 임시 값 사용
-                    placeName = "장소 #${dto.roomPlaceId}",  // TODO: roomPlace 정보 연동 시 실제 이름으로 교체
-                    address = "",                           // TODO: 주소도 roomPlace에서 가져오기
-                    lat = 0.0,                              // TODO: 위도
-                    lng = 0.0                               // TODO: 경도
-                )
+                // ✅ 확장 함수를 호출하여 DTO의 모든 정보를 UI Model로 변환합니다.
+                // toTravelScheduleItem() 함수 내부에 placeName이 null일 경우 "장소 #ID"를 표시하는 안전 로직이 들어 있습니다.
+                dto.toTravelScheduleItem()
             }
-            .toMutableList()   // ★ 여기서부터 이미 MutableList 로 만들어버림
-
+            .toMutableList()
         // 해당 일차의 items를 몽땅 서버 기준으로 교체
         dailySchedules[localDayIndex] = day.copy(items = items)
     }
