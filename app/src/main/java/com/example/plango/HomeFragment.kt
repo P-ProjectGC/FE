@@ -42,9 +42,10 @@ class HomeFragment : Fragment() {
     private val displayDateFormatter: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyy년 M월 d일")
 
-
-
-
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showAlarmIcon(false)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
