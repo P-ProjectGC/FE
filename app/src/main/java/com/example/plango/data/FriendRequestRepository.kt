@@ -1,32 +1,36 @@
 package com.example.plango.data
 
-import com.example.plango.model.Friend
+import com.example.plango.model.FriendRequestItem // 🔴 새로운 모델 import
 
 object FriendRequestRepository {
 
-    private val _requests = mutableListOf<Friend>()
+    // 🔴 내부 저장소 타입을 FriendRequestItem으로 변경
+    private val _requests = mutableListOf<FriendRequestItem>()
 
-    fun getRequests(): List<Friend> = _requests
+    // 🔴 반환 타입을 FriendRequestItem으로 변경
+    fun getRequests(): List<FriendRequestItem> = _requests
 
-    fun setRequests(newRequests: List<Friend>) {
+    // 🔴 인자 타입을 FriendRequestItem으로 변경
+    fun setRequests(newRequests: List<FriendRequestItem>) {
         _requests.clear()
         _requests.addAll(newRequests)
     }
 
     /**
      * @return true  -> 요청 추가 성공
-     *         false -> 이미 요청 목록에 있던 친구
+     * false -> 이미 요청 목록에 있던 친구
      */
-    fun addRequest(friend: Friend): Boolean {
-        if (_requests.contains(friend)) {
+    // 🔴 인자 타입을 FriendRequestItem으로 변경
+    fun addRequest(item: FriendRequestItem): Boolean {
+        if (_requests.contains(item)) {
             return false
         }
-        _requests.add(friend)
+        _requests.add(item)
         return true
     }
 
-    fun removeRequest(friend: Friend) {
-        _requests.remove(friend)
+    // 🔴 인자 타입을 FriendRequestItem으로 변경
+    fun removeRequest(item: FriendRequestItem) {
+        _requests.remove(item)
     }
 }
-

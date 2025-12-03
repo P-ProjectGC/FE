@@ -6,11 +6,13 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.plango.R
 import com.example.plango.databinding.ItemFriendSearchBinding
 import com.example.plango.model.Friend
 
 class FriendSearchResultAdapter(
-    private val onAddClick: (Friend) -> Unit
+    private val onAddClick: (Friend) -> Unit,
+    private val isRequested: (Friend) -> Boolean
 ) : ListAdapter<Friend, FriendSearchResultAdapter.ViewHolder>(diffCallback) {
 
     companion object {
@@ -37,8 +39,20 @@ class FriendSearchResultAdapter(
             // 카카오 계정 뱃지
             ivKakaoBadge.isVisible = friend.isKakaoUser
 
-            // 프로필 이미지 (지금은 기본 이미지만 사용)
-            // friend.profileImageUrl 생기면 여기서 Glide/Picasso로 로드하면 됨
+            // 이미 보낸 친구 요청인지 여부
+            val requested = isRequested(friend)
+
+            if (requested) {
+                // 🔹 취소 버튼 상태 (X 버튼)
+                btnAdd.setBackgroundResource(R.drawable.bg_friend_action_cancel)
+                ivAddIcon.setImageResource(R.drawable.x_button)
+                tvAddLabel.text = "취소"
+            } else {
+                // 🔹 추가 버튼 상태 (+ 버튼)
+                btnAdd.setBackgroundResource(R.drawable.bg_add_friend_button)
+                ivAddIcon.setImageResource(R.drawable.icon_friend_add)
+                tvAddLabel.text = "추가"
+            }
 
             btnAdd.setOnClickListener {
                 onAddClick(friend)

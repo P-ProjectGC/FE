@@ -8,12 +8,15 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.plango.adapter.FriendSearchResultAdapter
 import com.example.plango.data.FriendRepository
-import com.example.plango.data.FriendSearchRepository
+import com.example.plango.data.MemberSearchData
+import com.example.plango.data.MemberSession
 import com.example.plango.databinding.DialogAddFriendBinding
 import com.example.plango.model.Friend
+import kotlinx.coroutines.launch
 
 class AddFriendDialogFragment : DialogFragment() {
 
@@ -37,12 +40,26 @@ class AddFriendDialogFragment : DialogFragment() {
         initRecyclerView()
         initUi()
         initClickListeners()
+        loadSentFriendRequests()
+    }
+
+    // 🔵 다이얼로그 켜질 때, 내가 보낸 친구 요청 목록 미리 로드
+    private fun loadSentFriendRequests() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            FriendRepository.refreshSentFriendRequests()
+            // 실패해도 무시하고, hasSentRequestToNickname 결과만 사용
+        }
     }
 
     private fun initRecyclerView() {
-        searchAdapter = FriendSearchResultAdapter { friend ->
-            onAddFriendClicked(friend)
-        }
+        searchAdapter = FriendSearchResultAdapter(
+            onAddClick = { friend ->
+                onFriendActionClicked(friend)
+            },
+            isRequested = { friend ->
+                FriendRepository.hasSentRequestToNickname(friend.nickname)
+            }
+        )
 
         binding.rvSearchResult.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -51,23 +68,19 @@ class AddFriendDialogFragment : DialogFragment() {
     }
 
     private fun initUi() {
-        // 처음에는 결과 리스트/빈 상태 모두 숨김
         binding.rvSearchResult.isVisible = false
         binding.tvEmptyResult.isVisible = false
     }
 
     private fun initClickListeners() {
-        // 닫기 버튼
         binding.ivClose.setOnClickListener {
             dismiss()
         }
 
-        // 검색 버튼
         binding.btnSearch.setOnClickListener {
             performSearch()
         }
 
-        // 키보드 검색 액션
         binding.etNickname.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch()
@@ -78,7 +91,10 @@ class AddFriendDialogFragment : DialogFragment() {
         }
     }
 
-    /** 닉네임 검색 수행 (부분 일치, 여러 명 결과 가능) */
+    /**
+     * 닉네임 검색 수행
+     * - 서버 /api/members/search 사용
+     */
     private fun performSearch() {
         val keyword = binding.etNickname.text.toString().trim()
 
@@ -87,43 +103,133 @@ class AddFriendDialogFragment : DialogFragment() {
             return
         }
 
-        // FriendSearchRepository에서 검색 (List<Friend> 반환하도록 구현)
-        val results: List<Friend> = FriendSearchRepository.searchByNickname(keyword)
+        binding.tvEmptyResult.isVisible = false
+        binding.rvSearchResult.isVisible = false
 
-        if (results.isEmpty()) {
-            // 검색 결과 없음
-            searchAdapter.submitList(emptyList())
-            binding.rvSearchResult.isVisible = false
-            binding.tvEmptyResult.isVisible = true
-        } else {
-            // 검색 결과 리스트 출력
-            binding.tvEmptyResult.isVisible = false
-            binding.rvSearchResult.isVisible = true
-            searchAdapter.submitList(results)
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val results: List<MemberSearchData> =
+                    FriendRepository.searchMemberByNickname(keyword)
+
+                if (results.isEmpty()) {
+                    searchAdapter.submitList(emptyList())
+                    binding.rvSearchResult.isVisible = false
+                    binding.tvEmptyResult.isVisible = true
+                } else {
+                    val friendList: List<Friend> = results.map { mapToFriend(it) }
+                    searchAdapter.submitList(friendList)
+
+                    binding.tvEmptyResult.isVisible = false
+                    binding.rvSearchResult.isVisible = true
+                }
+            } catch (e: Exception) {
+                searchAdapter.submitList(emptyList())
+                binding.rvSearchResult.isVisible = false
+                binding.tvEmptyResult.isVisible = true
+
+                e.printStackTrace()
+                Toast.makeText(
+                    requireContext(),
+                    "검색 중 오류: ${e.message ?: "알 수 없는 오류"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
-    /** 각 아이템의 "추가" 버튼 클릭 시 */
+    /** 버튼 클릭 시: 추가 / 취소 분기 */
+    private fun onFriendActionClicked(friend: Friend) {
+        val nickname = friend.nickname
+
+        val isRequested = FriendRepository.hasSentRequestToNickname(nickname)
+
+        if (isRequested) {
+            // 이미 보낸 상태 → 취소 API
+            cancelFriendRequest(friend)
+        } else {
+            // 아직 안 보낸 상태 → 친구 요청 보내기
+            onAddFriendClicked(friend)
+        }
+    }
+
+    /** 친구 요청 보내기 */
     private fun onAddFriendClicked(friend: Friend) {
+        val targetNickname = friend.nickname
+
+        // 이미 "보낸 친구 요청"인지 한 번 더 체크
+        if (FriendRepository.hasSentRequestToNickname(targetNickname)) {
+            Toast.makeText(
+                requireContext(),
+                "이미 친구 요청이 존재합니다.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         // 이미 친구인지 체크
         val currentFriends = FriendRepository.getFriends()
-        if (currentFriends.contains(friend)) {
+        if (currentFriends.any { it.nickname == targetNickname }) {
             Toast.makeText(requireContext(), "이미 친구인 사용자입니다.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 지금은 서버 없는 단계라 단순히 UI 피드백만
-        Toast.makeText(requireContext(), "친구 요청을 보냈습니다. (더미)", Toast.LENGTH_SHORT).show()
+        val myMemberId = MemberSession.currentMemberId
 
-        dismiss()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = FriendRepository.requestFriend(myMemberId, targetNickname)
+
+            result.onSuccess {
+                Toast.makeText(requireContext(), "친구 요청을 보냈습니다.", Toast.LENGTH_SHORT).show()
+                // FriendRepository.requestFriend 안에서 sent 캐시를 추가했다고 가정
+                searchAdapter.notifyDataSetChanged()
+            }.onFailure { e ->
+                val message = e.message ?: "친구 요청 처리 중 오류가 발생했습니다."
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /** 친구 요청 취소 */
+    private fun cancelFriendRequest(friend: Friend) {
+        val myMemberId = MemberSession.currentMemberId
+        val nickname = friend.nickname
+
+        val requestId = FriendRepository.getSentRequestIdByNickname(nickname)
+        if (requestId == null) {
+            Toast.makeText(requireContext(), "친구 요청 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = FriendRepository.cancelFriendRequest(myMemberId, requestId)
+
+            result.onSuccess {
+                Toast.makeText(requireContext(), "친구 요청을 취소했습니다.", Toast.LENGTH_SHORT).show()
+                // 취소 성공 시 캐시에서 제거되었다고 가정
+                searchAdapter.notifyDataSetChanged()
+            }.onFailure { e ->
+                val message = e.message ?: "친구 요청 취소 중 오류가 발생했습니다."
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * 서버 MemberSearchData -> UI에서 쓰는 Friend 로 변환
+     */
+    private fun mapToFriend(data: MemberSearchData): Friend {
+        return Friend(
+            nickname = data.nickname,
+            realName = "",
+            profileImageUrl = data.profileImageUrl,
+            isKakaoUser = false
+        )
     }
 
     override fun onStart() {
         super.onStart()
-        // 팝업 바깥 배경을 투명하게 — 이게 핵심!
         dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        // 팝업 너비를 적당히 (친구요청 팝업과 동일하게)
         val width = (resources.displayMetrics.widthPixels * 0.9).toInt()
         dialog?.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
     }

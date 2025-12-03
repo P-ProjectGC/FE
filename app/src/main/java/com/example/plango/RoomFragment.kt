@@ -16,6 +16,7 @@ import com.example.plango.model.TravelRoom
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import com.example.plango.data.MemberSession
 
 class RoomFragment : Fragment() {
 
@@ -110,7 +111,7 @@ class RoomFragment : Fragment() {
         // 코루틴으로 서버 호출
         viewLifecycleOwner.lifecycleScope.launch {
             // TODO: 로그인 붙으면 실제 로그인된 멤버 ID로 교체
-            val memberId = 1L
+            val memberId = MemberSession.currentMemberId
 
             val success = TravelRoomRepository.fetchRoomsFromServer(memberId)
 
