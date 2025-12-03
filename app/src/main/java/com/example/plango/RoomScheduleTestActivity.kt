@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import androidx.appcompat.app.AlertDialog
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
+import com.example.plango.data.MemberSession
 
 
 class RoomScheduleTestActivity :
@@ -159,16 +160,23 @@ class RoomScheduleTestActivity :
         memberNicknames =
             intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
 
-        // 🔍 ROOM_ID 기준으로 레포에서 방 정보 보정
-        if (roomId != -1L) {
-            val room = TravelRoomRepository.getRooms().find { it.id == roomId }
-
-            if (room != null) {
-                if (roomName.isBlank()) roomName = room.title
-                if (startDate.isBlank()) startDate = room.startDate
-                if (endDate.isBlank()) endDate = room.endDate
-            }
+        val roomFromRepo = if (roomId != -1L) {
+            TravelRoomRepository.getRoomById(roomId)
+        } else {
+            null
         }
+
+        if (roomFromRepo != null) {
+            if (roomName.isBlank()) roomName = roomFromRepo.title
+            if (startDate.isBlank()) startDate = roomFromRepo.startDate
+            if (endDate.isBlank()) endDate = roomFromRepo.endDate
+            isHost = roomFromRepo.isHost
+        } else {
+            isHost = true
+        }
+
+
+
 
         // 2) Toolbar 설정
         val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
@@ -220,9 +228,6 @@ class RoomScheduleTestActivity :
         tvRoomTitle.text = roomName
 
         val memberCountFromList = memberNicknames.size
-        val roomFromRepo = if (roomId != -1L) {
-            TravelRoomRepository.getRooms().find { it.id == roomId }
-        } else null
 
         val memberCount = when {
             memberCountFromList > 0 -> memberCountFromList
@@ -248,27 +253,6 @@ class RoomScheduleTestActivity :
         switchBottomTab(BottomTab.SCHEDULE)
         showDay(0)
 
-        // 2) 이 기기의 ID 가져오기 (채팅 알림, 방장 판정 등에 사용)
-        val deviceId = DeviceIdManager.getDeviceId(this)
-
-        // 3) ROOM_ID 기준으로 레포에서 방 정보 보정 + 방장 여부 판정
-        if (roomId != -1L) {
-            val room = TravelRoomRepository.getRoomById(roomId)
-
-            if (room != null) {
-                if (roomName.isBlank()) roomName = room.title
-                if (startDate.isBlank()) startDate = room.startDate
-                if (endDate.isBlank()) endDate = room.endDate
-
-                // ✅ 방장 여부: 이제는 서버/레포에서 정해준 isHost 사용
-                isHost = room.isHost
-            } else {
-                // 레포에 방 정보 없으면 일단 막지 말자
-                isHost = true
-            }
-        } else {
-            isHost = true
-        }
 
         // 🔹 4) 위시리스트 어댑터 생성 시 isHost 넘기기
 
@@ -825,38 +809,6 @@ class RoomScheduleTestActivity :
     }
 
 
-    //일정을 로컬에 붙이기
-    private fun addScheduleToLocalDay(
-        place: WishlistPlaceItem,
-        dayIndex: Int,
-        startTime: String,
-        endTime: String
-    ) {
-        if (dayIndex !in dailySchedules.indices) return
-
-        val day = dailySchedules[dayIndex]
-
-        val newItem = TravelScheduleItem(
-            timeLabel = startTime,
-            placeName = place.placeName,
-            timeRange = "$startTime ~ $endTime",
-            address = place.address,
-            lat = place.lat,
-            lng = place.lng
-        )
-
-        val newItems = day.items.toMutableList().apply {
-            add(newItem)
-        }
-
-        dailySchedules[dayIndex] = day.copy(items = newItems)
-
-        if (currentBottomTab == BottomTab.SCHEDULE) {
-            showDay(dayIndex)
-        }
-    }
-
-
 
 
 
@@ -956,9 +908,6 @@ class RoomScheduleTestActivity :
             return
         }
 
-        val currentRoomId = roomId
-        val memberId = 8L // 테스트용
-
         val request = CreateWishlistPlaceRequest(
             name = place.placeName,
             address = place.address,
@@ -971,7 +920,7 @@ class RoomScheduleTestActivity :
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
-                    .createWishlistPlace(roomId, memberId, request)
+                    .createWishlistPlace(roomId,MemberSession.currentMemberId , request)
 
                 // ★ 디버깅용 로그 (있으면 도움 됨)
                 Log.d("Wishlist", "request = $request")
@@ -1038,8 +987,6 @@ class RoomScheduleTestActivity :
            // 이 액티비티가 어떤 방인지 모르면 서버 호출 의미 없음
            return
        }
-
-       val currentRoomId = roomId   // 가독성용, 혹시 나중에 람다 안에서 써도 안정적
 
         lifecycleScope.launch {
             try {
@@ -1138,7 +1085,7 @@ private fun createScheduleOnServer(
         try {
             val response = RetrofitClient.roomApiService.createSchedule(
                 roomId = roomId,
-                memberId = 1L /* TODO: 실제 로그인한 memberId */,
+                memberId=MemberSession.currentMemberId /* TODO: 실제 로그인한 memberId */,
                 request = request
             )
             val body = response.body()
@@ -1227,12 +1174,13 @@ private fun createScheduleOnServer(
         localDayIndex: Int,              // 0-based (0 = 1일차)
         schedules: List<ScheduleDto>     // 서버에서 내려온 일정들
     ) {
+        // 인덱스 범위 체크
         if (localDayIndex !in dailySchedules.indices) return
 
         val day = dailySchedules[localDayIndex]
 
         // startTime 기준으로 정렬해서 예쁘게 보여주기
-        val items: List<TravelScheduleItem> = schedules
+        val items: MutableList<TravelScheduleItem> = schedules
             .sortedBy { it.startTime }
             .map { dto ->
                 TravelScheduleItem(
@@ -1245,9 +1193,10 @@ private fun createScheduleOnServer(
                     lng = 0.0                               // TODO: 경도
                 )
             }
+            .toMutableList()   // ★ 여기서부터 이미 MutableList 로 만들어버림
 
         // 해당 일차의 items를 몽땅 서버 기준으로 교체
-        dailySchedules[localDayIndex] = day.copy(items = items as MutableList<TravelScheduleItem>)
+        dailySchedules[localDayIndex] = day.copy(items = items)
     }
 
 
