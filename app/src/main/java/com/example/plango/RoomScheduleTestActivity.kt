@@ -822,17 +822,18 @@ class RoomScheduleTestActivity :
             .setTitle("위시리스트 삭제")
             .setMessage("이 장소를 위시리스트에서 삭제할까요?")
             .setPositiveButton("삭제") { _, _ ->
-                deleteWishlistPlaceOnServer(item)
+                deleteWishlistPlaceOnServer(item, showToastOnSuccess = true)
             }
             .setNegativeButton("취소", null)
             .show()
     }
 
     //위시리스트삭제함수(서버)
-    private fun deleteWishlistPlaceOnServer(item: WishlistPlaceItem) {
-        val roomId = this.roomId          // 이미 멤버 변수로 있는 값 사용
+    private fun deleteWishlistPlaceOnServer(
+        item: WishlistPlaceItem,
+        showToastOnSuccess: Boolean = false
+    ) {
         val placeId = item.placeId
-
         if (placeId == null) {
             Toast.makeText(
                 this,
@@ -847,22 +848,17 @@ class RoomScheduleTestActivity :
                 val response = RetrofitClient.roomApiService
                     .deleteWishlistPlace(roomId, placeId)
 
-                Log.d("WishlistDelete", "request roomId=$roomId, placeId=$placeId")
-                Log.d("WishlistDelete", "response raw = ${response.raw()}")
-
                 if (response.isSuccessful) {
                     val body = response.body()
-                    Log.d("WishlistDelete", "response body = $body")
-
                     if (body?.code == 0) {
-                        // UI 리스트에서 제거
                         wishlistAdapter.removeItem(item)
-
-                        Toast.makeText(
-                            this@RoomScheduleTestActivity,
-                            "위시리스트에서 삭제했어요.",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        if (showToastOnSuccess) {
+                            Toast.makeText(
+                                this@RoomScheduleTestActivity,
+                                "위시리스트에서 삭제했어요.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     } else {
                         Toast.makeText(
                             this@RoomScheduleTestActivity,
