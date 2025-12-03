@@ -5,15 +5,33 @@ import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.plango.data.RetrofitClient
+import com.example.plango.data.login_api.AuthRepository
+import com.example.plango.data.login_api.AuthService
+import com.example.plango.data.login_api.AuthViewModel
+import com.example.plango.data.login_api.AuthViewModelFactory
+import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivityLoginBinding
 
 class LoginActivity : ComponentActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+
+    private val authService = RetrofitClient.authService
+    private val authRepository = AuthRepository(authService)
+
+    private val authViewModel: AuthViewModel by viewModels {
+        AuthViewModelFactory(authRepository)
+    }
+
+    private lateinit var tokenManager: TokenManager
 
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,8 +44,22 @@ class LoginActivity : ComponentActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        tokenManager = TokenManager(this)
+
+        // TODO: 프로필에서 로그아웃 기능 구현하고 활성화하기
+        // 🔥 자동 로그인
+//        val savedToken = tokenManager.getAccessToken()
+//        // TODO: 토큰 테스트 코드
+//        Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
+//        if (!savedToken.isNullOrEmpty()) {
+//            startActivity(Intent(this, MainActivity::class.java))
+//            finish()
+//            return
+//        }
+
         setupTextWatchers()
         setupButtonListeners()
+        observeLogin()
     }
 
     /** ---------------------------
@@ -58,26 +90,45 @@ class LoginActivity : ComponentActivity() {
         binding.btnLogin.alpha = if (enabled) 1f else 0.5f
     }
 
+    // 로그인 결과 관찰
+    private fun observeLogin() {
+
+        authViewModel.loginResult.observe(this) { result ->
+
+            binding.tvError.visibility = View.GONE
+
+            result.onSuccess { data ->
+
+                tokenManager.saveAccessToken(data.accessToken)
+
+                // TODO : 로그인 토큰 테스트 코드
+                Log.d("TOKEN_TEST", "token = ${tokenManager.getAccessToken()}")
+
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            }
+
+            result.onFailure {
+                // 로그인 실패
+                binding.tvError.text = "로그인 실패: 아이디 또는 비밀번호를 확인하세요."
+                binding.tvError.visibility = View.VISIBLE
+            }
+        }
+    }
+
+
     /** ---------------------------
      *  버튼 클릭 리스너
      * -------------------------- */
-    private fun setupButtonListeners() {
+    private fun setupButtonListeners()  {
 
         /** LOGIN 버튼 */
         binding.btnLogin.setOnClickListener {
             val id = binding.etId.text.toString()
             val pw = binding.etPw.text.toString()
 
-            if (id == "test" && pw == "1234") {
-                binding.tvError.visibility = android.view.View.GONE
-                Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show()
-
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                finish()
-            } else {
-                binding.tvError.visibility = android.view.View.VISIBLE
-            }
+            // 일반 로그인 실행
+            authViewModel.loginNormal(id, pw)
         }
 
         /** 아이디 찾기 */
