@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
 import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.CreateRoomRequest
@@ -112,7 +113,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         end: LocalDate,
         selectedNicknames: List<String>
     ) {
-        val memberIdHeader = 1L            // TODO: 나중에 로그인된 멤버 ID로 교체
+        val memberIdHeader = MemberSession.currentMemberId            // TODO: 나중에 로그인된 멤버 ID로 교체
         val memberIdsBody = listOf(2L)     // TODO: 실제 멤버 ID 리스트로 교체
 
         val request = CreateRoomRequest(

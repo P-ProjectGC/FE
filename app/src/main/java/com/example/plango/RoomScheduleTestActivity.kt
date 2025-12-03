@@ -54,7 +54,8 @@ import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
 import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
-
+import org.json.JSONObject
+import retrofit2.Response
 
 class RoomScheduleTestActivity :
     AppCompatActivity(),
@@ -175,7 +176,7 @@ class RoomScheduleTestActivity :
             if (endDate.isBlank()) endDate = roomFromRepo.endDate
             isHost = roomFromRepo.isHost
         } else {
-            isHost = true
+            isHost = false
         }
 
 
@@ -1108,26 +1109,36 @@ private fun createScheduleOnServer(
             val body = response.body()
 
             if (response.isSuccessful && body?.code == 0) {
-
-                // 🚀 서버 응답에서 scheduleId 추출
+                // ✅ 성공 처리
                 val newScheduleId = body.data?.scheduleId
-
                 if (newScheduleId == null) {
                     Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 성공, ID가 누락되었습니다.", Toast.LENGTH_LONG).show()
                     onResult(null)
                     return@launch
                 }
-
-                // ✅ 성공: 추출한 ID를 콜백으로 전달
                 onResult(newScheduleId)
 
             } else {
-                // 🔍 실패 처리
-                val msg = body?.message ?: "알 수 없는 오류"
-                Log.e("ScheduleAPI", "일정 생성 실패: http=${response.code()}, code=${body?.code}, msg=$msg")
-                Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 실패: $msg", Toast.LENGTH_SHORT).show()
+                // 🔍 실패 처리: 서버 메시지 우선 추출
+                val msg = extractServerMessage(
+                    response,
+                    defaultMessage = "일정 생성 실패 (HTTP 코드: ${response.code()})"
+                )
+
+                Log.e(
+                    "ScheduleAPI",
+                    "일정 생성 실패: http=${response.code()}, msg=$msg"
+                )
+
+                Toast.makeText(
+                    this@RoomScheduleTestActivity,
+                    msg,   // ✅ 여기서 "방장만 수행할 수 있는 작업입니다." 같은 문구가 그대로 뜸
+                    Toast.LENGTH_SHORT
+                ).show()
+
                 onResult(null)
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this@RoomScheduleTestActivity, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1273,14 +1284,19 @@ private fun createScheduleOnServer(
 
 
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val msg = response.body()?.message ?: "일정 수정 실패 (HTTP 코드: ${response.code()})"
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 수정 실패 (HTTP 코드: ${response.code()})"
+                    )
 
                     Log.e("ScheduleAPI", "일정 수정 실패: $msg")
-                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
-
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 실패: $msg", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1322,15 +1338,19 @@ private fun createScheduleOnServer(
                     onSuccess()
                     Toast.makeText(this@RoomScheduleTestActivity, "일정이 완전히 삭제되었습니다.", Toast.LENGTH_SHORT).show()
                 } else {
-                    // 🚨 오류 발생 시 상세 로그 출력 및 메시지 처리
-                    val errorBody = response.errorBody()?.string()
-                    val msg = response.body()?.message ?: "일정 삭제 실패 (HTTP 코드: ${response.code()})"
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 삭제 실패 (HTTP 코드: ${response.code()})"
+                    )
 
                     Log.e("ScheduleAPI", "일정 삭제 실패: $msg")
-                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
-
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 실패: $msg", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1391,6 +1411,47 @@ private fun createScheduleOnServer(
         }
         return list
     }
+
+    //오류메시지잡기
+
+    private fun extractServerMessage(response: Response<*>?, defaultMessage: String): String {
+        if (response == null) return defaultMessage
+
+        // 1) body 쪽(message) 먼저 시도 (200인데 code != 0 인 케이스 대비)
+        val bodyMessage = try {
+            val bodyObj = response.body()
+            // bodyObj가 ApiResponse 형식이라면 message 프로퍼티가 있을 것
+            val messageField = bodyObj?.javaClass?.getDeclaredField("message")
+            messageField?.isAccessible = true
+            messageField?.get(bodyObj) as? String
+        } catch (e: Exception) {
+            null
+        }
+
+        if (!bodyMessage.isNullOrBlank()) return bodyMessage
+
+        // 2) errorBody(JSON)에서 message 추출 (403 같은 케이스)
+        val errorBodyString = try {
+            response.errorBody()?.string()
+        } catch (e: Exception) {
+            null
+        }
+
+        if (!errorBodyString.isNullOrBlank()) {
+            try {
+                val json = JSONObject(errorBodyString)
+                val msgFromJson = json.optString("message")
+                if (!msgFromJson.isNullOrBlank()) {
+                    return msgFromJson
+                }
+            } catch (_: Exception) { }
+        }
+
+        return defaultMessage
+    }
+
+
+
 }
 
 // ====== 모델 ======
