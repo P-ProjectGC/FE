@@ -11,7 +11,7 @@ object RetrofitClient {
     // 🔁 호스트(네 컴퓨터) 실제 IP + 포트내 ip : 210.119.237.48(진성, 172~~는주희)
     //private const val BASE_URL = "http://172.25.81.234:8080/"
 
-    private const val BASE_URL = " https://pyrological-nonsalutarily-hobert.ngrok-free.dev"
+    private const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev/"
 
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -34,5 +34,9 @@ object RetrofitClient {
 
     val roomApiService: RoomApiService by lazy {
         retrofit.create(RoomApiService::class.java)
+    }
+
+    val friendApiService: FriendApiService by lazy {
+        retrofit.create(FriendApiService::class.java)
     }
 }

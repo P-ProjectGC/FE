@@ -68,7 +68,7 @@
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
-        <!-- 추가 버튼 -->
+        <!-- 추가 / 취소 공용 버튼 -->
         <LinearLayout
             android:id="@+id/btn_add"
             android:layout_width="wrap_content"
@@ -76,26 +76,28 @@
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingHorizontal="10dp"
-            android:background="@drawable/bg_circle_search_btn"
+            android:background="@drawable/bg_add_friend_button"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/iv_profile"
             app:layout_constraintBottom_toBottomOf="@id/iv_profile">
 
-
-        <ImageView
+            <ImageView
+                android:id="@+id/iv_add_icon"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:src="@drawable/icon_friend_add"
-                app:tint="@android:color/white"/>
+                app:tint="@android:color/white" />
 
             <TextView
+                android:id="@+id/tv_add_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="추가"
                 android:textSize="12sp"
                 android:textColor="@android:color/white"
-                android:layout_marginStart="4dp"/>
+                android:layout_marginStart="4dp" />
         </LinearLayout>
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
