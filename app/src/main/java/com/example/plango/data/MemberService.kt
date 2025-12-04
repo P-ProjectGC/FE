@@ -1,6 +1,7 @@
 package com.example.plango.data
 
 import com.example.plango.model.ApiResponse
+import com.example.plango.model.ChangePasswordRequest
 import com.example.plango.model.MemberProfileResponse
 import com.example.plango.model.ProfileUpdateRequest
 import retrofit2.Response
@@ -20,6 +21,13 @@ interface MemberService {
     suspend fun updateProfile(
         @Path("memberId") memberId: Long,
         @Body request: ProfileUpdateRequest
+    ): Response<ApiResponse<Any>>
+
+    // ✅ 비밀번호 변경
+    @PATCH("/api/members/{memberId}/password")
+    suspend fun changePassword(
+        @Path("memberId") memberId: Long,
+        @Body request: ChangePasswordRequest
     ): Response<ApiResponse<Any>>
 
 

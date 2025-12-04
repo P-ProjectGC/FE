@@ -47,13 +47,13 @@ class LoginActivity : ComponentActivity() {
         tokenManager = TokenManager(this)
 
         // TODO: 프로필에서 로그아웃 기능 구현 후 자동 로그인 활성화
-//        val savedToken = tokenManager.getAccessToken()
-//        Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
-//        if (!savedToken.isNullOrEmpty()) {
-//            startActivity(Intent(this, MainActivity::class.java))
-//            finish()
-//            return
-//        }
+        val savedToken = tokenManager.getAccessToken()
+        Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
+        if (!savedToken.isNullOrEmpty()) {
+           startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+       }
 
         setupTextWatchers()
         setupButtonListeners()
