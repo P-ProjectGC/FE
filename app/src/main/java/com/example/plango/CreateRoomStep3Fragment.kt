@@ -144,7 +144,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
-                    .createRoom(memberIdHeader, request)
+                    .createRoom( request)
 
                 if (response.isSuccessful) {
                     val body = response.body()

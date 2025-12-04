@@ -919,7 +919,7 @@ class RoomScheduleTestActivity :
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
-                    .createWishlistPlace(roomId,MemberSession.currentMemberId , request)
+                    .createWishlistPlace(roomId, request)
 
                 // ★ 디버깅용 로그 (있으면 도움 됨)
                 Log.d("Wishlist", "request = $request")
@@ -1097,7 +1097,6 @@ private fun createScheduleOnServer(
         try {
             val response = RetrofitClient.roomApiService.createSchedule(
                 roomId = roomId,
-                memberId = MemberSession.currentMemberId /* TODO: 실제 로그인한 memberId */,
                 request = request
             )
             val body = response.body()
@@ -1264,10 +1263,6 @@ private fun createScheduleOnServer(
                 val response = RetrofitClient.roomApiService.updateSchedule(
                     roomId = roomId,
                     scheduleId = scheduleId,
-
-                    // 🚨 [수정]: 헤더로 전달할 memberId 추가
-                    memberId = memberId,
-
                     startTime = newStartTime,
                     endTime = newEndTime,
                     memo = oldMemo
@@ -1324,7 +1319,6 @@ private fun createScheduleOnServer(
                 val response = RetrofitClient.roomApiService.deleteSchedule(
                     roomId = roomId,
                     scheduleId = scheduleId,
-                    memberId = memberId // 👈 @Header("X-MEMBER-ID") 값으로 전달
                 )
 
                 if (response.isSuccessful && response.body()?.code == 0) {

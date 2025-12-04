@@ -111,10 +111,8 @@ class RoomFragment : Fragment() {
     private fun loadRooms() {
         // 코루틴으로 서버 호출
         viewLifecycleOwner.lifecycleScope.launch {
-            // TODO: 로그인 붙으면 실제 로그인된 멤버 ID로 교체
-            val memberId = MemberSession.currentMemberId
 
-            val success = TravelRoomRepository.fetchRoomsFromServer(memberId)
+            val success = TravelRoomRepository.fetchRoomsFromServer()
 
             if (!success) {
                 // 서버 실패 시 → Repository 내부에서 기본 더미 1개 넣어둔 상태

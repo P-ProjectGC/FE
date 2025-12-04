@@ -47,12 +47,12 @@ object TravelRoomRepository {
      *         false -> 실패(HTTP 에러, 예외, code != 0 등)
      */
     suspend fun fetchRoomsFromServer(
-        memberId: Long,
         keyword: String? = null
     ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val response = RetrofitClient.roomApiService.getRooms(memberId, keyword)
+                // 🔥 JWT 토큰 기반이라 memberId 안 넘김
+                val response = RetrofitClient.roomApiService.getRooms(keyword)
                 Log.d("TravelRoomRepository", "getRooms response = $response")
 
                 if (response.isSuccessful) {
@@ -91,6 +91,7 @@ object TravelRoomRepository {
             }
         }
     }
+
 
     /**
      * 서버 RoomDto -> 앱에서 쓰는 TravelRoom 으로 변환
