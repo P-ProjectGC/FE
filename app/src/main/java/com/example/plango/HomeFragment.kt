@@ -44,8 +44,13 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        (activity as? MainActivity)?.showAlarmIcon(false)
+        (activity as? MainActivity)?.apply {
+            showMainHeader(true)     // ✅ 헤더 다시 살리기
+            showAlarmIcon(false)     // 홈에서는 알람 숨김
+            showProfileButton(true)  // 홈에서는 프로필 버튼 보이게
+        }
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,

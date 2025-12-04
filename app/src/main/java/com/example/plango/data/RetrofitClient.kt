@@ -64,4 +64,8 @@ object RetrofitClient {
     val friendApiService: FriendApiService by lazy {
         retrofit.create(FriendApiService::class.java)
     }
+
+    val memberApiService: MemberService by lazy {
+        retrofit.create(MemberService::class.java)
+    }
 }

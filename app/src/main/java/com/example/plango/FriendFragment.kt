@@ -107,9 +107,13 @@ class FriendFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // 친구 화면일 때만 알림 아이콘 보이게
-        (activity as? MainActivity)?.showAlarmIcon(true)
+        (activity as? MainActivity)?.apply {
+            showMainHeader(true)
+            showAlarmIcon(true)      // 친구 화면에서는 알람 ON
+            showProfileButton(true)
+        }
     }
+
 
     /** 서버에서 친구 목록 불러오기 */
     private fun loadFriendsFromServer() {
