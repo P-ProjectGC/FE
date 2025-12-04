@@ -44,6 +44,9 @@ class LoginActivity : ComponentActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+
+        
+
         tokenManager = TokenManager(this)
 
         // TODO: 프로필에서 로그아웃 기능 구현 후 자동 로그인 활성화
