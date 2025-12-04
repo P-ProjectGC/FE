@@ -219,10 +219,11 @@ class AddFriendDialogFragment : DialogFragment() {
      */
     private fun mapToFriend(data: MemberSearchData): Friend {
         return Friend(
+            memberId = data.memberId,         // ✅ 새로 추가된 필드
             nickname = data.nickname,
-            realName = "",
+            realName = "",                    // 아직 실명 정보 없으면 빈 문자열로
             profileImageUrl = data.profileImageUrl,
-            isKakaoUser = false
+            isKakaoUser = false               // 필요하면 나중에 data.loginType 보고 세팅
         )
     }
 

@@ -146,6 +146,8 @@ object FriendRepository {
                 // 서버 DTO → 앱 Friend 모델로 변환
                 val converted = list.map { api ->
                     Friend(
+                        memberId = api.memberId,              // 멤버아읻
+
                         nickname = api.nickname,
                         realName = api.nickname,   // realName 없음 → nickname 재사용
                         profileImageUrl = api.profileImageUrl,

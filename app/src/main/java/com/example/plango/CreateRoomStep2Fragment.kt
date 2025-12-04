@@ -34,6 +34,8 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
 
     // 선택된 친구 (닉네임 기준으로 관리)
     private val selectedNicknames = mutableSetOf<String>()
+    private val selectedFriendIds = mutableSetOf<Long>()    // 🔥 추가
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,7 +77,19 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     private fun setupSelectedChips() {
         chipAdapter = SelectedFriendChipAdapter_rm { friend ->
             // 칩 눌렀을 때도 선택 해제
+            var changed = false
+
+            // 닉네임 제거
             if (selectedNicknames.remove(friend.nickname)) {
+                changed = true
+            }
+
+            // memberId 제거
+            if (selectedFriendIds.remove(friend.memberId)) {
+                changed = true
+            }
+
+            if (changed) {
                 applyFilter(etSearchNickname.text?.toString()?.trim().orEmpty())
                 updateSelectedSummary()
                 updateNextButtonState()
@@ -89,15 +103,20 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
         }
     }
 
+
     private fun setupButtons() {
         updateNextButtonState()
 
         btnNext.setOnClickListener {
             if (selectedNicknames.isNotEmpty()) {
 
-                // ⭐ 선택된 닉네임들을 Activity에 저장
                 (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+
+                    // 🔵 기존: 닉네임 저장
                     createRoomActivity.selectedFriendNicknames = selectedNicknames.toList()
+
+                    // 🔵 추가: memberId 저장
+                    createRoomActivity.selectedFriendIds = selectedFriendIds.toList()
                 }
 
                 parentFragmentManager.beginTransaction()
@@ -110,6 +129,7 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
             }
         }
     }
+
 
 
 
@@ -170,9 +190,13 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     }
 
     private fun toggleFriendSelection(friend: Friend) {
-        if (selectedNicknames.contains(friend.nickname)) {
+        if (selectedFriendIds.contains(friend.memberId)) {
+            // 선택 해제
+            selectedFriendIds.remove(friend.memberId)
             selectedNicknames.remove(friend.nickname)
         } else {
+            // 선택
+            selectedFriendIds.add(friend.memberId)
             selectedNicknames.add(friend.nickname)
         }
 
@@ -180,6 +204,7 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
         updateSelectedSummary()
         updateNextButtonState()
     }
+
 
     private fun updateSelectedSummary() {
         val count = selectedNicknames.size
