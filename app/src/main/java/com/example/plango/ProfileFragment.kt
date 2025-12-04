@@ -87,6 +87,12 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                 .show(parentFragmentManager, "LogoutDialog")
         }
 
+        // 🔹 회원탈퇴 row 클릭
+        binding.rowWithdraw.setOnClickListener {
+            MemberWithdrawDialogFragment.newInstance()
+                .show(parentFragmentManager, "MemberWithdrawDialog")
+        }
+
 
         // 🔹 서버에서 프로필 로드
         loadProfileFromServer()
