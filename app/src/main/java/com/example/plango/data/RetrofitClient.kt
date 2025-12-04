@@ -17,7 +17,7 @@ object RetrofitClient {
     //private const val BASE_URL = "http://172.25.81.234:8080/"
 
 
-    private const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev/"
+    const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev/"
     private lateinit var tokenManager: TokenManager
 
 
@@ -68,4 +68,9 @@ object RetrofitClient {
     val memberApiService: MemberService by lazy {
         retrofit.create(MemberService::class.java)
     }
+
+    val fileApiService: FileService by lazy {
+        retrofit.create(FileService::class.java)
+    }
+
 }

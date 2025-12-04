@@ -24,7 +24,7 @@ class NicknameEditDialogFragment : DialogFragment() {
     private var _binding: DialogNicknameEditBinding? = null
     private val binding get() = _binding!!
 
-    // 중복확인 완료 + 사용 가능 여부
+    // ✅ 중복확인 완료 + 사용 가능 여부
     private var isNicknameAvailable: Boolean = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -33,14 +33,14 @@ class NicknameEditDialogFragment : DialogFragment() {
         val currentNickname = arguments?.getString(ARG_CURRENT_NICKNAME).orEmpty()
         binding.etNickname.setText(currentNickname)
 
-        // 처음에는 저장 버튼 비활성화
-        binding.btnSave.isEnabled = false
+        // ✅ 저장 버튼은 항상 클릭 가능하게 둔다
+        binding.btnSave.isEnabled = true
 
-        // 입력이 바뀌면 다시 중복확인 필요
+        // ✅ 입력이 바뀌면 다시 중복확인 필요
         binding.etNickname.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                // 닉네임이 조금이라도 바뀌면 다시 중복확인해야 함
                 isNicknameAvailable = false
-                binding.btnSave.isEnabled = false
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -59,20 +59,42 @@ class NicknameEditDialogFragment : DialogFragment() {
         // 🔹 중복확인 버튼
         binding.btnCheck.setOnClickListener {
             val nickname = binding.etNickname.text.toString().trim()
-            if (nickname.length !in 2..10) {
-                Toast.makeText(requireContext(), "닉네임은 2~10자로 입력해주세요.", Toast.LENGTH_SHORT).show()
+
+            //  길이 검증은 "중복확인" 시점에만 수행
+            if (nickname.length < 2) {
+                Toast.makeText(requireContext(), "닉네임은 2~10자로 입력해주세요ㅠㅠ", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            if (nickname.length > 10) {
+                Toast.makeText(requireContext(), "닉네임은 2~10자로 입력해주세요ㅠㅠ", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // 🔥특수문자 포함 여부 체크
+            val regex = "^[a-zA-Z0-9가-힣]+$".toRegex()
+            if (!regex.matches(nickname)) {
+                Toast.makeText(requireContext(), "닉네임에는 특수문자를 사용할 수 없어요!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             checkNicknameAvailable(nickname)
         }
 
         // 🔹 저장 버튼
         binding.btnSave.setOnClickListener {
             val nickname = binding.etNickname.text.toString().trim()
+
+            // ✅ 1순위: 중복확인 안 했으면 무조건 여기서 막는다
             if (!isNicknameAvailable) {
-                Toast.makeText(requireContext(), "먼저 중복확인을 해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "먼저 중복확인을 해주세요!!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            // ⚠️ 여기까지 왔다는 건:
+            // - 길이는 이미 중복확인 시점에서 검증 통과했음
+            // - 이후에 닉네임을 수정하면 isNicknameAvailable=false로 다시 떨어지기 때문에
+            //   "유효하지 않은 길이 + 중복확인 되어 있음" 상태는 원천적으로 안 생김
+
             updateNicknameOnServer(nickname)
         }
 
@@ -91,7 +113,6 @@ class NicknameEditDialogFragment : DialogFragment() {
     private fun checkNicknameAvailable(nickname: String) {
         lifecycleScope.launch {
             try {
-                // 🔥 여기서는 authService.checkNickname 호출!
                 val response = RetrofitClient.authService.checkNickname(nickname)
 
                 if (response.isSuccessful) {
@@ -100,11 +121,9 @@ class NicknameEditDialogFragment : DialogFragment() {
 
                     if (available) {
                         isNicknameAvailable = true
-                        binding.btnSave.isEnabled = true
                         Toast.makeText(requireContext(), "사용 가능한 닉네임입니다.", Toast.LENGTH_SHORT).show()
                     } else {
                         isNicknameAvailable = false
-                        binding.btnSave.isEnabled = false
                         Toast.makeText(requireContext(), "이미 사용 중인 닉네임입니다.", Toast.LENGTH_SHORT).show()
                     }
                 } else {

@@ -1,5 +1,6 @@
 package com.example.plango.data.login_api
 
+import com.example.plango.model.ApiResponse
 import com.example.plango.model.NicknameCheckResponse
 import com.example.plango.model.login_api.LoginRequest
 import com.example.plango.model.login_api.LoginResponse
@@ -22,4 +23,8 @@ interface AuthService {
     suspend fun checkNickname(
         @Query("nickname") nickname: String
     ): Response<NicknameCheckResponse>
+
+    // ✅ 로그아웃
+    @POST("/api/auth/logout")
+    suspend fun logout(): Response<ApiResponse<Any>>
 }

@@ -10,33 +10,38 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- 🔵 프로필 상단 헤더 (시안처럼) -->
+        <!-- 🔵 프로필 상단 헤더 -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="220dp"
             android:background="@drawable/main_logo_2">
 
-            <!-- 뒤로 버튼 영역 (왼쪽 상단) -->
+            <!-- 뒤로 버튼 -->
             <LinearLayout
                 android:id="@+id/layout_back"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="16dp"
                 android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/icon_left_rm"
+                    app:tint="#333333"/>
 
                 <TextView
                     android:id="@+id/tv_back"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="〈 뒤로"
+                    android:text="뒤로"
+                    android:layout_marginStart="4dp"
                     android:textSize="16sp"
-                    android:textColor="#333333" />
+                    android:textColor="#333333"/>
             </LinearLayout>
 
-            <!-- 로고 (상단 중앙) -->
+            <!-- 로고 -->
             <ImageView
                 android:id="@+id/iv_profile_logo"
                 android:layout_width="wrap_content"
@@ -45,7 +50,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="32dp" />
 
-            <!-- 프로필 이미지 (중앙 아래쪽) -->
+            <!-- 프로필 사진 -->
             <ImageView
                 android:id="@+id/iv_profile_image"
                 android:layout_width="80dp"
@@ -54,9 +59,11 @@
                 android:layout_marginTop="96dp"
                 android:src="@drawable/icon_profile"
                 android:background="@drawable/bg_profile_button"
-                android:padding="8dp" />
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"/>
 
-            <!-- 카카오 계정 노란 뱃지 (프로필 이미지 아래) -->
+            <!-- 카카오 뱃지 -->
             <TextView
                 android:id="@+id/tv_kakao_badge"
                 android:layout_width="wrap_content"
@@ -64,20 +71,17 @@
                 android:layout_below="@id/iv_profile_image"
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="8dp"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
                 android:text="카카오 계정"
                 android:textSize="12sp"
                 android:textColor="#000000"
-                android:background="#FFF176" />
+                android:background="#FFF176"
+                android:padding="4dp"/>
         </RelativeLayout>
 
-        <!-- ───── 계정 정보 ───── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#DDDDDD" />
+        <!-- 구분선 -->
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDDDDD" />
 
+        <!-- 🔹계정 정보 -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -95,6 +99,12 @@
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_name_p"
+                android:layout_marginEnd="8dp" />
+
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -104,8 +114,7 @@
             <TextView
                 android:id="@+id/tv_profile_name"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <!-- 닉네임 -->
@@ -119,6 +128,12 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_nickname_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -128,18 +143,14 @@
             <TextView
                 android:id="@+id/tv_profile_nickname"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-" />
+                android:layout_height="wrap_content" />
 
-            <!-- 오른쪽 화살표(버튼처럼 보이게) -->
             <ImageView
-                android:id="@+id/iv_nickname_arrow"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:layout_marginStart="8dp"
                 android:src="@drawable/icon_right_rm"
                 app:tint="#888888"
-                />
+                android:layout_marginStart="8dp"/>
         </LinearLayout>
 
         <!-- 이메일 -->
@@ -150,6 +161,12 @@
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_email_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -159,8 +176,7 @@
             <TextView
                 android:id="@+id/tv_profile_email"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <!-- 아이디 -->
@@ -171,6 +187,12 @@
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_id_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -180,16 +202,11 @@
             <TextView
                 android:id="@+id/tv_profile_id"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <!-- ───── 보안 ───── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:background="#DDDDDD" />
+        <!-- 🔹보안 -->
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -210,18 +227,20 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_password_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="비밀번호 변경" />
         </LinearLayout>
 
-        <!-- ───── 알림 설정 ───── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:background="#DDDDDD" />
+        <!-- 🔹알림 설정 -->
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -232,12 +251,19 @@
             android:paddingTop="12dp"
             android:paddingBottom="4dp" />
 
+        <!-- 전체 채팅방 -->
         <LinearLayout
             android:id="@+id/row_alarm_all_chat"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_chatroom_p"
+                android:layout_marginEnd="8dp"/>
 
             <TextView
                 android:layout_width="0dp"
@@ -251,12 +277,19 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- 일정 리마인드 -->
         <LinearLayout
             android:id="@+id/row_alarm_schedule"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_schedule_remind_p"
+                android:layout_marginEnd="8dp"/>
 
             <TextView
                 android:layout_width="0dp"
@@ -270,12 +303,19 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- 친구 요청 -->
         <LinearLayout
             android:id="@+id/row_alarm_friend"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_friend_p"
+                android:layout_marginEnd="8dp"/>
 
             <TextView
                 android:layout_width="0dp"
@@ -289,12 +329,8 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <!-- ───── 기타 ───── -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:background="#DDDDDD" />
+        <!-- 🔹기타 -->
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -305,6 +341,7 @@
             android:paddingTop="12dp"
             android:paddingBottom="4dp" />
 
+        <!-- 공지사항 -->
         <LinearLayout
             android:id="@+id/row_notice"
             android:layout_width="match_parent"
@@ -315,12 +352,19 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_alarm_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="공지사항" />
         </LinearLayout>
 
+        <!-- 불편사항 신고 -->
         <LinearLayout
             android:id="@+id/row_report"
             android:layout_width="match_parent"
@@ -331,12 +375,19 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_singo_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="불편사항 신고" />
         </LinearLayout>
 
+        <!-- 로그아웃 -->
         <LinearLayout
             android:id="@+id/row_logout"
             android:layout_width="match_parent"
@@ -347,12 +398,19 @@
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_logout_p"
+                android:layout_marginEnd="8dp"/>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="로그아웃" />
         </LinearLayout>
 
+        <!-- 회원탈퇴 -->
         <LinearLayout
             android:id="@+id/row_withdraw"
             android:layout_width="match_parent"
@@ -362,6 +420,12 @@
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_exit_p"
+                android:layout_marginEnd="8dp"/>
 
             <TextView
                 android:layout_width="match_parent"
