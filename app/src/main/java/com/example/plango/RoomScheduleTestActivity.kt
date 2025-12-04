@@ -164,20 +164,26 @@ class RoomScheduleTestActivity :
         memberNicknames =
             intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
 
+// 2) Repository에서 동일 roomId 가진 방 찾기 (있으면 부족한 정보 보완용)
         val roomFromRepo = if (roomId != -1L) {
             TravelRoomRepository.getRoomById(roomId)
         } else {
             null
         }
 
+// 제목/날짜가 비어 있으면 Repo 정보로 보완
         if (roomFromRepo != null) {
             if (roomName.isBlank()) roomName = roomFromRepo.title
             if (startDate.isBlank()) startDate = roomFromRepo.startDate
             if (endDate.isBlank()) endDate = roomFromRepo.endDate
-            isHost = roomFromRepo.isHost
-        } else {
-            isHost = false
         }
+
+// 3) ⭐ isHost는 "Intent → Repo → 기본값 false" 순서로 결정
+        isHost = intent.getBooleanExtra(
+            "IS_HOST",
+            roomFromRepo?.isHost ?: false
+        )
+
 
 
 
@@ -381,25 +387,12 @@ class RoomScheduleTestActivity :
                         )
                     },
                     onDeleted = {
-                        // 🚨 [수정: 서버 삭제 요청]
                         deleteScheduleOnServer(
-                            scheduleId = item.scheduleId, // 삭제할 일정의 ID
+                            scheduleId = item.scheduleId,
                             onSuccess = {
-                                // 🚀 서버 통신 성공 시에만 로컬 데이터 삭제 및 위시리스트 이동 (기존 로직)
-                                val removed = day.items.removeAt(indexInDay)
-                                val wishlistItem = WishlistPlaceItem(
-                                    placeName = removed.placeName,
-                                    address = removed.address,
-                                    lat = removed.lat,
-                                    lng = removed.lng,
-                                    addedBy = "나" // 임시로 "나" 설정
-                                )
-                                wishlistItems.add(wishlistItem)
+                                // ✅ 서버에서 삭제 성공했을 때, 로컬에서도 일정만 지우고 끝
+                                day.items.removeAt(indexInDay)
                                 showDay(currentDayIndex)
-
-                                if (currentBottomTab == BottomTab.WISHLIST) {
-                                    wishlistAdapter.refresh()
-                                }
 
                                 Toast.makeText(
                                     this,
@@ -409,6 +402,7 @@ class RoomScheduleTestActivity :
                             }
                         )
                     }
+
                 )
 
                 bottomSheet.show(supportFragmentManager, "EditScheduleBottomSheet")
@@ -1336,7 +1330,6 @@ private fun createScheduleOnServer(
                 if (response.isSuccessful && response.body()?.code == 0) {
                     // ✅ 성공: 로컬 일정 목록에서 항목을 제거하는 로직이 onSuccess() 람다 내부에 있어야 합니다.
                     onSuccess()
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정이 완전히 삭제되었습니다.", Toast.LENGTH_SHORT).show()
                 } else {
                     val msg = extractServerMessage(
                         response,

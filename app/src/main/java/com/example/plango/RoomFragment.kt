@@ -53,6 +53,7 @@ class RoomFragment : Fragment() {
                     "MEMBER_NICKNAMES",
                     ArrayList(room.memberNicknames)
                 )
+                putExtra("IS_HOST", room.isHost)   // ⭐ 서버 기준 방장 여부 같이 전달
             }
             startActivity(intent)
         }
