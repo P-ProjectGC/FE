@@ -191,9 +191,9 @@ class AddFriendDialogFragment : DialogFragment() {
 
     /** 친구 요청 취소 */
     private fun cancelFriendRequest(friend: Friend) {
-        val myMemberId = MemberSession.currentMemberId
         val nickname = friend.nickname
 
+        // 내가 보낸 요청 중에서, 이 닉네임에게 보낸 요청 ID 찾기
         val requestId = FriendRepository.getSentRequestIdByNickname(nickname)
         if (requestId == null) {
             Toast.makeText(requireContext(), "친구 요청 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
@@ -201,11 +201,12 @@ class AddFriendDialogFragment : DialogFragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = FriendRepository.cancelFriendRequest(myMemberId, requestId)
+            // ⬇️ 더 이상 myMemberId 안 넘김 (JWT 토큰으로 인증)
+            val result = FriendRepository.cancelFriendRequest(requestId)
 
             result.onSuccess {
                 Toast.makeText(requireContext(), "친구 요청을 취소했습니다.", Toast.LENGTH_SHORT).show()
-                // 취소 성공 시 캐시에서 제거되었다고 가정
+                // 취소 성공 시 리스트 갱신
                 searchAdapter.notifyDataSetChanged()
             }.onFailure { e ->
                 val message = e.message ?: "친구 요청 취소 중 오류가 발생했습니다."
@@ -213,6 +214,7 @@ class AddFriendDialogFragment : DialogFragment() {
             }
         }
     }
+
 
     /**
      * 서버 MemberSearchData -> UI에서 쓰는 Friend 로 변환

@@ -46,7 +46,6 @@ object FriendRepository {
     suspend fun requestFriend(myId: Long, targetNickname: String): Result<CreatedFriendRequest> {
         return try {
             val response = apiService.sendFriendRequest(
-                memberId = myId,
                 request = FriendRequest(targetNickname = targetNickname)
             )
 
@@ -75,7 +74,6 @@ object FriendRepository {
     suspend fun acceptFriendRequest(myId: Long, requestId: Long): Result<AcceptedFriendship> {
         return try {
             val response = apiService.acceptFriendRequest(
-                memberId = myId,
                 friendId = requestId
             )
 
@@ -96,7 +94,6 @@ object FriendRepository {
     suspend fun rejectFriendRequest(myId: Long, requestId: Long): Result<Unit> {
         return try {
             val response = apiService.rejectFriendRequest(
-                memberId = myId,
                 friendId = requestId
             )
 
@@ -119,7 +116,6 @@ object FriendRepository {
     suspend fun fetchFriendsFromServer(memberId: Long, nickname: String? = null): Result<List<Friend>> {
         return try {
             val response = apiService.getFriendList(
-                memberId = memberId,
                 nickname = nickname
             )
 
@@ -179,7 +175,7 @@ object FriendRepository {
 
     suspend fun fetchReceivedFriendRequests(memberId: Long): Result<List<FriendRequestItem>> {
         return try {
-            val response = apiService.getReceivedFriendRequests(memberId)
+            val response = apiService.getReceivedFriendRequests()
 
             // 디버깅용 로그 (원하면 import android.util.Log)
             // Log.d("FRIEND_REQ_API", "HTTP=${response.code()}, success=${response.isSuccessful}")
@@ -220,7 +216,7 @@ object FriendRepository {
        val memberId = MemberSession.currentMemberId
 
        val response = friendApiService.searchMember(
-           memberId = memberId,
+
            nickname = keyword
        )
 
@@ -239,7 +235,7 @@ object FriendRepository {
         return try {
             val memberId = MemberSession.currentMemberId
 
-            val response = apiService.getSentFriendRequests(memberId)
+            val response = apiService.getSentFriendRequests()
 
             if (response.isSuccessful) {
                 val body = response.body()
@@ -260,22 +256,19 @@ object FriendRepository {
         }
     }
 
-    suspend fun cancelFriendRequest(memberId: Long, friendId: Long): Result<Unit> {
+    suspend fun cancelFriendRequest(friendId: Long): Result<Unit> {
         return try {
-            val response = apiService.cancelFriendRequest(memberId, friendId)
-
+            val response = apiService.cancelFriendRequest(friendId)
             if (response.isSuccessful) {
-                // 캐시에서 제거
-                sentFriendRequests.removeAll { it.friendId == friendId }
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("친구 요청 취소 실패: ${response.code()}"))
+                Result.failure(Exception("친구 요청 취소 실패"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
             Result.failure(e)
         }
     }
+
 
 
 
