@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
 
         initBottomNavigation()
         initAlarmIcon()
+        initProfileButton()
 
         // 처음에는 알람 아이콘 숨기기
         showAlarmIcon(false)
@@ -82,6 +83,7 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
 
                 R.id.menu_home -> {
+                    showProfileButton(true)
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.main_frm, HomeFragment())
                         .commitAllowingStateLoss()
@@ -89,6 +91,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 R.id.menu_friends -> {
+                    showProfileButton(true)
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.main_frm, FriendFragment())
                         .commitAllowingStateLoss()
@@ -96,6 +99,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 R.id.menu_rooms -> {
+                    showProfileButton(true)
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.main_frm, RoomFragment())
                         .commitAllowingStateLoss()
@@ -138,4 +142,34 @@ class MainActivity : AppCompatActivity() {
             badge.visibility = View.GONE
         }
     }
+
+    fun showProfileButton(show: Boolean) {
+        val ivProfile = findViewById<ImageView>(R.id.iv_profile)
+        ivProfile.visibility = if (show) View.VISIBLE else View.GONE
+    }
+    private fun initProfileButton() {
+        val ivProfile = findViewById<ImageView>(R.id.iv_profile)
+
+        ivProfile.setOnClickListener {
+            // 프로필 화면 띄우기
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.main_frm, ProfileFragment())
+                .addToBackStack(null)
+                .commitAllowingStateLoss()
+
+            // 프로필 화면 들어갈 때는 버튼/알림 숨김 (안 해도 onResume에서 다시 숨기지만 한 번 더 확실히)
+            showProfileButton(false)
+            showAlarmIcon(false)
+            showMainHeader(false)
+        }
+    }
+   //헤더숨기기
+    fun showMainHeader(show: Boolean) {
+        val header = findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.layout_header)
+        header.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+
+
+
 }

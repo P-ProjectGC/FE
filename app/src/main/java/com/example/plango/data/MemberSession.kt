@@ -6,6 +6,10 @@ object MemberSession {
     var nickname: String? = null
     var profileImageUrl: String? = null
 
+    // 🔹 프로필용 추가 필드
+    var loginId: String? = null
+    var loginType: String? = null   // "NORMAL" / "KAKAO" / null
+
     var accessToken: String? = null
     var refreshToken: String? = null
 
@@ -17,6 +21,10 @@ object MemberSession {
         email = null
         nickname = null
         profileImageUrl = null
+
+        loginId = null
+        loginType = null
+
         accessToken = null
         refreshToken = null
     }
