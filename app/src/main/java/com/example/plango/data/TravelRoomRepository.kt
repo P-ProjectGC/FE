@@ -128,7 +128,7 @@ object TravelRoomRepository {
             memo = "네트워크 상태를 확인해 주세요.",
             memberCount = 1,
             memberNicknames = listOf("ME"),
-            isHost = true
+            isHost = false
         )
     }
 }

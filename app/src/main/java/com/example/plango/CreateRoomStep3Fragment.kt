@@ -182,6 +182,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                                 "MEMBER_NICKNAMES",
                                 ArrayList(selectedNicknames)
                             )
+                            putExtra("IS_HOST", true)   //   // ⭐ 서버 기준 방장 여부 같이 전달
                         }
                         startActivity(intent)
                         requireActivity().finish()
