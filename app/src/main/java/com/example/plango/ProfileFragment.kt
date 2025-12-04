@@ -93,6 +93,11 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                 .show(parentFragmentManager, "MemberWithdrawDialog")
         }
 
+        //세션에 저장된 프로필 정보 먼저 적용
+        applyLoginTypeFromSession()
+
+        // 🔹 세션에 저장된 프로필 이미지 먼저 적용
+        loadProfileImage(MemberSession.profileImageUrl)
 
         // 🔹 서버에서 프로필 로드
         loadProfileFromServer()
@@ -127,33 +132,13 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         binding.tvKakaoBadge.visibility = if (isKakao) View.VISIBLE else View.GONE
         binding.rowChangePassword.visibility = if (isKakao) View.GONE else View.VISIBLE
 
-        // 1) 서버에서 내려온 값 확인 (지금처럼 uploads/xxx.jpg)
+        // 이미지 로그 찍는 건 남겨도 되고 빼도 됨
         android.util.Log.d("PROFILE_IMAGE", "raw from server = ${profile.profileImageUrl}")
 
-        // 2) 최종 URL 만들기 (상대 경로면 BASE_URL 붙이기)
-        val imageUrl = profile.profileImageUrl?.let { url ->
-            if (url.startsWith("http")) {
-                url
-            } else {
-                // BASE_URL 끝에 / 있고, url 앞에 / 없으니까 그냥 더해도 됨
-                RetrofitClient.BASE_URL + url
-            }
-        }
-
-        android.util.Log.d("PROFILE_IMAGE", "final imageUrl = $imageUrl")
-
-        // 3) Glide 로드 (실패해도 기본 이미지라도 보이게)
-        if (!imageUrl.isNullOrBlank()) {
-            Glide.with(this)
-                .load(imageUrl)
-                .circleCrop()
-                .placeholder(R.drawable.profile_basic)
-                .error(R.drawable.profile_basic)
-                .into(binding.ivProfileImage)
-        } else {
-            binding.ivProfileImage.setImageResource(R.drawable.profile_basic)
-        }
+        // ✅ 여기서도 공통 함수만 호출
+        loadProfileImage(profile.profileImageUrl)
     }
+
 
 
     /**
@@ -169,10 +154,13 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    android.util.Log.d("Profile", "GET profile response = $body")  // 🔥 여기
+                    android.util.Log.d("Profile", "GET profile response = $body")
                     val data = body?.data
 
                     if (data != null) {
+                        // 이전 URL 저장
+                        val oldUrl = MemberSession.profileImageUrl
+
                         // 세션 업데이트
                         MemberSession.email = data.email
                         MemberSession.nickname = data.nickname
@@ -180,7 +168,13 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                         MemberSession.loginId = data.loginId
                         MemberSession.loginType = data.loginType
 
+                        // 텍스트/로그인 타입 바인딩
                         bindProfile(data)
+
+                        // 🔥 이미지 URL이 바뀐 경우에만 다시 로드
+                        if (oldUrl != data.profileImageUrl) {
+                            loadProfileImage(data.profileImageUrl)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -188,6 +182,7 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
             }
         }
     }
+
 
     /**
      * ✅ 갤러리에서 고른 Uri → /api/files/upload 로 업로드
@@ -314,6 +309,37 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         binding.tvProfileNickname.text = newNickname
         MemberSession.nickname = newNickname
     }
+
+    private fun applyLoginTypeFromSession() {
+        val isKakao = MemberSession.loginType == "KAKAO"
+
+        binding.tvKakaoBadge.visibility = if (isKakao) View.VISIBLE else View.GONE
+        binding.rowChangePassword.visibility = if (isKakao) View.GONE else View.VISIBLE
+    }
+
+    private fun loadProfileImage(path: String?) {
+        if (path.isNullOrBlank()) {
+            // 아무 것도 없으면 기본 이미지
+            binding.ivProfileImage.setImageResource(R.drawable.profile_basic)
+            return
+        }
+
+        // 서버에서 준 값이 "uploads/xxx.jpg" 같은 상대 경로일 수 있으니 처리
+        val imageUrl = if (path.startsWith("http")) {
+            path
+        } else {
+            // 네가 지금 쓰는 BASE_URL 방식 그대로
+            RetrofitClient.BASE_URL + path
+        }
+
+        Glide.with(this)
+            .load(imageUrl)
+            .circleCrop()
+            .placeholder(R.drawable.profile_basic)
+            .error(R.drawable.profile_basic)
+            .into(binding.ivProfileImage)
+    }
+
 
 
 
