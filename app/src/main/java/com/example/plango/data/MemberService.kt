@@ -6,6 +6,7 @@ import com.example.plango.model.MemberProfileResponse
 import com.example.plango.model.ProfileUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.Path
@@ -28,6 +29,12 @@ interface MemberService {
     suspend fun changePassword(
         @Path("memberId") memberId: Long,
         @Body request: ChangePasswordRequest
+    ): Response<ApiResponse<Any>>
+
+    // ✅ 회원 탈퇴
+    @DELETE("/api/members/{memberId}")
+    suspend fun withdrawMember(
+        @Path("memberId") memberId: Long
     ): Response<ApiResponse<Any>>
 
 
