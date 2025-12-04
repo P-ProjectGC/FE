@@ -44,9 +44,6 @@ class LoginActivity : ComponentActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-
-        
-
         tokenManager = TokenManager(this)
 
         // TODO: 프로필에서 로그아웃 기능 구현 후 자동 로그인 활성화
@@ -115,7 +112,10 @@ class LoginActivity : ComponentActivity() {
 
                 Log.d("TOKEN_TEST", "access = ${tokenManager.getAccessToken()}")
                 Log.d("TOKEN_TEST", "refresh = ${tokenManager.getRefreshToken()}")
-                Log.d("LOGIN_INFO", "memberId=${MemberSession.currentMemberId}, nickname=${MemberSession.nickname}")
+                Log.d(
+                    "LOGIN_INFO",
+                    "memberId=${MemberSession.currentMemberId}, nickname=${MemberSession.nickname}"
+                )
 
                 // 메인 화면으로 이동
                 startActivity(Intent(this, MainActivity::class.java))
@@ -133,7 +133,7 @@ class LoginActivity : ComponentActivity() {
     /** ---------------------------
      *  버튼 클릭 리스너
      * -------------------------- */
-    private fun setupButtonListeners()  {
+    private fun setupButtonListeners() {
 
         /** LOGIN 버튼 */
         binding.btnLogin.setOnClickListener {
