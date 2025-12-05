@@ -6,5 +6,5 @@ data class ChatMessageDto(
     val senderId: Long,
     val senderNickname: String,
     val content: String,
-    val createdAt: String
+    val sentAt: String    // WebSocket + GET 모두 이 이름 사용
 )

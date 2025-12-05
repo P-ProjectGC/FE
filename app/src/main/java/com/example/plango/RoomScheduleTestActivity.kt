@@ -49,6 +49,7 @@ import com.example.plango.data.RetrofitClient
 import com.example.plango.model.CreateWishlistPlaceRequest
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AlertDialog
+import com.example.plango.data.ChatStompClient
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
@@ -155,6 +156,9 @@ class RoomScheduleTestActivity :
             handleImagePicked(uri)
         }
     }
+
+    private var isLoadingHistory: Boolean = false   // 현재 history 로딩 중인지
+    private var hasMoreHistory: Boolean = true      // 더 가져올 과거가 있는지
 
 
 
@@ -275,6 +279,7 @@ class RoomScheduleTestActivity :
         showDay(0)
 
 
+
         // 🔹 4) 위시리스트 어댑터 생성 시 isHost 넘기기
 
         wishlistAdapter = WishlistAdapter(
@@ -294,8 +299,20 @@ class RoomScheduleTestActivity :
 
         // 🔹 방 상세 정보(멤버 목록, 방 제목/메모)를 서버 기준으로 덮어쓰기
         loadRoomDetailFromServer()
+        loadInitialChats()
+
 
     }
+
+
+    //  채팅스타트
+    override fun onStart() {
+        super.onStart()
+        Log.d("STOMP_DEBUG", "onStart() 실행됨!")
+        startChatSubscription()
+    }
+
+
 
     // ------------------------------------------------------------
     // 이미지 선택 / 채팅 이미지 메시지
@@ -360,7 +377,9 @@ class RoomScheduleTestActivity :
     // RecyclerView / 어댑터
     // ------------------------------------------------------------
     private fun setupRecyclerView() {
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        // 레이아웃 매니저 먼저 꺼내놓고
+        val layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = layoutManager
 
         // 1. 일정 어댑터 설정
         scheduleAdapter = ScheduleTimelineAdapter(
@@ -380,14 +399,12 @@ class RoomScheduleTestActivity :
                 val bottomSheet = EditScheduleBottomSheet(
                     schedule = item,
                     onUpdated = { newStart, newEnd ->
-                        // 🚨 [수정: 서버 수정 요청]
                         patchScheduleOnServer(
                             scheduleId = item.scheduleId,
                             newStartTime = newStart,
                             newEndTime = newEnd,
-                            oldMemo = item.memo, // 메모 수정 기능은 제외하고 기존 메모 전달
+                            oldMemo = item.memo,
                             onSuccess = {
-                                // 🚀 서버 통신 성공 시에만 로컬 데이터 업데이트 (기존 로직)
                                 val old = day.items[indexInDay]
                                 val updated = old.copy(
                                     timeLabel = newStart,
@@ -403,10 +420,8 @@ class RoomScheduleTestActivity :
                         deleteScheduleOnServer(
                             scheduleId = item.scheduleId,
                             onSuccess = {
-                                // ✅ 서버에서 삭제 성공했을 때, 로컬에서도 일정만 지우고 끝
                                 day.items.removeAt(indexInDay)
                                 showDay(currentDayIndex)
-
                                 Toast.makeText(
                                     this,
                                     "일정이 삭제되었습니다.",
@@ -415,19 +430,15 @@ class RoomScheduleTestActivity :
                             }
                         )
                     }
-
                 )
 
                 bottomSheet.show(supportFragmentManager, "EditScheduleBottomSheet")
             }
         )
 
-
-
-        // 채팅 어댑터
+        // 2. 채팅 어댑터
         chatAdapter = ChatAdapter()
 
-        // roomId 기준으로 저장된 채팅 불러오기
         if (roomId != -1L) {
             val savedMessages = ChatRepository.getMessages(roomId)
             if (savedMessages.isNotEmpty()) {
@@ -435,16 +446,33 @@ class RoomScheduleTestActivity :
             }
         }
 
+        // 기본은 일정 어댑터로 시작
         recyclerView.adapter = scheduleAdapter
 
-        // 채팅 입력
-        btnSendChat.setOnClickListener {
-            sendChatMessage()
-        }
-        btnPickPhoto.setOnClickListener {
-            imagePickerLauncher.launch("image/*")
-        }
+        // 3. 채팅 history 로딩용 스크롤 리스너
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                // 채팅 탭일 때만 동작
+                if (currentBottomTab != BottomTab.CHAT) return
+
+                // 이미 로딩 중이거나 더 이상 가져올 게 없으면 패스
+                if (isLoadingHistory || !hasMoreHistory) return
+
+                val firstVisible = layoutManager.findFirstVisibleItemPosition()
+                if (firstVisible == 0) {
+                    // 맨 위까지 스크롤 됐을 때 과거 메시지 로딩
+                    loadOlderChats()
+                }
+            }
+        })
+
+        // 4. 채팅 입력 버튼들
+        btnSendChat.setOnClickListener { sendChatMessage() }
+        btnPickPhoto.setOnClickListener { imagePickerLauncher.launch("image/*") }
     }
+
 
     private fun sendChatMessage() {
         val text = etChatMessage.text.toString().trim()
@@ -1642,6 +1670,162 @@ class RoomScheduleTestActivity :
            .setNegativeButton("취소", null)
            .show()
    }
+
+
+    //채팅연결
+    // STOMP 구독 함수
+    private fun startChatSubscription() {
+        Log.d("STOMP_DEBUG", "startChatSubscription() 호출됨")
+
+        val roomId = intent.getLongExtra("ROOM_ID", -1L)
+        Log.d("STOMP_DEBUG", "ROOM_ID: $roomId")
+
+        if (roomId <= 0L) {
+            Log.d("STOMP_DEBUG", "roomId 유효하지 않음 → 구독 안 함")
+            return
+        }
+
+        // 로그인된 사용자 ID (현 JWT 기반)
+        val myId = MemberSession.currentMemberId   // ⭐️ 이거 쓰면 됨
+
+        ChatStompClient.subscribeRoom(roomId) { dto ->
+            Log.d("STOMP_TEST", "실시간 메시지 수신: $dto")
+
+            // 1) ChatRepository에 저장
+            ChatRepository.addIncomingMessageFromServer(
+                roomId = roomId,
+                dto = dto,
+                currentMemberId = myId
+            )
+
+            // 2) UI 반영
+            runOnUiThread {
+                chatAdapter.submitList(
+                    ChatRepository.getMessages(roomId).toList()
+                )
+                recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+            }
+        }
+    }
+
+    //채팅 불러오기
+
+    private fun loadInitialChats() {
+        if (roomId <= 0L) return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.chatApiService.getRecentChats(roomId)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body?.code == 0) {
+                        val dtoList = body.data ?: emptyList()
+                        val myId = MemberSession.currentMemberId
+
+                        ChatRepository.setMessagesFromDtos(
+                            roomId = roomId,
+                            dtos = dtoList,
+                            currentMemberId = myId
+                        )
+
+                        runOnUiThread {
+                            chatAdapter.submitList(
+                                ChatRepository.getMessages(roomId).toList()
+                            )
+                            if (chatAdapter.itemCount > 0) {
+                                recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                            }
+                        }
+                    } else {
+                        Log.w("ChatInit", "code=${body?.code}, msg=${body?.message}")
+                    }
+                } else {
+                    Log.w("ChatInit", "HTTP=${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatInit", "초기 채팅 로딩 오류", e)
+            }
+        }
+    }
+
+
+    // 과거 채팅 더 불러오기 (/api/rooms/{roomId}/chats/history)
+    private fun loadOlderChats(size: Int = 50) {
+        if (roomId <= 0L) return
+        if (isLoadingHistory) return
+
+        // 현재 메시지 중에서 "가장 오래된(위쪽)" 메시지의 id 사용
+        val currentList = ChatRepository.getMessages(roomId)
+        if (currentList.isEmpty()) return
+
+        val oldestMessageId = currentList.minOf { it.id }   // ChatMessage.id ← 서버 messageId와 동일하게 사용 중
+
+        isLoadingHistory = true
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.chatApiService.getChatHistory(
+                    roomId = roomId,
+                    beforeMessageId = oldestMessageId,
+                    size = size
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body?.code == 0) {
+                        val dtoList = body.data ?: emptyList()
+
+                        // 더 이상 가져올게 없으면 플래그 내려두기
+                        if (dtoList.isEmpty()) {
+                            hasMoreHistory = false
+                            isLoadingHistory = false
+                            return@launch
+                        }
+
+                        val myId = MemberSession.currentMemberId
+
+                        // 1) 새로 가져온 DTO들을 ChatMessage로 변환
+                        val newMessages = dtoList.map { dto ->
+                            ChatRepository.addIncomingMessageFromServer(
+                                roomId = roomId,
+                                dto = dto,
+                                currentMemberId = myId
+                            )
+                        }
+
+                        // 2) 기존 리스트 앞쪽에 붙이기
+                        val merged = (newMessages + currentList).sortedBy { it.id }
+
+                        ChatRepository.setMessages(roomId, merged)
+
+                        runOnUiThread {
+                            chatAdapter.submitList(merged.toList())
+                            // 스크롤 위치 보정은 나중에 필요하면 추가해도 됨
+                        }
+                    } else {
+                        Log.w("ChatHistory", "code=${body?.code}, msg=${body?.message}")
+                    }
+                } else {
+                    Log.w("ChatHistory", "HTTP=${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatHistory", "history 로딩 오류", e)
+            } finally {
+                isLoadingHistory = false
+            }
+        }
+    }
+
+
+
+
+
+
+
+
 
 
 
