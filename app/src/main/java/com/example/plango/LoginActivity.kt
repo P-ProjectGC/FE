@@ -150,54 +150,58 @@ class LoginActivity : ComponentActivity() {
     //  카카오 로그인 진입 함수
     // ------------------------------
     private fun startKakaoLogin() {
-
-        if (UserApiClient.instance.isKakaoTalkLoginAvailable(this)) {
-
-            UserApiClient.instance.loginWithKakaoTalk(this) { token, error ->
-                if (token != null) {
-                    sendKakaoTokenToServer(token)
-                } else {
-                    loginWithKakaoAccount()
-                }
-            }
-
-        } else {
-            loginWithKakaoAccount()
-        }
-    }
-
-    // ------------------------------
-    //  카카오 계정 로그인
-    // ------------------------------
-    private fun loginWithKakaoAccount() {
-
+        Log.d("KAKAO_FLOW", "1️⃣ startKakaoLogin() 호출됨")
         UserApiClient.instance.loginWithKakaoAccount(this) { token, error ->
-
             if (error != null) {
-                Toast.makeText(this, "카카오 로그인 실패", Toast.LENGTH_SHORT).show()
-                return@loginWithKakaoAccount
-            }
+                Log.e("KAKAO", "로그인 실패: $error")
+            } else if (token != null) {
 
-            if (token != null) {
-                sendKakaoTokenToServer(token)
+                val accessToken = token.accessToken
+                val idToken = token.idToken   // ⭐ 서버 요구값
+
+                Log.d("KAKAO_FLOW", "1️⃣ SDK 로그인 성공 → access=$accessToken | idToken=$idToken")
+
+                // 서버로 전달
+                authViewModel.loginKakao(accessToken, idToken)
             }
         }
     }
 
 
-    // ------------------------------
-    //  카카오 토큰을 BE로 전달하는 핵심 함수
-    // ------------------------------
-    private fun sendKakaoTokenToServer(token: OAuthToken) {
+//    // ------------------------------
+//    //  카카오 계정 로그인
+//    // ------------------------------
+//    private fun loginWithKakaoAccount() {
+//
+//        UserApiClient.instance.loginWithKakaoAccount(this) { token, error ->
+//            if (error != null) {
+//                Log.e("KAKAO", "로그인 실패: $error")
+//            } else if (token != null) {
+//                val accessToken = token.accessToken
+//                val idToken = token.idToken  // ⭐ 서버가 요구하는 idToken
+//
+//                Log.d("KAKAO", "accessToken = $accessToken")
+//                Log.d("KAKAO", "idToken = $idToken")
+//
+//                authViewModel.loginKakao(accessToken, idToken)
+//            }
+//        }
+//    }
 
-        val access = token.accessToken
-        val id = token.idToken ?: ""
 
-        Log.d("KAKAO_LOGIN", "accessToken: $access")
-        Log.d("KAKAO_LOGIN", "idToken: $id")
-
-        authViewModel.loginKakao(access, id)
-    }
+//    // ------------------------------
+//    //  카카오 토큰을 BE로 전달하는 핵심 함수
+//    // ------------------------------
+//    private fun sendKakaoTokenToServer(token: OAuthToken) {
+//
+//        val access = token.accessToken
+//        val id = token.idToken ?: ""
+//
+//        Log.d("KAKAO_LOGIN", "accessToken: $access")
+//        Log.d("KAKAO_LOGIN", "idToken: $id")
+//
+//        authViewModel.loginKakao(access, id)
+//    }
 
     // ------------------------------
     //  카카오 로그인 결과 처리
@@ -205,55 +209,38 @@ class LoginActivity : ComponentActivity() {
     // TODO: 닉네임 저장 API 연동 후에는 지우고 아래 코드 써야함
     private fun observeKakaoLogin() {
         authViewModel.kakaoLoginState.observe(this) { result ->
+
             result.onSuccess { data ->
 
-                // 토큰 저장
+                Log.d("KAKAO_FLOW", "3️⃣ observeKakaoLogin 성공 → newMember=${data.newMember}")
+
+                // 1) 토큰 저장
                 tokenManager.saveAccessToken(data.accessToken)
                 tokenManager.saveRefreshToken(data.refreshToken)
 
+                // 2) 회원 타입 분기
                 if (data.newMember) {
-                    // 신규 회원 → 닉네임 설정으로 이동
+                    // 신규 회원 → 닉네임 설정 화면으로 이동
                     val intent = Intent(this, KakaoNicknameActivity::class.java)
+                    intent.putExtra("memberId", data.memberId)
                     intent.putExtra("email", data.email)
                     intent.putExtra("profileImageUrl", data.profileImageUrl)
                     startActivity(intent)
                     finish()
+
                 } else {
-                    // 기존 회원 → 바로 메인
+                    // 기존 회원 → 메인 화면
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 }
             }
 
             result.onFailure {
+                Log.e("KAKAO_FLOW", "3️⃣ observeKakaoLogin 실패", it)
                 Toast.makeText(this, "카카오 로그인 실패", Toast.LENGTH_SHORT).show()
             }
         }
     }
-
-//    private fun observeKakaoLogin() {
-//        authViewModel.kakaoLoginResult.observe(this) { result ->
-//            result.onSuccess { data ->
-//
-//                tokenManager.saveAccessToken(data.accessToken)
-//                tokenManager.saveRefreshToken(data.refreshToken)
-//
-//                if (data.newMember) {
-//                    // 닉네임 설정 화면으로 이동
-//                    val intent = Intent(this, KakaoNicknameActivity::class.java)
-//                    intent.putExtra("email", data.email)
-//                    intent.putExtra("profileImageUrl", data.profileImageUrl)
-//                    startActivity(intent)
-//                    finish()
-//                } else {
-//                    // 기존 회원 → 바로 메인 이동
-//                    startActivity(Intent(this, MainActivity::class.java))
-//                    finish()
-//                }
-//            }
-//        }
-//    }
-
 
     // ------------------------------
     //  버튼 클릭 이벤트
@@ -270,6 +257,7 @@ class LoginActivity : ComponentActivity() {
 
         // 카카오 로그인 시작
         binding.btnKakao.setOnClickListener {
+            Log.d("KAKAO_FLOW", "0️⃣ 카카오 버튼 클릭됨")
             startKakaoLogin()
         }
 

@@ -1,5 +1,6 @@
 package com.example.plango.data.login_api
 
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.plango.model.login_api.*
 import kotlinx.coroutines.launch
@@ -58,17 +59,31 @@ class AuthViewModel(
      *
      * KakaoLoginResponse.data 가 실제 유저 정보
      */
-    fun loginKakao(accessToken: String, idToken: String) {
+    fun loginKakao(accessToken: String, idToken: String?) {
+
         viewModelScope.launch {
-            val request = KakaoLoginRequest(accessToken, idToken)
+            try {
+                val request = KakaoLoginRequest(
+                    accessToken = accessToken,
+                    idToken = idToken ?: ""   // nullable 대응
+                )
 
-            // Repository에서 이미 Result<KakaoLoginData> 형태로 준다!
-            val result = repository.loginKakao(request)
+                val response = repository.loginKakao(request)
 
-            _kakaoLoginState.value = result
+                Log.d("KAKAO_FLOW", "2️⃣ 서버 응답 코드 = ${response.code()} | body = ${response.body()}")
+
+                if (response.isSuccessful) {
+                    val body = response.body()!!
+                    _kakaoLoginState.postValue(Result.success(body.data))
+                } else {
+                    _kakaoLoginState.postValue(Result.failure(Exception("카카오 로그인 실패")))
+                }
+
+            } catch (e: Exception) {
+                _kakaoLoginState.postValue(Result.failure(e))
+            }
         }
     }
-
 
     /**
      * ------------------------
