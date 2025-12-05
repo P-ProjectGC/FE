@@ -16,6 +16,8 @@ import com.example.plango.model.SentFriendRequestItem
 private val apiService: FriendApiService = RetrofitClient.friendApiService
 //  보낸 친구 요청 목록 캐시
 private val sentFriendRequests = mutableListOf<SentFriendRequestItem>()
+
+private var isLoaded = false
 /**
  * 로컬 메모리 관리와 실제 API 통신을 수행하는 싱글톤 Repository입니다.
  */
@@ -31,6 +33,7 @@ object FriendRepository {
     fun setFriends(newFriends: List<Friend>) {
         _friends.clear()
         _friends.addAll(newFriends)
+        isLoaded = true          // ✅ 서버에서 한 번 이상 제대로 받은 상태
     }
 
     // 친구 한 명 추가 (친구 요청 수락 시 로컬 목록에 추가)
@@ -268,6 +271,23 @@ object FriendRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun ensureFriendsLoaded(memberId: Long): Boolean {
+        // 이미 한 번 불러왔고, 리스트도 비어있지 않다면 그냥 true
+        if (isLoaded && _friends.isNotEmpty()) {
+            Log.d("FRIEND_API", "ensureFriendsLoaded: already loaded, size=${_friends.size}")
+            return true
+        }
+
+        // 아직 안 불러온 상태 → 서버 호출
+        val result = fetchFriendsFromServer(memberId)
+
+        val success = result.isSuccess
+        Log.d("FRIEND_API", "ensureFriendsLoaded: fetch result = $success, size=${_friends.size}")
+        return success
+    }
+
+
 
 
 

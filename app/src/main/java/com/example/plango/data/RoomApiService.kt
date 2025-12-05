@@ -6,6 +6,7 @@ import com.example.plango.model.CreateWishlistPlaceRequest
 import com.example.plango.model.RoomDto
 import com.example.plango.model.WishlistPlaceDto
 import com.example.plango.model.CreateScheduleRequest
+import com.example.plango.model.RoomDetailResponse
 import com.example.plango.model.ScheduleDto
 import com.example.plango.model.UpdateScheduleRequest
 import retrofit2.Response
@@ -81,4 +82,12 @@ interface RoomApiService {
         @Path("roomId") roomId: Long,
         @Path("scheduleId") scheduleId: Long
     ): Response<ApiResponse<Unit>>
+
+    // ✅ 방 상세조회 API
+    @GET("api/rooms/{roomId}")
+    suspend fun getRoomDetail(
+        @Path("roomId") roomId: Long
+    ): RoomDetailResponse
+
+
 }

@@ -56,7 +56,7 @@ import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
 import org.json.JSONObject
 import retrofit2.Response
-
+import com.example.plango.model.RoomDetailData
 class RoomScheduleTestActivity :
     AppCompatActivity(),
     OnMapReadyCallback {
@@ -69,6 +69,9 @@ class RoomScheduleTestActivity :
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
     private var isHost: Boolean = false
+    // 🔹 방 상세 정보(서버 응답) 보관용
+    private var roomDetailData: RoomDetailData? = null
+
 
     // 지도
     private lateinit var googleMap: GoogleMap
@@ -81,6 +84,9 @@ class RoomScheduleTestActivity :
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
 
     private var isEditMode: Boolean = false // 화면이 수정 모드인지 여부
+
+
+
 
     // RecyclerView + 어댑터
     private lateinit var recyclerView: RecyclerView
@@ -164,25 +170,31 @@ class RoomScheduleTestActivity :
         memberNicknames =
             intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
 
-// 2) Repository에서 동일 roomId 가진 방 찾기 (있으면 부족한 정보 보완용)
+        // 2) Repository에서 동일 roomId 가진 방 찾기 (있으면 부족한 정보 보완용)
         val roomFromRepo = if (roomId != -1L) {
             TravelRoomRepository.getRoomById(roomId)
         } else {
             null
         }
 
-// 제목/날짜가 비어 있으면 Repo 정보로 보완
+        // 🔹 인텐트에 멤버 닉네임이 비어 있으면, Repo에서 보정
+        if (memberNicknames.isEmpty()) {
+            memberNicknames = roomFromRepo?.memberNicknames ?: emptyList()
+        }
+
+        // 제목/날짜가 비어 있으면 Repo 정보로 보완
         if (roomFromRepo != null) {
             if (roomName.isBlank()) roomName = roomFromRepo.title
             if (startDate.isBlank()) startDate = roomFromRepo.startDate
             if (endDate.isBlank()) endDate = roomFromRepo.endDate
         }
 
-// 3) ⭐ isHost는 "Intent → Repo → 기본값 false" 순서로 결정
+        // 3) ⭐ isHost는 "Intent → Repo → 기본값 false" 순서로 결정
         isHost = intent.getBooleanExtra(
             "IS_HOST",
             roomFromRepo?.isHost ?: false
         )
+
 
 
 
@@ -281,6 +293,8 @@ class RoomScheduleTestActivity :
         loadWishlistFromServer()
         loadSchedulesFromServer()
 
+        // 🔹 방 상세 정보(멤버 목록, 방 제목/메모)를 서버 기준으로 덮어쓰기
+        loadRoomDetailFromServer()
 
     }
 
@@ -1053,7 +1067,10 @@ class RoomScheduleTestActivity :
 
 
 
-// 서버로부터 일정 확정(생성)
+
+
+
+    // 서버로부터 일정 확정(생성)
 private fun createScheduleOnServer(
     place: WishlistPlaceItem,
     dayIndex: Int,
@@ -1344,6 +1361,72 @@ private fun createScheduleOnServer(
             }
         }
     }
+
+    private fun loadRoomDetailFromServer() {
+        if (roomId == -1L) return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService.getRoomDetail(roomId)
+                Log.d("RoomDetail", "raw response = $response")
+
+                val data = response.data ?: run {
+                    Log.w("RoomDetail", "data is null: code=${response.code}, message=${response.message}")
+                    return@launch
+                }
+
+                // 🔎 서버가 실제로 내려주는 members 확인
+                Log.d("RoomDetail", "members from server = ${data.members}")
+                Log.d("RoomDetail", "members.size = ${data.members.size}")
+
+                roomDetailData = data
+
+                // 1) 방 이름/메모는 그냥 덮어써도 크게 문제 없음
+                roomName = data.roomName
+                roomMemo = data.memo
+
+                // 2) "기존 멤버 정보"와 "서버 응답 멤버" 비교
+                val localCount = memberNicknames.size
+                val serverMembers = data.members
+                val serverCount = serverMembers.size
+
+                Log.d("RoomDetail", "localCount=$localCount, serverCount=$serverCount")
+
+                // 🔹 서버가 더 많은 정보를 줄 때만 덮어쓰기
+                if (serverCount >= localCount && serverCount > 0) {
+                    memberNicknames = serverMembers.map { it.nickname }
+                    Log.d("RoomDetail", "memberNicknames overridden by server: $memberNicknames")
+                } else {
+                    Log.d("RoomDetail", "keep local memberNicknames: $memberNicknames")
+                }
+                // ✅ 레포에도 방 멤버 정보 반영 (방 목록 카드용)
+                TravelRoomRepository.updateRoomMembersFromDetail(roomId, memberNicknames)
+
+                // 3) 헤더 갱신
+                val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
+                toolbar.title = roomName
+
+                val displayMemberCount = when {
+                    memberNicknames.isNotEmpty() -> memberNicknames.size
+                    roomDetailData?.members?.isNotEmpty() == true -> roomDetailData!!.members.size
+                    else -> 1
+                }
+                tvRoomTitle.text = roomName
+                tvRoomMemberCount.text = "${displayMemberCount}명"
+
+                Log.d(
+                    "RoomDetail",
+                    "final memberNicknames=$memberNicknames, displayMemberCount=$displayMemberCount"
+                )
+
+            } catch (e: Exception) {
+                Log.e("RoomDetail", "loadRoomDetail error", e)
+            }
+        }
+    }
+
+
+
 
 
 
