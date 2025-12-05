@@ -1,6 +1,5 @@
 package com.example.plango
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
@@ -8,11 +7,11 @@ import android.text.TextWatcher
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
 import com.example.plango.data.login_api.AuthRepository
-import com.example.plango.data.login_api.AuthViewModel
-import com.example.plango.data.login_api.AuthViewModelFactory
+import com.example.plango.data.signup_api.SignupRepository
+import com.example.plango.data.signup_api.SignupViewModel
+import com.example.plango.data.signup_api.SignupViewModelFactory
 import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivityKakaoNicknameBinding
 
@@ -22,8 +21,8 @@ class KakaoNicknameActivity : AppCompatActivity() {
 
     private val authService = RetrofitClient.authService
     private val authRepository = AuthRepository(authService)
-    private val viewModel: AuthViewModel by viewModels {
-        AuthViewModelFactory(authRepository)
+    private val viewModel: SignupViewModel by viewModels {
+        SignupViewModelFactory(SignupRepository(RetrofitClient.signupApiService))
     }
 
     private lateinit var tokenManager: TokenManager

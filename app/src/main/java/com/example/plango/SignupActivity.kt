@@ -70,6 +70,7 @@ class SignUpActivity : AppCompatActivity() {
         setupTextWatchers()
         setupPasswordToggle()
         setupClickListeners()
+        observeDuplicateChecks()
     }
 
     // ---------------------------
@@ -132,42 +133,30 @@ class SignUpActivity : AppCompatActivity() {
         }
 
         // 닉네임 중복확인
-        btnNicknameCheck.setOnClickListener {
-            val nickname = signUpNicknameEt.text.toString()
+        binding.btnNicknameCheck.setOnClickListener {
+            val nickname = binding.signUpNicknameEt.text.toString().trim()
 
-            if (nickname.length in 2..10) {
-                isNicknameChecked = true
-                showSuccess(signUpNicknameErrorTv, "✓ 사용 가능한 닉네임입니다.")
-            } else {
-                isNicknameChecked = false
-                showError(signUpNicknameErrorTv, "✗ 닉네임은 2~10자로 입력해주세요.")
-            }
+            if (!validateNickname()) return@setOnClickListener
+
+            signupViewModel.checkNickname(nickname)
         }
 
         // 아이디 중복확인
-        btnIdCheck.setOnClickListener {
-            val id = signUpIdEt.text.toString()
+        binding.btnIdCheck.setOnClickListener {
+            val id = binding.signUpIdEt.text.toString().trim()
 
-            if (ID_REGEX.matches(id)) {
-                isIdChecked = true
-                showSuccess(signUpIdErrorTv, "✓ 사용 가능한 아이디입니다.")
-            } else {
-                isIdChecked = false
-                showError(signUpIdErrorTv, "✗ 아이디는 영문 소문자+숫자 4~16자입니다.")
-            }
+            if (!validateId()) return@setOnClickListener
+
+            signupViewModel.checkLoginId(id)
         }
 
         // 이메일 중복확인
-        btnEmailCheck.setOnClickListener {
-            val email = signUpEmailEt.text.toString()
+        binding.btnEmailCheck.setOnClickListener {
+            val email = binding.signUpEmailEt.text.toString().trim()
 
-            if (EMAIL_REGEX.matches(email)) {
-                isEmailChecked = true
-                showSuccess(signUpEmailErrorTv, "✓ 사용 가능한 이메일입니다.")
-            } else {
-                isEmailChecked = false
-                showError(signUpEmailErrorTv, "✗ 이메일 형식이 올바르지 않습니다.")
-            }
+            if (!validateEmail()) return@setOnClickListener
+
+            signupViewModel.checkEmail(email)
         }
 
         // 약관 전체보기
@@ -180,6 +169,63 @@ class SignUpActivity : AppCompatActivity() {
         btnKakao.setOnClickListener {
             Toast.makeText(this@SignUpActivity, "카카오 회원가입 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
             // TODO: API 연동
+        }
+    }
+
+    // ---------------------------
+    // 중복확인 API 결과 감지
+    // ---------------------------
+    private fun observeDuplicateChecks() {
+
+        // ✔ 아이디 중복확인
+        signupViewModel.loginIdCheckState.observe(this) { result ->
+            result.onSuccess { available ->
+                if (available) {
+                    isIdChecked = true
+                    showSuccess(binding.signUpIdErrorTv, "✓ 사용 가능한 아이디입니다.")
+                } else {
+                    isIdChecked = false
+                    showError(binding.signUpIdErrorTv, "✗ 이미 사용 중인 아이디입니다.")
+                }
+                updateButtonState()
+            }
+            result.onFailure {
+                showError(binding.signUpIdErrorTv, "✗ 아이디 확인 실패")
+            }
+        }
+
+        // ✔ 이메일 중복확인
+        signupViewModel.emailCheckState.observe(this) { result ->
+            result.onSuccess { available ->
+                if (available) {
+                    isEmailChecked = true
+                    showSuccess(binding.signUpEmailErrorTv, "✓ 사용 가능한 이메일입니다.")
+                } else {
+                    isEmailChecked = false
+                    showError(binding.signUpEmailErrorTv, "✗ 이미 사용 중인 이메일입니다.")
+                }
+                updateButtonState()
+            }
+            result.onFailure {
+                showError(binding.signUpEmailErrorTv, "✗ 이메일 확인 실패")
+            }
+        }
+
+        // ✔ 닉네임 중복확인
+        signupViewModel.nicknameCheckState.observe(this) { result ->
+            result.onSuccess { available ->
+                if (available) {
+                    isNicknameChecked = true
+                    showSuccess(binding.signUpNicknameErrorTv, "✓ 사용 가능한 닉네임입니다.")
+                } else {
+                    isNicknameChecked = false
+                    showError(binding.signUpNicknameErrorTv, "✗ 이미 사용 중인 닉네임입니다.")
+                }
+                updateButtonState()
+            }
+            result.onFailure {
+                showError(binding.signUpNicknameErrorTv, "✗ 닉네임 확인 실패")
+            }
         }
     }
 
@@ -262,24 +308,6 @@ class SignUpActivity : AppCompatActivity() {
         }.also { updateButtonState() }
     }
 
-    // ---------------------------
-    // 버튼 활성화 로직
-    // ---------------------------
-    private fun updateButtonState() = with(binding) {
-
-        val allValid =
-            validateNameOnly() &&
-                    validateNicknameOnly() &&
-                    validateIdOnly() &&
-                    validateEmailOnly() &&
-                    validatePasswordOnly() &&
-                    validatePasswordCheckOnly() &&
-                    signUpAgreeCb.isChecked
-
-        signUpBtn.isEnabled = allValid
-        signUpBtn.alpha = if (allValid) 1f else 0.5f
-    }
-
     private fun validateNameOnly() =
         binding.signUpNameEt.text.toString().trim().length >= 2
 
@@ -299,6 +327,24 @@ class SignUpActivity : AppCompatActivity() {
         val pw = binding.signUpPwEt.text.toString()
         val pwCheck = binding.signUpPwCheckEt.text.toString()
         return pw.isNotEmpty() && pw == pwCheck
+    }
+
+    // ---------------------------
+    // 버튼 활성화 로직
+    // ---------------------------
+    private fun updateButtonState() = with(binding) {
+
+        val allValid =
+            validateNameOnly() &&
+                    validateNicknameOnly() &&
+                    validateIdOnly() &&
+                    validateEmailOnly() &&
+                    validatePasswordOnly() &&
+                    validatePasswordCheckOnly() &&
+                    signUpAgreeCb.isChecked
+
+        signUpBtn.isEnabled = allValid
+        signUpBtn.alpha = if (allValid) 1f else 0.5f
     }
 
     // ---------------------------
@@ -354,7 +400,7 @@ class SignUpActivity : AppCompatActivity() {
     }
 
     // ---------------------------
-    // TextWatcher helper
+    // 텍스트 변경 감지
     // ---------------------------
     private fun watcher(onChanged: () -> Unit) = object : TextWatcher {
         override fun afterTextChanged(s: Editable?) = Unit

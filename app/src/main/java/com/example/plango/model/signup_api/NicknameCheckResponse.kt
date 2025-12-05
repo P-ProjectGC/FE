@@ -1,4 +1,4 @@
-package com.example.plango.model.login_api
+package com.example.plango.model.signup_api
 
 data class NicknameCheckResponse(
     val code: Int,

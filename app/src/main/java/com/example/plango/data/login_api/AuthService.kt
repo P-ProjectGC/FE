@@ -2,7 +2,7 @@ package com.example.plango.data.login_api
 
 import com.example.plango.model.login_api.KakaoLoginRequest
 import com.example.plango.model.ApiResponse
-import com.example.plango.model.login_api.NicknameCheckResponse
+import com.example.plango.model.signup_api.NicknameCheckResponse
 import com.example.plango.model.login_api.KakaoLoginResponse
 import com.example.plango.model.login_api.LoginRequest
 import com.example.plango.model.login_api.LoginResponse
@@ -33,12 +33,6 @@ interface AuthService {
     suspend fun reissueToken(
         @Body request: RefreshTokenRequest
     ): Response<RefreshTokenResponse>
-
-    // 🔹 닉네임 중복확인
-    @GET("/api/auth/check/nickname")
-    suspend fun checkNickname(
-        @Query("nickname") nickname: String
-    ): Response<NicknameCheckResponse>
 
     // ✅ 로그아웃
     @POST("/api/auth/logout")
