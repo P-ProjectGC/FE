@@ -1,6 +1,7 @@
 package com.example.plango.data
 
 import com.example.plango.model.ApiResponse
+import com.example.plango.model.ChatMessageDto
 import com.example.plango.model.CreateRoomRequest
 import com.example.plango.model.CreateWishlistPlaceRequest
 import com.example.plango.model.RoomDto
@@ -96,6 +97,8 @@ interface RoomApiService {
         @Path("roomId") roomId: Long,
         @Body request: DelegateHostRequest
     ): Response<ApiResponse<Unit>>
+
+
 
 
 }

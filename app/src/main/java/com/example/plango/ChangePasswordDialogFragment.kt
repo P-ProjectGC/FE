@@ -113,8 +113,7 @@ class ChangePasswordDialogFragment : DialogFragment() {
                         Toast.makeText(requireContext(), "비밀번호가 변경되었습니다.", Toast.LENGTH_SHORT).show()
                         dismiss()
                     } else {
-                        // 🔹 서버가 준 에러 메시지 사용
-                        // (예: "현재 비밀번호가 일치하지 않습니다." 같은 메시지)
+                        // 🔹 서버가 성공 형태로 응답은 줬지만 code != 0인 경우
                         Toast.makeText(
                             requireContext(),
                             body?.message ?: "비밀번호 변경에 실패했습니다.",
@@ -122,19 +121,22 @@ class ChangePasswordDialogFragment : DialogFragment() {
                         ).show()
                     }
                 } else {
-                    // 🔹 HTTP 에러 (토큰 문제 / 서버 오류 등)
-                    Toast.makeText(
-                        requireContext(),
-                        "비밀번호 변경 실패 (${response.code()})",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    // 🔹 HTTP 에러 (400/401 등)
+                    val msg = when (response.code()) {
+                        400, 401 -> "현재 비밀번호가 올바르지 않습니다."
+                        else -> "비밀번호 변경 실패 (${response.code()})"
+                    }
+
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(requireContext(), "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

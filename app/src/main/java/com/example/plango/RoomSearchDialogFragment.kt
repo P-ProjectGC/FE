@@ -14,7 +14,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.adapter.RoomAdapter
 import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.TravelRoom
-
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import android.util.Log
 class RoomSearchDialogFragment : DialogFragment() {
 
     private lateinit var rvResult: RecyclerView
@@ -123,10 +125,27 @@ class RoomSearchDialogFragment : DialogFragment() {
     }
 
     private fun loadRooms() {
-        // RoomFragment와 동일한 소스 사용
-        allRooms = TravelRoomRepository.getRooms()
-        roomAdapter.submitList(allRooms)
+        val cached = TravelRoomRepository.getRooms()
+
+        if (cached.isNotEmpty()) {
+            // 이미 RoomFragment 등에서 한 번 로드된 상태면 그대로 사용
+            allRooms = cached.distinctBy { it.id }   // 혹시 모를 중복 방지 (2번 문제도 같이 해결)
+            roomAdapter.submitList(allRooms)
+            return
+        }
+
+        // ❗ 아직 아무 방도 안 올라와 있으면 → 여기서 서버 호출
+        viewLifecycleOwner.lifecycleScope.launch {
+            val success = TravelRoomRepository.fetchRoomsFromServer()
+
+            val loaded = TravelRoomRepository.getRooms()
+            Log.d("RoomSearch", "loaded rooms size=${loaded.size}, ids=${loaded.map { it.id }}")
+
+            allRooms = loaded.distinctBy { it.id }   // 여기서도 중복 제거
+            roomAdapter.submitList(allRooms)
+        }
     }
+
 
     private fun filterRooms(query: String) {
         if (allRooms.isEmpty()) {
