@@ -126,6 +126,9 @@ class RoomFragment : Fragment() {
             // 항상 Repository에서 현재 rooms 가져오기
             allRooms = TravelRoomRepository.getRooms()
 
+            // ✅ roomId 기준으로 중복 제거 (방 목록 UI 안전장치)
+            allRooms = allRooms.distinctBy { it.id }
+
             if (allRooms.isEmpty()) {
                 // 실제로 방이 하나도 없을 때만 "아직 여행방이 없어요" 표시
                 binding.rvRoomList.visibility = View.GONE

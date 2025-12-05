@@ -11,11 +11,13 @@ import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.bumptech.glide.Glide
+import com.example.plango.data.MemberSession
+import com.example.plango.data.RetrofitClient
 import com.example.plango.databinding.ActivityMainBinding
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,6 +71,15 @@ class MainActivity : AppCompatActivity() {
 
         // 초기 화면 = Home
         binding.bottomNav.selectedItemId = R.id.menu_home
+
+        // 상단 프로필 아이콘 초기 로딩
+        loadProfileIcon()
+    }
+
+    // 메인으로 다시 돌아올 때(프로필 화면 뒤로가기 등) 최신 프로필 이미지 반영
+    override fun onResume() {
+        super.onResume()
+        loadProfileIcon()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -147,6 +158,7 @@ class MainActivity : AppCompatActivity() {
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
         ivProfile.visibility = if (show) View.VISIBLE else View.GONE
     }
+
     private fun initProfileButton() {
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
 
@@ -157,19 +169,44 @@ class MainActivity : AppCompatActivity() {
                 .addToBackStack(null)
                 .commitAllowingStateLoss()
 
-            // 프로필 화면 들어갈 때는 버튼/알림 숨김 (안 해도 onResume에서 다시 숨기지만 한 번 더 확실히)
+            // 프로필 화면 들어갈 때는 버튼/알림/헤더 숨김
             showProfileButton(false)
             showAlarmIcon(false)
             showMainHeader(false)
         }
     }
-   //헤더숨기기
+
+    // 헤더 숨기기/보이기
     fun showMainHeader(show: Boolean) {
-        val header = findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.layout_header)
+        val header =
+            findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.layout_header)
         header.visibility = if (show) View.VISIBLE else View.GONE
     }
 
+    // 🔹 상단 프로필 버튼에 현재 세션 프로필 이미지 적용
+    private fun loadProfileIcon() {
+        val ivProfile = findViewById<ImageView>(R.id.iv_profile)
+        val path = MemberSession.profileImageUrl
 
+        if (path.isNullOrBlank()) {
+            ivProfile.setImageResource(R.drawable.icon_profile)
+            return
+        }
 
+        // 최종 이미지 URL(S3)
+        val imageUrl = if (path.startsWith("http")) {
+            path
+        } else {
+            RetrofitClient.IMAGE_BASE_URL + path
+        }
 
+        android.util.Log.d("MAIN_PROFILE_ICON", "finalUrl=$imageUrl")
+
+        Glide.with(this)
+            .load(imageUrl)
+            .circleCrop()
+            .placeholder(R.drawable.icon_profile)
+            .error(R.drawable.icon_profile)
+            .into(ivProfile)
+    }
 }

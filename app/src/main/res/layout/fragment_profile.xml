@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#FFFFFF">
 
     <LinearLayout
@@ -29,16 +29,16 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/icon_left_rm"
-                    app:tint="#333333"/>
+                    app:tint="#333333" />
 
                 <TextView
                     android:id="@+id/tv_back"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="뒤로"
                     android:layout_marginStart="4dp"
+                    android:text="뒤로"
                     android:textSize="16sp"
-                    android:textColor="#333333"/>
+                    android:textColor="#333333" />
             </LinearLayout>
 
             <!-- 로고 -->
@@ -46,22 +46,25 @@
                 android:id="@+id/iv_profile_logo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/main_logo"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="32dp" />
+                android:layout_marginTop="32dp"
+                android:src="@drawable/main_logo" />
 
             <!-- 프로필 사진 -->
             <ImageView
                 android:id="@+id/iv_profile_image"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="96dp"
+                android:layout_width="150dp"
+                android:layout_height="150dp"
                 android:src="@drawable/icon_profile"
                 android:background="@drawable/bg_profile_button"
-                android:padding="8dp"
+                android:padding="4dp"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true"
+
+
+                android:layout_centerHorizontal="true"
+                android:layout_below="@id/iv_profile_logo"
+                android:layout_marginTop="8dp" />
 
             <!-- 카카오 뱃지 -->
             <TextView
@@ -76,11 +79,15 @@
                 android:textColor="#000000"
                 android:background="#FFF176"
                 android:padding="4dp"
-                android:visibility="gone"/>
+                android:visibility="gone" />
         </RelativeLayout>
 
         <!-- 구분선 -->
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDDDDD" />
+        <View
+            android:id="@+id/profile_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD" />
 
         <!-- 🔹계정 정보 -->
         <TextView
@@ -133,7 +140,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_nickname_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -151,7 +158,7 @@
                 android:layout_height="20dp"
                 android:src="@drawable/icon_right_rm"
                 app:tint="#888888"
-                android:layout_marginStart="8dp"/>
+                android:layout_marginStart="8dp" />
         </LinearLayout>
 
         <!-- 이메일 -->
@@ -166,7 +173,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_email_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -192,7 +199,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_id_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -207,7 +214,11 @@
         </LinearLayout>
 
         <!-- 🔹보안 -->
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -232,7 +243,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_password_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -241,7 +252,11 @@
         </LinearLayout>
 
         <!-- 🔹알림 설정 -->
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -264,7 +279,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_chatroom_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -290,7 +305,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_schedule_remind_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -316,7 +331,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_friend_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -331,7 +346,11 @@
         </LinearLayout>
 
         <!-- 🔹기타 -->
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#DDDDDD" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="#DDDDDD" />
 
         <TextView
             android:layout_width="match_parent"
@@ -357,7 +376,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_alarm_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -380,7 +399,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_singo_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -403,7 +422,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_logout_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -426,7 +445,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/icon_exit_p"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="match_parent"
