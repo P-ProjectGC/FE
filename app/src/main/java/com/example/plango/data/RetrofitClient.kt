@@ -80,4 +80,8 @@ object RetrofitClient {
         retrofit.create(FileService::class.java)
     }
 
+    val chatApiService: ChatApiService by lazy {
+        retrofit.create(ChatApiService::class.java)
+    }
+
 }
