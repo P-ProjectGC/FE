@@ -7,5 +7,6 @@ data class LoginRequest(
 )
 
 data class KakaoLoginRequest(
-    val authorizationCode: String
+    val accessToken: String,
+    val idToken: String
 )

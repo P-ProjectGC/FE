@@ -17,3 +17,19 @@ data class LoginData(
     val accessToken: String,
     val refreshToken: String
 )
+
+data class KakaoLoginResponse(
+    val code: Int,
+    val message: String,
+    val data: KakaoLoginData
+)
+
+data class KakaoLoginData(
+    val memberId: Int,
+    val email: String,
+    val nickname: String,
+    val profileImageUrl: String,
+    val newMember: Boolean,
+    val accessToken: String,
+    val refreshToken: String
+)
