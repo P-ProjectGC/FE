@@ -1,15 +1,17 @@
 package com.example.plango.data.login_api
 
-import com.example.plango.model.login_api.KakaoLoginRequest
-import com.example.plango.model.login_api.LoginData
-import com.example.plango.model.login_api.LoginRequest
-import com.example.plango.model.login_api.RefreshTokenRequest
+import com.example.plango.model.login_api.*
+import retrofit2.Response
 
 class AuthRepository(
     private val service: AuthService
 ) {
 
-    // 일반 로그인
+    /**
+     * ------------------------------------
+     * 🔐 일반 로그인
+     * ------------------------------------
+     */
     suspend fun loginNormal(req: LoginRequest): Result<LoginData> = try {
         val response = service.loginNormal(req)
 
@@ -21,6 +23,7 @@ class AuthRepository(
                 body.data == null -> Result.failure(Exception(body.message))
                 else -> Result.success(body.data)
             }
+
         } else {
             Result.failure(Exception("HTTP ${response.code()}"))
         }
@@ -30,11 +33,16 @@ class AuthRepository(
     }
 
 
-    // 카카오 로그인
-    suspend fun loginKakao(authorizationCode: String): Result<LoginData> = try {
+    /**
+     * ------------------------------------
+     * 🟡 카카오 로그인
+     * ------------------------------------
+     * Response<KakaoLoginResponse> 를 그대로 ViewModel로 넘기지 않고
+     * 여기서 data만 추출해주는 방식으로 통일하는 것이 중요!
+     */
+    suspend fun loginKakao(request: KakaoLoginRequest): Result<KakaoLoginData> = try {
 
-        val req = KakaoLoginRequest(authorizationCode)
-        val response = service.loginKakao(req)
+        val response = service.loginKakao(request)
 
         if (response.isSuccessful) {
             val body = response.body()
@@ -44,6 +52,7 @@ class AuthRepository(
                 body.data == null -> Result.failure(Exception(body.message))
                 else -> Result.success(body.data)
             }
+
         } else {
             Result.failure(Exception("HTTP ${response.code()}"))
         }
@@ -52,8 +61,11 @@ class AuthRepository(
         Result.failure(e)
     }
 
-
-    // 토큰 재발급
+    /**
+     * ------------------------------------
+     * 🔄 토큰 재발급 (추후 기능)
+     * ------------------------------------
+     */
 //    suspend fun refreshToken(refreshToken: String): Result<LoginData> = try {
 //
 //        val request = RefreshTokenRequest(refreshToken)
@@ -75,4 +87,23 @@ class AuthRepository(
 //    } catch (e: Exception) {
 //        Result.failure(e)
 //    }
+
+    // 닉네임 중복 확인 API
+    suspend fun checkNickname(nickname: String): Result<Boolean> = try {
+        val response = service.checkNickname(nickname)
+
+        if (response.isSuccessful) {
+            val body = response.body()
+            if (body != null) {
+                Result.success(body.data.available)   // 여기!
+            } else {
+                Result.failure(Exception("Response body is null"))
+            }
+        } else {
+            Result.failure(Exception("HTTP ${response.code()}"))
+        }
+
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }
