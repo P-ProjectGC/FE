@@ -52,6 +52,7 @@ import androidx.appcompat.app.AlertDialog
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
+import com.example.plango.model.DelegateHostRequest
 import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
 import org.json.JSONObject
@@ -71,6 +72,9 @@ class RoomScheduleTestActivity :
     private var isHost: Boolean = false
     // 🔹 방 상세 정보(서버 응답) 보관용
     private var roomDetailData: RoomDetailData? = null
+
+    private var currentUserIsHost: Boolean = false
+
 
 
     // 지도
@@ -1375,6 +1379,9 @@ private fun createScheduleOnServer(
                     return@launch
                 }
 
+
+                currentUserIsHost = data.host   // ✅ 이 한 줄이면 끝!
+
                 // 🔎 서버가 실제로 내려주는 members 확인
                 Log.d("RoomDetail", "members from server = ${data.members}")
                 Log.d("RoomDetail", "members.size = ${data.members.size}")
@@ -1457,6 +1464,15 @@ private fun createScheduleOnServer(
             memberNicknames = memberNicknames,
             imageUris = images
         )
+
+        // 🔥 여기 추가!
+        dialog.setMembers(roomDetailData?.members ?: emptyList())
+
+        // 🔥 방장 위임 콜백도 연결!
+        dialog.setOnTransferHostListener { memberId, nickname ->
+            delegateHostTo(memberId, nickname)
+        }
+
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
 
@@ -1519,6 +1535,96 @@ private fun createScheduleOnServer(
 
         return defaultMessage
     }
+
+   //방장위임
+    private fun delegateHostTo(targetMemberId: Long, targetNickname: String) {
+        // 현재 유저가 방장인지 체크 (이미 isHost 같은 플래그를 갖고 있을 가능성 높음)
+        if (!currentUserIsHost) {
+            Toast.makeText(this, "방장만 방장 위임을 할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 한번 더 확인하는 다이얼로그
+        AlertDialog.Builder(this)
+            .setTitle("방장 위임")
+            .setMessage("$targetNickname 님에게 방장을 위임하시겠습니까?")
+            .setPositiveButton("위임") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        val request = DelegateHostRequest(newHostId = targetMemberId)
+                        val response = RetrofitClient.roomApiService
+                            .delegateHost(roomId = roomId, request = request)
+
+                        if (response.isSuccessful) {
+                            val body = response.body()
+                            if (body?.code == 0) {
+                                Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "$targetNickname 님에게 방장을 위임했습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                // ✅ 단일 기준인 상세조회로 다시 UI 보정
+                                loadRoomDetailFromServer()
+                            } else {
+                                Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    body?.message ?: "방장 위임에 실패했습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            // status code 기반 처리 (403, 404 등)
+                            when (response.code()) {
+                                400 -> Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "요청 정보가 올바르지 않습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                401 -> Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "다시 로그인 후 시도해주세요.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                403 -> Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "방장만 위임할 수 있거나, 선택한 멤버가 방 멤버가 아닙니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                404 -> Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "해당 방 정보를 찾을 수 없습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                else -> Toast.makeText(
+                                    this@RoomScheduleTestActivity,
+                                    "방장 위임 중 오류가 발생했습니다. (${response.code()})",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "네트워크 오류로 방장 위임에 실패했습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+
+
+
+
 
 
 

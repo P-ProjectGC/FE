@@ -1,8 +1,9 @@
+// app/src/main/java/com/example/plango/model/RoomMemberDetail.kt
 package com.example.plango.model
 
-data class RoomMemberDeatail(
+data class RoomMemberDetail(
     val memberId: Long,
     val nickname: String,
     val profileImageUrl: String?,
-    val host: Boolean   // 이 멤버가 방장인지 여부
+    val host: Boolean
 )
