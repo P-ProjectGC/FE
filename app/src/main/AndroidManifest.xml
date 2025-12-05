@@ -22,6 +22,11 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
+        <!-- kakao login -->
+        <meta-data
+            android:name="com.kakao.sdk.appKey"
+            android:value="565207f78fbd8da404f0288d6d5f9ebd" />
+
         <!-- ✅ 앱 실행 시 가장 먼저 뜨는 액티비티: LoginActivity -->
         <activity
             android:name=".LoginActivity"
@@ -34,6 +39,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+        </activity>
+
+        <!-- 🔥 카카오 로그인 Redirect Activity -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- 네이티브 앱 키로 스킴 설정 필수 -->
+                <data android:scheme="kakao565207f78fbd8da404f0288d6d5f9ebd" />
+            </intent-filter>
         </activity>
 
         <!-- SignupActivity 화면 -->

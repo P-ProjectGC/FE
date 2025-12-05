@@ -15,5 +15,5 @@ data class LoginData(
     val profileImageUrl: String?,
     val newMember: Boolean,
     val accessToken: String,
-    val refreshToken: String?
+    val refreshToken: String
 )

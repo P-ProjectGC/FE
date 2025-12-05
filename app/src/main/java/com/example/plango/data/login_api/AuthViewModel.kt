@@ -5,25 +5,37 @@ import com.example.plango.model.login_api.LoginData
 import com.example.plango.model.login_api.LoginRequest
 import kotlinx.coroutines.launch
 
-class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
+class AuthViewModel(
+    private val repository: AuthRepository
+) : ViewModel() {
 
-    private val _loginResult = MutableLiveData<Result<LoginData>>()
-    val loginResult: LiveData<Result<LoginData>> = _loginResult
+    private val _normalLoginResult = MutableLiveData<Result<LoginData>>()
+    val normalLoginResult: LiveData<Result<LoginData>> = _normalLoginResult
 
-    // 일반 로그인 실행
-    fun loginNormal(loginId: String, password: String) {
+    private val _kakaoLoginResult = MutableLiveData<Result<LoginData>>()
+    val kakaoLoginResult: LiveData<Result<LoginData>> = _kakaoLoginResult
+
+    private val _tokenRefreshResult = MutableLiveData<Result<LoginData>>()
+    val tokenRefreshResult: LiveData<Result<LoginData>> = _tokenRefreshResult
+
+
+    fun loginNormal(email: String, password: String) {
         viewModelScope.launch {
-            _loginResult.value = repository.loginNormal(
-                LoginRequest(loginId, password)
+            _normalLoginResult.value = repository.loginNormal(
+                LoginRequest(email, password)
             )
         }
     }
-}
 
-@Suppress("UNCHECKED_CAST")
-class AuthViewModelFactory(private val repository: AuthRepository) :
-    ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return AuthViewModel(repository) as T
+    fun loginKakao(authorizationCode: String) {
+        viewModelScope.launch {
+            _kakaoLoginResult.value = repository.loginKakao(authorizationCode)
+        }
     }
+
+//    fun refreshToken(refreshToken: String) {
+//        viewModelScope.launch {
+//            _tokenRefreshResult.value = repository.refreshToken(refreshToken)
+//        }
+//    }
 }

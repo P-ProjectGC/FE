@@ -5,3 +5,7 @@ data class LoginRequest(
     val loginId: String,   // 아이디
     val password: String   // 비밀번호
 )
+
+data class KakaoLoginRequest(
+    val authorizationCode: String
+)
