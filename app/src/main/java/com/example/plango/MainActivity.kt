@@ -1,5 +1,6 @@
 package com.example.plango
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -23,10 +24,9 @@ import com.example.plango.data.FriendRepository
 import com.example.plango.data.FriendRequestRepository
 import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
+import com.example.plango.data.TravelRoomRepository
 import com.example.plango.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
-import android.Manifest
-import com.example.plango.data.TravelRoomRepository
 
 class MainActivity : AppCompatActivity() {
 
@@ -76,17 +76,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-
-
-
-
-
         // 🔔 알림 채널 생성 (여기서 한 번만 호출해두면 됨)
         NotificationHelper.createChatNotificationChannel(this)
         NotificationHelper.createFriendRequestNotificationChannel(this)
-
-
 
         // 인셋 처리
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
@@ -113,10 +105,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadProfileIcon()
-        checkNewFriendRequestsAndNotify()   //  앱이 메인으로 돌아올 때마다 친구 요청 체크
-
+        checkNewFriendRequestsAndNotify()   // 앱이 메인으로 돌아올 때마다 친구 요청 체크
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun initBottomNavigation() {
@@ -229,7 +219,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // 최종 이미지 URL(S3)
+        // 최종 이미지 URL(S3 or 서버)
         val imageUrl = if (path.startsWith("http")) {
             path
         } else {
@@ -257,11 +247,11 @@ class MainActivity : AppCompatActivity() {
                 val oldList = FriendRequestRepository.getRequests()
 
                 // 🔹 서버에서 최신 "받은 친구 요청 목록" 가져오기
-                val result = FriendRepository.fetchReceivedFriendRequests(MemberSession.currentMemberId)
+                val result =
+                    FriendRepository.fetchReceivedFriendRequests(MemberSession.currentMemberId)
 
                 result.onSuccess { newList ->
-                    // FriendRepository.fetchReceivedFriendRequests 안에서
-                    // FriendRequestRepository.setRequests(newList) 는 이미 호출된 상태라고 가정
+                    // FriendRepository 안에서 FriendRequestRepository.setRequests(newList)는 이미 호출된 상태라고 가정
 
                     // 🔹 헤더 알림 뱃지 숫자 갱신
                     updateAlarmBadge(newList.size)
@@ -276,9 +266,10 @@ class MainActivity : AppCompatActivity() {
 
                     // 🔔 새로 들어온 각 요청에 대해 알림 생성
                     for (item in newlyAdded) {
-                        // 알림 눌렀을 때 열릴 화면: MainActivity (혹은 FriendFragment 로 가도 됨)
+                        // 알림 눌렀을 때 열릴 화면: MainActivity
                         val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
 
                         val pendingIntent = PendingIntent.getActivity(
@@ -300,7 +291,7 @@ class MainActivity : AppCompatActivity() {
                         )
                     }
                 }.onFailure {
-                    // 조회 실패 시에는 조용히 패스 (토스트까지는 굳이 안 띄워도 됨)
+                    // 조회 실패 시에는 조용히 패스
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -308,7 +299,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-
-
+    // 🔹 외부(Fragment)에서 호출할 수 있는 프로필 아이콘 새로고침 함수
+    fun refreshProfileIcon() {
+        loadProfileIcon()
+    }
 }

@@ -15,5 +15,8 @@ data class ChatMessage(
     val timeText: String,          // "10:23" 이런 형식
     val isMe: Boolean,             // 내가 보낸 메시지면 true → 오른쪽
     val imageUri: Uri? = null,     // 이미지 메시지일 때만 값 있음
-    val type: ChatContentType = ChatContentType.TEXT
+    val type: ChatContentType = ChatContentType.TEXT,
+
+    // 🔹 새로 추가
+    val profileImageUrl: String? = null
 )

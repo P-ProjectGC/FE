@@ -278,6 +278,8 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                     if (body?.code == 0) {
                         MemberSession.profileImageUrl = fileUrl
                         Toast.makeText(requireContext(), "프로필 이미지가 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                        // 아이콘 재로드
+                        (activity as? MainActivity)?.refreshProfileIcon()
                     } else {
                         Toast.makeText(
                             requireContext(),

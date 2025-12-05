@@ -8,7 +8,9 @@ import android.os.Bundle
 import android.view.*
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.example.plango.data.RetrofitClient
 import com.example.plango.model.RoomMemberDetail    // ⭐ 이 import 꼭 있어야 함
+import com.bumptech.glide.Glide
 
 class RoomMenuDialogFragment : DialogFragment() {
 
@@ -16,6 +18,9 @@ class RoomMenuDialogFragment : DialogFragment() {
     private var roomName: String = ""
     private var memberNicknames: List<String> = emptyList()   // 원래 쓰던 것 그대로 유지
     private var images: List<Uri> = emptyList()
+
+
+
 
     // ⭐ Activity가 상세조회 응답에서 직접 넣어주는 실제 멤버 리스트
     private var members: List<RoomMemberDetail> = emptyList()
@@ -122,6 +127,7 @@ class RoomMenuDialogFragment : DialogFragment() {
                 false
             )
 
+            val ivProfile = itemView.findViewById<ImageView>(R.id.ivMemberProfile)
             val tvNickname = itemView.findViewById<TextView>(R.id.tvMemberNickname)
             val tvRealName = itemView.findViewById<TextView>(R.id.tvMemberRealName)
             val tvHostBadge = itemView.findViewById<TextView>(R.id.tvHostBadge)
@@ -133,6 +139,22 @@ class RoomMenuDialogFragment : DialogFragment() {
             val isHost = member.host
             tvHostBadge.visibility = if (isHost) View.VISIBLE else View.GONE
             btnTransfer.visibility = if (isHost) View.GONE else View.VISIBLE
+
+            // 🔹 프로필 이미지 로딩
+            val fullUrl = buildFullImageUrl(member.profileImageUrl)
+
+            if (fullUrl == null) {
+                // 이미지 없으면 기본 아이콘
+                ivProfile.setImageResource(R.drawable.profile_basic)
+            } else {
+                Glide.with(requireContext())
+                    .load(fullUrl)
+                    .circleCrop()
+                    .placeholder(R.drawable.profile_basic)
+                    .error(R.drawable.profile_basic)
+                    .into(ivProfile)
+            }
+
 
             btnTransfer.setOnClickListener {
                 // 실제 멤버 id가 -1이 아니면 위임 콜백 호출
@@ -226,4 +248,17 @@ class RoomMenuDialogFragment : DialogFragment() {
             }
         }
     }
+
+    private fun buildFullImageUrl(path: String?): String? {
+        if (path.isNullOrBlank()) return null
+
+        return if (path.startsWith("http")) {
+            path
+        } else {
+            val base = RetrofitClient.IMAGE_BASE_URL.trimEnd('/')
+            val cleaned = path.trimStart('/')
+            "$base/$cleaned"
+        }
+    }
+
 }

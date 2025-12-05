@@ -6,7 +6,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.plango.R
+import com.example.plango.data.RetrofitClient
 import com.example.plango.model.ChatContentType
 import com.example.plango.model.ChatMessage
 
@@ -27,6 +29,7 @@ class ChatAdapter(
             ChatContentType.TEXT -> {
                 if (msg.isMe) VIEW_TYPE_TEXT_MINE else VIEW_TYPE_TEXT_OTHER
             }
+
             ChatContentType.IMAGE -> {
                 if (msg.isMe) VIEW_TYPE_IMAGE_MINE else VIEW_TYPE_IMAGE_OTHER
             }
@@ -40,20 +43,23 @@ class ChatAdapter(
                 val view = inflater.inflate(R.layout.item_chat_message_mine, parent, false)
                 MineTextViewHolder(view)
             }
+
             VIEW_TYPE_TEXT_OTHER -> {
                 val view = inflater.inflate(R.layout.item_chat_message_other, parent, false)
                 OtherTextViewHolder(view)
             }
+
             VIEW_TYPE_IMAGE_MINE -> {
                 val view = inflater.inflate(R.layout.item_chat_image_mine, parent, false)
                 MineImageViewHolder(view)
             }
+
             VIEW_TYPE_IMAGE_OTHER -> {
                 val view = inflater.inflate(R.layout.item_chat_image_other, parent, false)
                 OtherImageViewHolder(view)
             }
+
             else -> {
-                // fallback
                 val view = inflater.inflate(R.layout.item_chat_message_mine, parent, false)
                 MineTextViewHolder(view)
             }
@@ -83,7 +89,7 @@ class ChatAdapter(
         notifyItemInserted(items.size - 1)
     }
 
-    // ===== ViewHolders =====
+    // ===================== ViewHolders =====================
 
     private class MineTextViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvMessage: TextView = itemView.findViewById(R.id.tvMessageMine)
@@ -99,11 +105,36 @@ class ChatAdapter(
         private val tvSenderName: TextView = itemView.findViewById(R.id.tvSenderName)
         private val tvMessage: TextView = itemView.findViewById(R.id.tvMessageOther)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTimeOther)
+        private val ivProfile: ImageView = itemView.findViewById(R.id.ivSenderProfile)
 
         fun bind(message: ChatMessage) {
             tvSenderName.text = message.senderName
             tvMessage.text = message.message ?: ""
             tvTime.text = message.timeText
+
+            // 🔹 프로필 이미지 로딩 (profileImageUrl 사용!)
+            val raw = message.profileImageUrl
+
+            if (raw.isNullOrBlank()) {
+                ivProfile.setImageResource(R.drawable.profile_basic)
+            } else {
+                // 절대/상대 경로 둘 다 처리
+                val finalUrl =
+                    if (raw.startsWith("http")) {
+                        raw
+                    } else {
+                        val base = RetrofitClient.IMAGE_BASE_URL.trimEnd('/')
+                        val cleaned = raw.trimStart('/')
+                        "$base/$cleaned"
+                    }
+
+                Glide.with(itemView.context)
+                    .load(finalUrl)
+                    .circleCrop()
+                    .placeholder(R.drawable.profile_basic)
+                    .error(R.drawable.profile_basic)
+                    .into(ivProfile)
+            }
         }
     }
 
@@ -117,7 +148,6 @@ class ChatAdapter(
                 try {
                     ivImage.setImageURI(uri)
                 } catch (e: SecurityException) {
-                    // 예전 포토피커 URI 등, 권한이 사라진 경우
                     ivImage.setImageDrawable(null)
                 }
             } else {
@@ -131,9 +161,12 @@ class ChatAdapter(
         private val tvSenderName: TextView = itemView.findViewById(R.id.tvSenderNameImage)
         private val ivImage: ImageView = itemView.findViewById(R.id.ivImageOther)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTimeImageOther)
+        private val ivProfile: ImageView = itemView.findViewById(R.id.ivSenderProfile)
 
         fun bind(message: ChatMessage) {
             tvSenderName.text = message.senderName
+
+            // 🔹 이미지 말풍선 안의 사진
             val uri = message.imageUri
             if (uri != null) {
                 try {
@@ -145,6 +178,29 @@ class ChatAdapter(
                 ivImage.setImageDrawable(null)
             }
             tvTime.text = message.timeText
+
+            // 🔹 프로필 이미지 로딩 (profileImageUrl 사용!)
+            val raw = message.profileImageUrl
+
+            if (raw.isNullOrBlank()) {
+                ivProfile.setImageResource(R.drawable.profile_basic)
+            } else {
+                val finalUrl =
+                    if (raw.startsWith("http")) {
+                        raw
+                    } else {
+                        val base = RetrofitClient.IMAGE_BASE_URL.trimEnd('/')
+                        val cleaned = raw.trimStart('/')
+                        "$base/$cleaned"
+                    }
+
+                Glide.with(itemView.context)
+                    .load(finalUrl)
+                    .circleCrop()
+                    .placeholder(R.drawable.profile_basic)
+                    .error(R.drawable.profile_basic)
+                    .into(ivProfile)
+            }
         }
     }
 }

@@ -6,18 +6,18 @@ import com.example.plango.model.AcceptedFriendship
 import com.example.plango.model.FriendRequest
 import com.example.plango.model.CreatedFriendRequest
 import com.example.plango.model.ApiResponse
-// RetrofitClient가 FriendApiService 인스턴스를 제공하므로 import 필요
-import com.example.plango.data.RetrofitClient
 import com.example.plango.data.RetrofitClient.friendApiService
 import com.example.plango.model.FriendRequestItem
 import com.example.plango.model.SentFriendRequestItem
 
 // 🟢 RetrofitClient에서 API Service 인스턴스를 직접 가져와 사용합니다.
 private val apiService: FriendApiService = RetrofitClient.friendApiService
-//  보낸 친구 요청 목록 캐시
+
+// 보낸 친구 요청 목록 캐시
 private val sentFriendRequests = mutableListOf<SentFriendRequestItem>()
 
 private var isLoaded = false
+
 /**
  * 로컬 메모리 관리와 실제 API 통신을 수행하는 싱글톤 Repository입니다.
  */
@@ -52,18 +52,21 @@ object FriendRepository {
                 request = FriendRequest(targetNickname = targetNickname)
             )
 
-            // 🔥🔥 바로 여기!! 디버그 로그 추가 🔥🔥
             println(
                 ">>> requestFriend url=${response.raw().request.url} " +
                         "method=${response.raw().request.method} code=${response.code()}"
             )
             println(">>> errorBody = ${response.errorBody()?.string()}")
 
-            // 🔥🔥 여기까지가 우리가 진짜 보고 싶은 서버의 "정답" 🔥🔥
             if (response.isSuccessful && response.body()?.data != null) {
                 Result.success(response.body()!!.data!!)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "친구 요청 실패: ${response.code()}"))
+                Result.failure(
+                    Exception(
+                        response.body()?.message
+                            ?: "친구 요청 실패: ${response.code()}"
+                    )
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -83,7 +86,12 @@ object FriendRepository {
             if (response.isSuccessful && response.body()?.data != null) {
                 Result.success(response.body()!!.data!!)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "친구 수락 실패: ${response.code()}"))
+                Result.failure(
+                    Exception(
+                        response.body()?.message
+                            ?: "친구 수락 실패: ${response.code()}"
+                    )
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -100,12 +108,12 @@ object FriendRepository {
                 friendId = requestId
             )
 
-            // API는 Void(null)를 반환하지만, 200번대 성공 코드를 확인
             if (response.isSuccessful) {
-                Result.success(Unit) // 거절 성공
+                Result.success(Unit)
             } else {
-                // 응답 본문에서 에러 메시지 추출 시도
-                val errorMessage = response.body()?.message ?: "친구 요청 거절 실패 (HTTP Code: ${response.code()})"
+                val errorMessage =
+                    response.body()?.message
+                        ?: "친구 요청 거절 실패 (HTTP Code: ${response.code()})"
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
@@ -114,19 +122,21 @@ object FriendRepository {
         }
     }
 
-    // FriendRepository.kt
-
-    suspend fun fetchFriendsFromServer(memberId: Long, nickname: String? = null): Result<List<Friend>> {
+    // =========================================================
+    // 🟢 친구 목록 조회 (+ 프로필 이미지 풀 URL 변환하는 핵심 부분)
+    // =========================================================
+    suspend fun fetchFriendsFromServer(
+        memberId: Long,
+        nickname: String? = null
+    ): Result<List<Friend>> {
         return try {
             val response = apiService.getFriendList(
                 nickname = nickname
             )
 
-            // 🔥 서버 응답 상태 로그 찍기
             Log.d("FRIEND_API", "HTTP CODE = ${response.code()}")
             Log.d("FRIEND_API", "isSuccessful = ${response.isSuccessful}")
 
-            // 🔥 응답 body 문자열로 찍기
             try {
                 Log.d("FRIEND_API", "RAW_BODY = ${response.errorBody()?.string()}")
             } catch (e: Exception) {
@@ -136,21 +146,36 @@ object FriendRepository {
             val body = response.body()
             Log.d("FRIEND_API", "BODY = $body")
 
+            if (response.isSuccessful && body?.data != null) {
 
-
-            if (response.isSuccessful && response.body()?.data != null) {
-
-                val list = response.body()!!.data!!
+                val list = body.data!!
 
                 // 서버 DTO → 앱 Friend 모델로 변환
                 val converted = list.map { api ->
-                    Friend(
-                        memberId = api.memberId,              // 멤버아읻
 
+                    Log.d(
+                        "FRIEND_API_PROFILE",
+                        "nickname=${api.nickname}, rawUrl=${api.profileImageUrl}"
+                    )
+
+                    // 🔵 원본 URL
+                    val rawUrl = api.profileImageUrl
+
+                    // 🔵 최종 이미지 URL (내 프로필과 동일 규칙)
+                    val fullUrl = if (rawUrl.isNullOrBlank()) {
+                        null
+                    } else if (rawUrl.startsWith("http")) {
+                        rawUrl
+                    } else {
+                        RetrofitClient.IMAGE_BASE_URL + rawUrl
+                    }
+
+                    Friend(
+                        memberId = api.memberId,
                         nickname = api.nickname,
-                        realName = api.nickname,   // realName 없음 → nickname 재사용
-                        profileImageUrl = api.profileImageUrl,
-                        isKakaoUser = api.loginType == "KAKAO"   // 🔥 여기
+                        realName = api.name,              // realName 없음 → nickname 재사용
+                        profileImageUrl = fullUrl,            // 🔥 여기!
+                        isKakaoUser = api.loginType == "KAKAO"
                     )
                 }
 
@@ -160,10 +185,16 @@ object FriendRepository {
 
                 Result.success(converted)
             } else {
-                Log.e("FRIEND_API", "FAIL: message=${body?.message}, http=${response.code()}")
+                Log.e(
+                    "FRIEND_API",
+                    "FAIL: message=${body?.message}, http=${response.code()}"
+                )
 
                 Result.failure(
-                    Exception(body?.message ?: "친구 목록 조회 실패 (HTTP ${response.code()})")
+                    Exception(
+                        body?.message
+                            ?: "친구 목록 조회 실패 (HTTP ${response.code()})"
+                    )
                 )
             }
         } catch (e: Exception) {
@@ -172,22 +203,20 @@ object FriendRepository {
         }
     }
 
-
-   //친구요청조회
-// com.example.plango.data.FriendRepository
-
+    // =========================================================
+    // 🟢 친구 요청(받은 것) 조회
+    // =========================================================
     suspend fun fetchReceivedFriendRequests(memberId: Long): Result<List<FriendRequestItem>> {
         return try {
             val response = apiService.getReceivedFriendRequests()
-
-            // 디버깅용 로그 (원하면 import android.util.Log)
-            // Log.d("FRIEND_REQ_API", "HTTP=${response.code()}, success=${response.isSuccessful}")
-
             val body = response.body()
 
             if (response.isSuccessful && body?.data != null) {
                 val converted = body.data!!.map { api ->
-                    android.util.Log.d("FRIEND_REQ_API", "nickname=${api.nickname}, loginType=${api.loginType}")
+                    android.util.Log.d(
+                        "FRIEND_REQ_API",
+                        "nickname=${api.nickname}, loginType=${api.loginType}"
+                    )
                     FriendRequestItem(
                         requestId = api.friendId,
                         senderNickname = api.nickname,
@@ -197,13 +226,15 @@ object FriendRepository {
                     )
                 }
 
-                // 🔥 로컬 저장소에 반영
                 FriendRequestRepository.setRequests(converted)
 
                 Result.success(converted)
             } else {
                 Result.failure(
-                    Exception(body?.message ?: "친구 요청 조회 실패 (HTTP ${response.code()})")
+                    Exception(
+                        body?.message
+                            ?: "친구 요청 조회 실패 (HTTP ${response.code()})"
+                    )
                 )
             }
         } catch (e: Exception) {
@@ -212,24 +243,24 @@ object FriendRepository {
         }
     }
 
-   //친구검색(추가위해)
-   suspend fun searchMemberByNickname(keyword: String): List<MemberSearchData> {
-       if (keyword.isBlank()) return emptyList()
+    // =========================================================
+    // 🟢 친구 검색 (추가용)
+    // =========================================================
+    suspend fun searchMemberByNickname(keyword: String): List<MemberSearchData> {
+        if (keyword.isBlank()) return emptyList()
 
-       val memberId = MemberSession.currentMemberId
+        val memberId = MemberSession.currentMemberId
 
-       val response = friendApiService.searchMember(
+        val response = friendApiService.searchMember(
+            nickname = keyword
+        )
 
-           nickname = keyword
-       )
+        if (response.code != "0") {
+            return emptyList()
+        }
 
-       if (response.code != "0") {
-           // 실패면 빈 리스트 반환 (또는 예외 던지는 패턴으로 바꿔도 됨)
-           return emptyList()
-       }
-
-       return response.data ?: emptyList()
-   }
+        return response.data ?: emptyList()
+    }
 
     /**
      * 서버에서 "보낸 친구 요청 목록"을 새로 가져와서 캐시에 저장
@@ -283,16 +314,12 @@ object FriendRepository {
         val result = fetchFriendsFromServer(memberId)
 
         val success = result.isSuccess
-        Log.d("FRIEND_API", "ensureFriendsLoaded: fetch result = $success, size=${_friends.size}")
+        Log.d(
+            "FRIEND_API",
+            "ensureFriendsLoaded: fetch result = $success, size=${_friends.size}"
+        )
         return success
     }
-
-
-
-
-
-
-
 
     /**
      * 현재 캐시에 기준해서 "이미 이 닉네임으로 보낸 요청이 있는지" 확인
@@ -304,10 +331,4 @@ object FriendRepository {
     fun getSentRequestIdByNickname(nickname: String): Long? {
         return sentFriendRequests.firstOrNull { it.nickname == nickname }?.friendId
     }
-
-
-
 }
-
-
-
