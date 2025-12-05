@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
 import com.example.plango.data.login_api.AuthRepository
 import com.example.plango.data.login_api.AuthViewModel
@@ -41,7 +42,7 @@ class LoginActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        // Splash 적용
+        // 🔥 SplashScreen 은 super.onCreate() 전에 호출
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
@@ -52,6 +53,15 @@ class LoginActivity : ComponentActivity() {
         Log.d("KAKAO_KEY_HASH", "keyHash = $keyHash")
 
         tokenManager = TokenManager(this)
+
+        // TODO: 프로필에서 로그아웃 기능 구현 후 자동 로그인 활성화
+       // val savedToken = tokenManager.getAccessToken()
+        //Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
+        //if (!savedToken.isNullOrEmpty()) {
+          // startActivity(Intent(this, MainActivity::class.java))
+           // finish()
+            //return
+       //}
 
         setupTextWatchers()       // 입력 감지 → 로그인 버튼 활성화
         setupButtonListeners()    // 버튼 클릭 이벤트 설정
@@ -90,10 +100,28 @@ class LoginActivity : ComponentActivity() {
             binding.tvError.visibility = View.GONE
 
             result.onSuccess { data ->
-                // 서버에서 받은 토큰 저장
+  
+                // 1) 서버에서 받은 토큰 저장 (Interceptor에서 사용)
                 tokenManager.saveAccessToken(data.accessToken)
                 tokenManager.saveRefreshToken(data.refreshToken)
 
+                // 2) 로그인 성공 시 세션 저장 (앱 내부에서 사용자 정보 사용)
+                MemberSession.currentMemberId = data.memberId.toLong()
+                MemberSession.email = data.email
+                MemberSession.nickname = data.nickname
+                MemberSession.profileImageUrl = data.profileImageUrl
+                MemberSession.accessToken = data.accessToken
+                MemberSession.refreshToken = data.refreshToken
+
+                // 디버그 로그
+                Log.d("TOKEN_TEST", "access = ${tokenManager.getAccessToken()}")
+                Log.d("TOKEN_TEST", "refresh = ${tokenManager.getRefreshToken()}")
+                Log.d(
+                    "LOGIN_INFO",
+                    "memberId=${MemberSession.currentMemberId}, nickname=${MemberSession.nickname}"
+                )
+
+                // 메인 화면 이동
                 startActivity(Intent(this, MainActivity::class.java))
                 finish()
             }

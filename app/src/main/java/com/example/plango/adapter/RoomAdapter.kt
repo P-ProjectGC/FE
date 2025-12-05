@@ -1,21 +1,20 @@
 package com.example.plango.adapter
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.example.plango.R
 import com.example.plango.databinding.ItemRoomListBinding
 import com.example.plango.model.TravelRoom
-import android.graphics.Color
-import com.example.plango.R
+
 class RoomAdapter(
     private var items: List<TravelRoom>,
     private val usePopupStyle: Boolean = false,
     private val onClick: (TravelRoom) -> Unit
-)
- : RecyclerView.Adapter<RoomAdapter.RoomViewHolder>() {
-
+) : RecyclerView.Adapter<RoomAdapter.RoomViewHolder>() {
 
     inner class RoomViewHolder(
         private val binding: ItemRoomListBinding
@@ -25,7 +24,17 @@ class RoomAdapter(
             binding.tvRoomTitle.text = item.title
             binding.tvRoomDate.text = item.dateText
             binding.tvRoomMemo.text = item.memo
-            binding.tvMemberCount.text = "${item.memberCount}명"
+
+            // ✅ 멤버 수 계산 로직
+            // 1순위: memberNicknames (상세조회로 채워진 경우)
+            // 2순위: memberCount (목록 API에서 내려온 숫자)
+            // 3순위: 최소 1명
+            val displayMemberCount = when {
+                item.memberNicknames.isNotEmpty() -> item.memberNicknames.size
+                item.memberCount > 0 -> item.memberCount
+                else -> 1
+            }
+            binding.tvMemberCount.text = "${displayMemberCount}명"
 
             if (usePopupStyle) {
                 // 팝업 스타일
@@ -82,7 +91,6 @@ class RoomAdapter(
         }
     }
 
-    // 🔹 이 위치가 맞음: 어댑터 클래스의 멤버 함수
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RoomViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ItemRoomListBinding.inflate(inflater, parent, false)

@@ -7,13 +7,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.R
-import com.example.plango.model.Friend
+import com.example.plango.model.FriendRequestItem
 
 class FriendRequestAdapter(
-    private var items: List<Friend>,
-    private var requestedAtTexts: List<String>,   // "3시간 전" / "1일 전" 같은 요청 시간
-    private val onAcceptClick: (Friend) -> Unit,  // 수락 클릭 콜백
-    private val onRejectClick: (Friend) -> Unit   // 거절 클릭 콜백
+    private var items: List<FriendRequestItem>,
+    private val onAcceptClick: (FriendRequestItem) -> Unit,
+    private val onRejectClick: (FriendRequestItem) -> Unit
 ) : RecyclerView.Adapter<FriendRequestAdapter.FriendRequestViewHolder>() {
 
     inner class FriendRequestViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -35,37 +34,26 @@ class FriendRequestAdapter(
     override fun onBindViewHolder(holder: FriendRequestViewHolder, position: Int) {
         val item = items[position]
 
-        // 이름들
-        holder.tvNickname.text = item.nickname
-        holder.tvRealName.text = item.realName
+        // 닉네임 / 실제 이름
+        holder.tvNickname.text = item.senderNickname
+        holder.tvRealName.text = item.senderNickname   // 서버에 realName 없으면 닉네임 재사용
 
-        // 카카오 유저 뱃지 표시
+        // 요청 시간 (서버에서 받은 createdAt 그대로 사용)
+        holder.tvRequestedAt.text = item.requestedAt
+
+        // 카카오 뱃지 노출 여부
         holder.ivKakaoBadge.visibility =
             if (item.isKakaoUser) View.VISIBLE else View.GONE
 
-        // 프로필 이미지 (지금은 기본 아이콘만 사용)
-        // item.profileImageUrl 사용 시 Glide/Picasso로 교체 가능
-
-        // 요청 시간 텍스트
-        holder.tvRequestedAt.text =
-            if (position < requestedAtTexts.size) requestedAtTexts[position]
-            else requestedAtTexts.lastOrNull() ?: ""
-
-        // --- 버튼 콜백 설정 ---
-        holder.btnAccept.setOnClickListener {
-            onAcceptClick(item)
-        }
-
-        holder.btnReject.setOnClickListener {
-            onRejectClick(item)
-        }
+        // 버튼 콜백
+        holder.btnAccept.setOnClickListener { onAcceptClick(item) }
+        holder.btnReject.setOnClickListener { onRejectClick(item) }
     }
 
     override fun getItemCount(): Int = items.size
 
-    fun submitList(newList: List<Friend>, newRequestedAt: List<String>) {
+    fun submitList(newList: List<FriendRequestItem>) {
         items = newList
-        requestedAtTexts = newRequestedAt
         notifyDataSetChanged()
     }
 }

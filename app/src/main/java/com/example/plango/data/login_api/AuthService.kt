@@ -1,13 +1,17 @@
 package com.example.plango.data.login_api
 
 import com.example.plango.model.login_api.KakaoLoginRequest
+import com.example.plango.model.ApiResponse
+import com.example.plango.model.NicknameCheckResponse
 import com.example.plango.model.login_api.LoginRequest
 import com.example.plango.model.login_api.LoginResponse
 import com.example.plango.model.login_api.RefreshTokenRequest
 import com.example.plango.model.login_api.RefreshTokenResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface AuthService {
 
@@ -29,4 +33,14 @@ interface AuthService {
         @Body request: RefreshTokenRequest
     ): Response<RefreshTokenResponse>
 
+
+    // 🔹 닉네임 중복확인
+    @GET("/api/auth/check/nickname")
+    suspend fun checkNickname(
+        @Query("nickname") nickname: String
+    ): Response<NicknameCheckResponse>
+
+    // ✅ 로그아웃
+    @POST("/api/auth/logout")
+    suspend fun logout(): Response<ApiResponse<Any>>
 }

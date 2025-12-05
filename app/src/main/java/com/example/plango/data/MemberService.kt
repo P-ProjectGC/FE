@@ -1,0 +1,55 @@
+package com.example.plango.data
+
+import com.example.plango.model.ApiResponse
+import com.example.plango.model.ChangePasswordRequest
+import com.example.plango.model.MemberProfileResponse
+import com.example.plango.model.NotificationSettings
+import com.example.plango.model.NotificationSettingsUpdateRequest
+import com.example.plango.model.ProfileUpdateRequest
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.PATCH
+import retrofit2.http.Path
+
+interface MemberService {
+    @GET("/api/members/{memberId}")
+    suspend fun getMemberProfile(
+        @Path("memberId") memberId: Long
+    ): Response<MemberProfileResponse>
+
+    //프로필 수정
+    @PATCH("/api/members/{memberId}")
+    suspend fun updateProfile(
+        @Path("memberId") memberId: Long,
+        @Body request: ProfileUpdateRequest
+    ): Response<ApiResponse<Any>>
+
+    // ✅ 비밀번호 변경
+    @PATCH("/api/members/{memberId}/password")
+    suspend fun changePassword(
+        @Path("memberId") memberId: Long,
+        @Body request: ChangePasswordRequest
+    ): Response<ApiResponse<Any>>
+
+    // ✅ 회원 탈퇴
+    @DELETE("/api/members/{memberId}")
+    suspend fun withdrawMember(
+        @Path("memberId") memberId: Long
+    ): Response<ApiResponse<Any>>
+
+   //알림 설정
+   @GET("/api/v1/members/me/notifications")
+   suspend fun getNotificationSettings(
+   ): Response<ApiResponse<NotificationSettings>>
+
+    @PATCH("/api/v1/members/me/notifications")
+    suspend fun updateNotificationSettings(
+        @Body request: NotificationSettingsUpdateRequest
+    ): Response<ApiResponse<NotificationSettings>>
+
+
+
+
+}

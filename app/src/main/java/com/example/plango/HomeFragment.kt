@@ -22,6 +22,10 @@ import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.RoomRangeType
 import com.example.plango.model.TravelRoom
 import java.time.temporal.ChronoUnit
+import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.MemberSession
+import kotlinx.coroutines.launch
+
 @RequiresApi(Build.VERSION_CODES.O)
 class HomeFragment : Fragment() {
 
@@ -42,8 +46,14 @@ class HomeFragment : Fragment() {
     private val displayDateFormatter: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyy년 M월 d일")
 
-
-
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.apply {
+            showMainHeader(true)     // ✅ 헤더 다시 살리기
+            showAlarmIcon(false)     // 홈에서는 알람 숨김
+            showProfileButton(true)  // 홈에서는 프로필 버튼 보이게
+        }
+    }
 
 
     override fun onCreateView(
@@ -65,10 +75,15 @@ class HomeFragment : Fragment() {
             val intent = Intent(requireContext(), CreateRoomActivity::class.java)
             startActivity(intent)
         }
+        // 🔹 혹시 모를 상황 대비: 로그인 된 상태에서만 호출
+        if (MemberSession.isLoggedIn) {
+            loadRoomsAndRefreshCalendar()
+        }
     }
 
     private fun setupUi() {
-        val nickname = "남유정"
+        // 🔹 세션의 닉네임 사용 (없으면 기본 문구)
+        val nickname = MemberSession.nickname ?: "여행자"
         binding.tvTitle.text = "“$nickname”의\nPlanGo"
 
         // 🔹 검색창 클릭시 팝업 띄우기
@@ -443,6 +458,23 @@ class HomeFragment : Fragment() {
             }
         }
     }
+
+    // 🔹 홈에서 방 목록 로딩 + 캘린더 갱신
+    private fun loadRoomsAndRefreshCalendar() {
+        // 🔹 로그인 안 되어 있으면 아무 것도 안 함 (토큰 없는 상태 방어)
+        if (!MemberSession.isLoggedIn) return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            // 이미 방 목록이 있으면 서버는 안 타도 됨
+            if (TravelRoomRepository.getRooms().isEmpty()) {
+                TravelRoomRepository.fetchRoomsFromServer()
+            }
+            // 서버에서 rooms 채워졌다고 가정하고 캘린더 갱신
+            refreshCalendar()
+        }
+    }
+
+
 
 
 }

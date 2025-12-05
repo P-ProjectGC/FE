@@ -17,9 +17,19 @@ object RetrofitClient {
     // 🔁 호스트(네 컴퓨터) 실제 IP + 포트내 ip : 210.119.237.48(진성, 172~~는주희)
     //private const val BASE_URL = "http://172.25.81.234:8080/"
 
+
+    const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev"
+      //const val BASE_URL = "http://10.0.2.2:8080/"
+
+
+    // 🔥 S3용 이미지 BASE URL (네 버킷/리전에 맞게 실제 값으로 바꾸기!)
+    const val IMAGE_BASE_URL =
+        "https://plango-dev.s3.ap-southeast-2.amazonaws.com/"
+
     private lateinit var tokenManager: TokenManager
 
-    private const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev"
+
+   
 
     // 앱 시작 시 1번만 초기화됨 (MyApplication에서 호출)
     fun init(context: Context) {
@@ -58,4 +68,21 @@ object RetrofitClient {
     val roomApiService: RoomApiService by lazy {
         retrofit.create(RoomApiService::class.java)
     }
+
+    val friendApiService: FriendApiService by lazy {
+        retrofit.create(FriendApiService::class.java)
+    }
+
+    val memberApiService: MemberService by lazy {
+        retrofit.create(MemberService::class.java)
+    }
+
+    val fileApiService: FileService by lazy {
+        retrofit.create(FileService::class.java)
+    }
+
+    val chatApiService: ChatApiService by lazy {
+        retrofit.create(ChatApiService::class.java)
+    }
+
 }

@@ -14,15 +14,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
 import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.CreateRoomRequest
 import com.example.plango.model.TravelRoom
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
-
-
 
 class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
 
@@ -112,21 +110,41 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
         end: LocalDate,
         selectedNicknames: List<String>
     ) {
-        val memberIdHeader = 1L            // TODO: 나중에 로그인된 멤버 ID로 교체
-        val memberIdsBody = listOf(2L)     // TODO: 실제 멤버 ID 리스트로 교체
+        val myMemberId = MemberSession.currentMemberId
+        val parentActivity = activity as? CreateRoomActivity
+        val selectedFriendIds: List<Long> = parentActivity?.selectedFriendIds ?: emptyList()
+
+        // ✅ 스펙대로: memberIds = "초대할 친구들"
+        //   - 친구를 골랐으면: 친구들 ID만
+        //   - 친구를 하나도 안 골랐으면: 나 혼자 여행 → 내 ID 1개
+        val memberIdsBody: List<Long> =
+            if (selectedFriendIds.isNotEmpty()) {
+                selectedFriendIds          // 친구들만
+            } else {
+                listOf(myMemberId)         // 친구 없을 때만 나
+            }
+
+        val myNickname = MemberSession.nickname ?: "나"
+
+        val allMemberNicknames = mutableListOf<String>().apply {
+            add(myNickname)              // 나
+            addAll(selectedNicknames)    // 친구들
+        }
 
         val request = CreateRoomRequest(
             roomName = roomName,
             memo = roomMemo.ifBlank { null },
-            startDate = start.toString(),   // "yyyy-MM-dd"
+            startDate = start.toString(),
             endDate = end.toString(),
             memberIds = memberIdsBody
         )
-        Log.d("CreateRoomFinal", "start=$start / end=$end")
+
+        Log.d("CreateRoomFinal", "start=$start / end=$end / memberIds=$memberIdsBody")
+
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
-                    .createRoom(memberIdHeader, request)
+                    .createRoom(request)
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -150,10 +168,10 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                             Toast.LENGTH_SHORT
                         ).show()
 
-
                         val dateText = "${start.monthValue}월 ${start.dayOfMonth}일 - " +
                                 "${end.monthValue}월 ${end.dayOfMonth}일"
-                        val memberCount = selectedNicknames.size.takeIf { it > 0 } ?: 1
+
+                        val memberCount = allMemberNicknames.size
 
                         val newRoom = TravelRoom(
                             id = roomDto.roomId,
@@ -162,15 +180,13 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                             endDate = end.toString(),
                             dateText = dateText,
                             memo = roomMemo.ifBlank { null },
-                            memberCount = selectedNicknames.size.coerceAtLeast(1),
-                            memberNicknames = selectedNicknames.ifEmpty { listOf("나") },
-                            isHost = true   // 생성자는 방장 확정
+                            memberCount = memberCount,
+                            memberNicknames = allMemberNicknames,
+                            isHost = true
                         )
 
-                        // 로컬 저장
                         TravelRoomRepository.addRoom(newRoom)
 
-                        // 그리고 나서 방 내부 화면으로 이동
                         val intent = Intent(requireContext(), RoomScheduleTestActivity::class.java).apply {
                             putExtra("ROOM_ID", newRoom.id)
                             putExtra("ROOM_NAME", roomName)
@@ -179,8 +195,9 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
                             putExtra("END_DATE", end.toString())
                             putStringArrayListExtra(
                                 "MEMBER_NICKNAMES",
-                                ArrayList(selectedNicknames)
+                                ArrayList(allMemberNicknames)
                             )
+                            putExtra("IS_HOST", true)
                         }
                         startActivity(intent)
                         requireActivity().finish()
@@ -209,6 +226,7 @@ class CreateRoomStep3Fragment : Fragment(R.layout.fragment_create_room_step3) {
             }
         }
     }
+
 
     private fun updateMemoCount() {
         val length = etRoomMemo.text?.length ?: 0

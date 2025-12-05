@@ -2,78 +2,116 @@ package com.example.plango.data
 
 import com.example.plango.model.ChatContentType
 import com.example.plango.model.ChatMessage
-import android.net.Uri
+import com.example.plango.model.ChatMessageDto
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object ChatRepository {
 
-    // roomId 별로 메시지 리스트를 들고 있는 맵
     private val roomMessages: MutableMap<Long, MutableList<ChatMessage>> = mutableMapOf()
 
-    // ✅ 방 별 현재 메시지 목록 조회
-    fun getMessages(roomId: Long): List<ChatMessage> {
-        return roomMessages[roomId] ?: emptyList()
-    }
+    // 서버 포맷: "2025-12-05T14:21:33" (ms 없을 수도 있음)
+    private val serverFormats = listOf(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    )
 
-    // ✅ 방에 새 메시지 추가
+    private val displayTimeFormatter: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("HH:mm")
+
+    fun getMessages(roomId: Long): List<ChatMessage> =
+        roomMessages[roomId] ?: emptyList()
+
     fun addMessage(roomId: Long, message: ChatMessage) {
         val list = roomMessages.getOrPut(roomId) { mutableListOf() }
         list.add(message)
     }
 
-    // ✅ 방별 메시지 모두 교체 (나중에 서버에서 전체 로드할 때 쓰기 좋음)
     fun setMessages(roomId: Long, messages: List<ChatMessage>) {
         roomMessages[roomId] = messages.toMutableList()
     }
 
-    // ✅ 특정 방 기록 삭제 (예: 방 나가기 등)
     fun clearRoom(roomId: Long) {
         roomMessages.remove(roomId)
     }
 
-    // ✅ 전체 초기화 (테스트용)
     fun clearAll() {
         roomMessages.clear()
     }
 
-    // 🔹 테스트용: 1번 방에만 기본 더미 채팅 넣어두고 싶으면 이런 식으로도 가능
-    init {
-        val demoRoomId = 1L
-        val demoList = mutableListOf<ChatMessage>()
-
-        demoList.add(
-            ChatMessage(
-                id = 1L,
-                senderName = "금연호소인",
-                message = "안녕하세요! 여행 기대되네요 😄",
-                timeText = "10:23",
-                isMe = false,
-                imageUri = null,
-                type = ChatContentType.TEXT
-            )
-        )
-        demoList.add(
-            ChatMessage(
-                id = 2L,
-                senderName = "로또누나",
-                message = "저도요! 날씨 좋았으면 좋겠어요.",
-                timeText = "10:25",
-                isMe = false,
-                imageUri = null,
-                type = ChatContentType.TEXT
-            )
-        )
-        demoList.add(
-            ChatMessage(
-                id = 3L,
-                senderName = "나",
-                message = "해운대 꼭 가보고 싶었어요!",
-                timeText = "10:27",
-                isMe = true,
-                imageUri = null,
-                type = ChatContentType.TEXT
-            )
-        )
-
-        roomMessages[demoRoomId] = demoList
+    /**
+     * STOMP/WebSocket으로 들어온 메시지를 반영할 때 사용
+     */
+    fun addIncomingMessageFromServer(
+        roomId: Long,
+        dto: ChatMessageDto,
+        currentMemberId: Long?
+    ): ChatMessage {
+        val chatMessage = dto.toDomain(currentMemberId)
+        addMessage(roomId, chatMessage)
+        return chatMessage
     }
+
+    // HTTP GET /chats, /chats/history 응답 data(List<ChatMessageDto>)를
+    // 한 번에 세팅할 때도 재사용 가능
+    fun setMessagesFromDtos(
+        roomId: Long,
+        dtos: List<ChatMessageDto>,
+        currentMemberId: Long?
+    ) {
+        val list = dtos.map { it.toDomain(currentMemberId) }
+        setMessages(roomId, list)
+    }
+
+    private fun ChatMessageDto.toDomain(currentMemberId: Long?): ChatMessage {
+        val isMe = currentMemberId != null && senderId == currentMemberId
+
+        val timeText = parseServerTime(sentAt)?.format(displayTimeFormatter)
+            ?: LocalDateTime.now().format(displayTimeFormatter)
+
+        // content 가 URL이면 나중에 IMAGE 타입으로도 바꿀 수 있음
+        return ChatMessage(
+            id = messageId,
+            senderName = senderNickname,
+            message = content,
+            timeText = timeText,
+            isMe = isMe,
+            imageUri = null,
+            type = ChatContentType.TEXT
+        )
+    }
+
+    private fun parseServerTime(value: String): LocalDateTime? {
+        for (fmt in serverFormats) {
+            try {
+                return LocalDateTime.parse(value, fmt)
+            } catch (_: Exception) {
+            }
+        }
+        return null
+    }
+
+    // ChatRepository.kt 안에 추가
+
+    /**
+     * /chats/history 응답을 기존 목록 앞에 붙일 때 사용
+     */
+    fun prependMessagesFromDtos(
+        roomId: Long,
+        dtos: List<ChatMessageDto>,
+        currentMemberId: Long?
+    ) {
+        if (dtos.isEmpty()) return
+
+        val existing = roomMessages[roomId] ?: mutableListOf()
+
+        // 서버에서 내려온 과거 메시지들을 도메인 모델로 변환
+        val newMessages = dtos.map { it.toDomain(currentMemberId) }
+
+        // 과거 → 현재 순서로 왼쪽(앞)에 붙이는 형태
+        val merged = newMessages + existing
+        roomMessages[roomId] = merged.toMutableList()
+    }
+
+
 }

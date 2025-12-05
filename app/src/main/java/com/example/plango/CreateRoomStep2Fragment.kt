@@ -9,12 +9,15 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.plango.adapter.FriendSelectAdapter_rm
 import com.example.plango.adapter.SelectedFriendChipAdapter_rm
 import com.example.plango.data.FriendRepository
+import com.example.plango.data.MemberSession
 import com.example.plango.model.Friend
+import kotlinx.coroutines.launch
 
 class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
 
@@ -34,6 +37,8 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
 
     // 선택된 친구 (닉네임 기준으로 관리)
     private val selectedNicknames = mutableSetOf<String>()
+    private val selectedFriendIds = mutableSetOf<Long>()    // 🔥 추가
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,7 +80,19 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     private fun setupSelectedChips() {
         chipAdapter = SelectedFriendChipAdapter_rm { friend ->
             // 칩 눌렀을 때도 선택 해제
+            var changed = false
+
+            // 닉네임 제거
             if (selectedNicknames.remove(friend.nickname)) {
+                changed = true
+            }
+
+            // memberId 제거
+            if (selectedFriendIds.remove(friend.memberId)) {
+                changed = true
+            }
+
+            if (changed) {
                 applyFilter(etSearchNickname.text?.toString()?.trim().orEmpty())
                 updateSelectedSummary()
                 updateNextButtonState()
@@ -89,15 +106,20 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
         }
     }
 
+
     private fun setupButtons() {
         updateNextButtonState()
 
         btnNext.setOnClickListener {
             if (selectedNicknames.isNotEmpty()) {
 
-                // ⭐ 선택된 닉네임들을 Activity에 저장
                 (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+
+                    // 🔵 기존: 닉네임 저장
                     createRoomActivity.selectedFriendNicknames = selectedNicknames.toList()
+
+                    // 🔵 추가: memberId 저장
+                    createRoomActivity.selectedFriendIds = selectedFriendIds.toList()
                 }
 
                 parentFragmentManager.beginTransaction()
@@ -110,6 +132,7 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
             }
         }
     }
+
 
 
 
@@ -137,19 +160,34 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     }
 
     private fun loadFriends() {
-        allFriends = FriendRepository.getFriends()
+        viewLifecycleOwner.lifecycleScope.launch {
+            // 1) 내 memberId (JWT 로그인 후 MemberSession에 들어있지?)
+            val myMemberId = MemberSession.currentMemberId
 
-        // ⭐ Activity에 이전에 저장된 선택 닉네임이 있으면 복원
-        (activity as? CreateRoomActivity)?.let { createRoomActivity ->
-            if (createRoomActivity.selectedFriendNicknames.isNotEmpty()) {
-                selectedNicknames.clear()
-                selectedNicknames.addAll(createRoomActivity.selectedFriendNicknames)
+            // 2) 아직 친구 목록을 안 불러왔으면 서버에서 한 번 가져오기
+            FriendRepository.ensureFriendsLoaded(myMemberId)
+
+            // 3) 이제 Repo에서 친구 목록 가져오기
+            allFriends = FriendRepository.getFriends()
+
+            // ⭐ Activity에 이전에 저장된 선택값이 있으면 복원 (닉네임 + ID 둘 다)
+            (activity as? CreateRoomActivity)?.let { createRoomActivity ->
+                if (createRoomActivity.selectedFriendNicknames.isNotEmpty()) {
+                    selectedNicknames.clear()
+                    selectedNicknames.addAll(createRoomActivity.selectedFriendNicknames)
+                }
+
+                if (createRoomActivity.selectedFriendIds.isNotEmpty()) {
+                    selectedFriendIds.clear()
+                    selectedFriendIds.addAll(createRoomActivity.selectedFriendIds)
+                }
             }
-        }
 
-        applyFilter(etSearchNickname.text?.toString()?.trim().orEmpty())
-        updateSelectedSummary()
-        updateNextButtonState()
+            // 4) UI 갱신
+            applyFilter(etSearchNickname.text?.toString()?.trim().orEmpty())
+            updateSelectedSummary()
+            updateNextButtonState()
+        }
     }
 
 
@@ -170,9 +208,13 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
     }
 
     private fun toggleFriendSelection(friend: Friend) {
-        if (selectedNicknames.contains(friend.nickname)) {
+        if (selectedFriendIds.contains(friend.memberId)) {
+            // 선택 해제
+            selectedFriendIds.remove(friend.memberId)
             selectedNicknames.remove(friend.nickname)
         } else {
+            // 선택
+            selectedFriendIds.add(friend.memberId)
             selectedNicknames.add(friend.nickname)
         }
 
@@ -180,6 +222,7 @@ class CreateRoomStep2Fragment : Fragment(R.layout.fragment_create_room_step2) {
         updateSelectedSummary()
         updateNextButtonState()
     }
+
 
     private fun updateSelectedSummary() {
         val count = selectedNicknames.size

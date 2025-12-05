@@ -83,6 +83,16 @@ dependencies {
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-compiler:2.48")
+    // STOMP over WebSocket
+    implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    
+    // RxJava (StompProtocolAndroid가 사용)
+    implementation("io.reactivex.rxjava2:rxjava:2.2.21")
+    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
+    
+    // JSON 파싱용 (이미 쓰고 있으면 생략)
+    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 

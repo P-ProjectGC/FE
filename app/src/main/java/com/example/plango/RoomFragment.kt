@@ -16,6 +16,7 @@ import com.example.plango.model.TravelRoom
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import com.example.plango.data.MemberSession
 
 class RoomFragment : Fragment() {
 
@@ -52,6 +53,7 @@ class RoomFragment : Fragment() {
                     "MEMBER_NICKNAMES",
                     ArrayList(room.memberNicknames)
                 )
+                putExtra("IS_HOST", room.isHost)   // ⭐ 서버 기준 방장 여부 같이 전달
             }
             startActivity(intent)
         }
@@ -109,10 +111,8 @@ class RoomFragment : Fragment() {
     private fun loadRooms() {
         // 코루틴으로 서버 호출
         viewLifecycleOwner.lifecycleScope.launch {
-            // TODO: 로그인 붙으면 실제 로그인된 멤버 ID로 교체
-            val memberId = 1L
 
-            val success = TravelRoomRepository.fetchRoomsFromServer(memberId)
+            val success = TravelRoomRepository.fetchRoomsFromServer()
 
             if (!success) {
                 // 서버 실패 시 → Repository 내부에서 기본 더미 1개 넣어둔 상태
@@ -125,6 +125,9 @@ class RoomFragment : Fragment() {
 
             // 항상 Repository에서 현재 rooms 가져오기
             allRooms = TravelRoomRepository.getRooms()
+
+            // ✅ roomId 기준으로 중복 제거 (방 목록 UI 안전장치)
+            allRooms = allRooms.distinctBy { it.id }
 
             if (allRooms.isEmpty()) {
                 // 실제로 방이 하나도 없을 때만 "아직 여행방이 없어요" 표시

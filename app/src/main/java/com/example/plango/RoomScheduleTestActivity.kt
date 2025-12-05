@@ -49,13 +49,17 @@ import com.example.plango.data.RetrofitClient
 import com.example.plango.model.CreateWishlistPlaceRequest
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AlertDialog
+import com.example.plango.data.ChatStompClient
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
+import com.example.plango.model.ChatMessageSendRequest
+import com.example.plango.model.DelegateHostRequest
 import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
-
-
+import org.json.JSONObject
+import retrofit2.Response
+import com.example.plango.model.RoomDetailData
 class RoomScheduleTestActivity :
     AppCompatActivity(),
     OnMapReadyCallback {
@@ -67,7 +71,13 @@ class RoomScheduleTestActivity :
     private lateinit var startDate: String
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
-    private var isHost: Boolean = false
+
+    // 🔹 방 상세 정보(서버 응답) 보관용
+    private var roomDetailData: RoomDetailData? = null
+
+    private var currentUserIsHost: Boolean = false
+
+
 
     // 지도
     private lateinit var googleMap: GoogleMap
@@ -80,6 +90,9 @@ class RoomScheduleTestActivity :
     private lateinit var wishlistItems: MutableList<WishlistPlaceItem>
 
     private var isEditMode: Boolean = false // 화면이 수정 모드인지 여부
+
+
+
 
     // RecyclerView + 어댑터
     private lateinit var recyclerView: RecyclerView
@@ -145,6 +158,9 @@ class RoomScheduleTestActivity :
         }
     }
 
+    private var isLoadingHistory: Boolean = false   // 현재 history 로딩 중인지
+    private var hasMoreHistory: Boolean = true      // 더 가져올 과거가 있는지
+
 
 
     // ------------------------------------------------------------
@@ -163,20 +179,27 @@ class RoomScheduleTestActivity :
         memberNicknames =
             intent.getStringArrayListExtra("MEMBER_NICKNAMES")?.toList() ?: emptyList()
 
+        // 2) Repository에서 동일 roomId 가진 방 찾기 (있으면 부족한 정보 보완용)
         val roomFromRepo = if (roomId != -1L) {
             TravelRoomRepository.getRoomById(roomId)
         } else {
             null
         }
 
+        // 🔹 인텐트에 멤버 닉네임이 비어 있으면, Repo에서 보정
+        if (memberNicknames.isEmpty()) {
+            memberNicknames = roomFromRepo?.memberNicknames ?: emptyList()
+        }
+
+        // 제목/날짜가 비어 있으면 Repo 정보로 보완
         if (roomFromRepo != null) {
             if (roomName.isBlank()) roomName = roomFromRepo.title
             if (startDate.isBlank()) startDate = roomFromRepo.startDate
             if (endDate.isBlank()) endDate = roomFromRepo.endDate
-            isHost = roomFromRepo.isHost
-        } else {
-            isHost = true
         }
+
+
+
 
 
 
@@ -257,11 +280,12 @@ class RoomScheduleTestActivity :
         showDay(0)
 
 
+
         // 🔹 4) 위시리스트 어댑터 생성 시 isHost 넘기기
 
         wishlistAdapter = WishlistAdapter(
             items = wishlistItems,
-            isHost = isHost,
+            isHost = currentUserIsHost,
             onConfirmClick = { item ->
                 openConfirmScheduleBottomSheet(item)
             },
@@ -274,8 +298,22 @@ class RoomScheduleTestActivity :
         loadWishlistFromServer()
         loadSchedulesFromServer()
 
+        // 🔹 방 상세 정보(멤버 목록, 방 제목/메모)를 서버 기준으로 덮어쓰기
+        loadRoomDetailFromServer()
+        loadInitialChats()
+
 
     }
+
+
+    //  채팅스타트
+    override fun onStart() {
+        super.onStart()
+        Log.d("STOMP_DEBUG", "onStart() 실행됨!")
+        startChatSubscription()
+    }
+
+
 
     // ------------------------------------------------------------
     // 이미지 선택 / 채팅 이미지 메시지
@@ -340,7 +378,9 @@ class RoomScheduleTestActivity :
     // RecyclerView / 어댑터
     // ------------------------------------------------------------
     private fun setupRecyclerView() {
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        // 레이아웃 매니저 먼저 꺼내놓고
+        val layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = layoutManager
 
         // 1. 일정 어댑터 설정
         scheduleAdapter = ScheduleTimelineAdapter(
@@ -360,14 +400,12 @@ class RoomScheduleTestActivity :
                 val bottomSheet = EditScheduleBottomSheet(
                     schedule = item,
                     onUpdated = { newStart, newEnd ->
-                        // 🚨 [수정: 서버 수정 요청]
                         patchScheduleOnServer(
                             scheduleId = item.scheduleId,
                             newStartTime = newStart,
                             newEndTime = newEnd,
-                            oldMemo = item.memo, // 메모 수정 기능은 제외하고 기존 메모 전달
+                            oldMemo = item.memo,
                             onSuccess = {
-                                // 🚀 서버 통신 성공 시에만 로컬 데이터 업데이트 (기존 로직)
                                 val old = day.items[indexInDay]
                                 val updated = old.copy(
                                     timeLabel = newStart,
@@ -380,26 +418,11 @@ class RoomScheduleTestActivity :
                         )
                     },
                     onDeleted = {
-                        // 🚨 [수정: 서버 삭제 요청]
                         deleteScheduleOnServer(
-                            scheduleId = item.scheduleId, // 삭제할 일정의 ID
+                            scheduleId = item.scheduleId,
                             onSuccess = {
-                                // 🚀 서버 통신 성공 시에만 로컬 데이터 삭제 및 위시리스트 이동 (기존 로직)
-                                val removed = day.items.removeAt(indexInDay)
-                                val wishlistItem = WishlistPlaceItem(
-                                    placeName = removed.placeName,
-                                    address = removed.address,
-                                    lat = removed.lat,
-                                    lng = removed.lng,
-                                    addedBy = "나" // 임시로 "나" 설정
-                                )
-                                wishlistItems.add(wishlistItem)
+                                day.items.removeAt(indexInDay)
                                 showDay(currentDayIndex)
-
-                                if (currentBottomTab == BottomTab.WISHLIST) {
-                                    wishlistAdapter.refresh()
-                                }
-
                                 Toast.makeText(
                                     this,
                                     "일정이 삭제되었습니다.",
@@ -414,12 +437,9 @@ class RoomScheduleTestActivity :
             }
         )
 
-
-
-        // 채팅 어댑터
+        // 2. 채팅 어댑터
         chatAdapter = ChatAdapter()
 
-        // roomId 기준으로 저장된 채팅 불러오기
         if (roomId != -1L) {
             val savedMessages = ChatRepository.getMessages(roomId)
             if (savedMessages.isNotEmpty()) {
@@ -427,54 +447,80 @@ class RoomScheduleTestActivity :
             }
         }
 
+        // 기본은 일정 어댑터로 시작
         recyclerView.adapter = scheduleAdapter
 
-        // 채팅 입력
-        btnSendChat.setOnClickListener {
-            sendChatMessage()
-        }
-        btnPickPhoto.setOnClickListener {
-            imagePickerLauncher.launch("image/*")
-        }
+        // 3. 채팅 history 로딩용 스크롤 리스너
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                // 채팅 탭일 때만 동작
+                if (currentBottomTab != BottomTab.CHAT) return
+
+                // 이미 로딩 중이거나 더 이상 가져올 게 없으면 패스
+                if (isLoadingHistory || !hasMoreHistory) return
+
+                val firstVisible = layoutManager.findFirstVisibleItemPosition()
+                if (firstVisible == 0) {
+                    // 맨 위까지 스크롤 됐을 때 과거 메시지 로딩
+                    loadOlderChats()
+                }
+            }
+        })
+
+        // 4. 채팅 입력 버튼들
+        btnSendChat.setOnClickListener { sendChatMessage() }
+        btnPickPhoto.setOnClickListener { imagePickerLauncher.launch("image/*") }
     }
+
 
     private fun sendChatMessage() {
         val text = etChatMessage.text.toString().trim()
         if (text.isEmpty()) return
 
+        if (roomId == -1L) {
+            Toast.makeText(this, "방 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val myId = MemberSession.currentMemberId
+        if (myId == -1L) {
+            Toast.makeText(this, "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 🔹 1) UI에 먼저 "내 말풍선"을 추가 (낙관적 업데이트)
         val currentMillis = System.currentTimeMillis()
         val timeText = java.text.SimpleDateFormat(
             "HH:mm",
             java.util.Locale.getDefault()
         ).format(java.util.Date(currentMillis))
 
-        val message = ChatMessage(
-            id = System.currentTimeMillis(),
-            senderName = "나",
+        val tempMessage = ChatMessage(
+            id = currentMillis,
+            senderName = MemberSession.nickname ?: "나",
             message = text,
             timeText = timeText,
             isMe = true
         )
 
-        chatAdapter.addMessage(message)
-
-        if (roomId != -1L) {
-            ChatRepository.addMessage(roomId, message)
-            // 🔔 테스트용: 내가 보낸 메시지도 알림으로 띄워보기
-            NotificationHelper.showChatNotification(
-                context = this,
-                roomId = roomId,
-                roomName = roomName,
-                messagePreview = text
-            )
-        }
-
+        chatAdapter.addMessage(tempMessage)
         etChatMessage.setText("")
 
         recyclerView.post {
             recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
         }
+
+        // 🔹 2) REST API ❌ → STOMP SEND 방식으로 전송
+        ChatStompClient.sendChatMessage(
+            roomId = roomId,
+            memberId = myId,
+            content = text
+        )
     }
+
+
 
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
@@ -482,7 +528,7 @@ class RoomScheduleTestActivity :
             if (currentBottomTab != BottomTab.SCHEDULE) return@setOnClickListener
 
             // 2. 🚨 [추가] 방장 권한 체크
-            if (!isHost) {
+            if (!currentUserIsHost) {
                 Toast.makeText(this, "방장이 사용할 수 있습니다!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener // 🚨 방장이 아니면 여기서 함수 실행을 종료
             }
@@ -670,12 +716,20 @@ class RoomScheduleTestActivity :
                 setRecyclerTopTo(R.id.layoutRoomHeader)
 
                 recyclerView.adapter = chatAdapter
+
+                // ⭐ CHAT 탭으로 들어올 때, 항상 Repo 기준으로 최신 메시지 로딩
+                if (roomId != -1L) {
+                    val updated = ChatRepository.getMessages(roomId).toList()
+                    chatAdapter.submitList(updated)
+                }
+
                 recyclerView.post {
                     if (chatAdapter.itemCount > 0) {
                         recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
                     }
                 }
             }
+
         }
     }
 
@@ -924,7 +978,7 @@ class RoomScheduleTestActivity :
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.roomApiService
-                    .createWishlistPlace(roomId,MemberSession.currentMemberId , request)
+                    .createWishlistPlace(roomId, request)
 
                 // ★ 디버깅용 로그 (있으면 도움 됨)
                 Log.d("Wishlist", "request = $request")
@@ -1058,84 +1112,102 @@ class RoomScheduleTestActivity :
 
 
 
-// 서버로부터 일정 확정(생성)
-private fun createScheduleOnServer(
-    place: WishlistPlaceItem,
-    dayIndex: Int,
-    startTime: String,
-    endTime: String,
-    // 🚨 [수정]: 성공 시 scheduleId를 Long? 타입으로 반환합니다.
-    onResult: (scheduleId: Long?) -> Unit
-) {
-    // 1. 권한 체크 및 방 ID 유효성 체크
-    if (!isHost) {
-        Toast.makeText(this, "방장만 일정을 생성할 수 있어요.", Toast.LENGTH_SHORT).show()
-        onResult(null) // 실패 시 null 반환
-        return
-    }
 
-    if (roomId == -1L) {
-        onResult(null)
-        return
-    }
 
-    // 2. roomPlaceId 유효성 체크 및 추출 (기존 로직 유지)
-    val roomPlaceId = place.placeId
-    if (roomPlaceId == null) {
-        Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
-        Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
-        onResult(null)
-        return
-    }
 
-    // 3. 요청 DTO 생성 (기존 로직 유지)
-    val request = CreateScheduleRequest(
-        roomPlaceId = roomPlaceId,
-        dayIndex = dayIndex + 1,
-        startTime = startTime,
-        endTime = endTime,
-        memo = null
-    )
+    // 서버로부터 일정 확정(생성)
+    private fun createScheduleOnServer(
+        place: WishlistPlaceItem,
+        dayIndex: Int,
+        startTime: String,
+        endTime: String,
+        onResult: (scheduleId: Long?) -> Unit
+    ) {
+        // 1) 방 ID 체크
+        if (roomId == -1L) {
+            onResult(null)
+            return
+        }
 
-    // 4. API 호출
-    lifecycleScope.launch {
-        try {
-            val response = RetrofitClient.roomApiService.createSchedule(
-                roomId = roomId,
-                memberId = MemberSession.currentMemberId /* TODO: 실제 로그인한 memberId */,
-                request = request
-            )
-            val body = response.body()
+        // ❌ (삭제됨) 프론트 방장 체크
+        // if (!currentUserIsHost) { ... }
 
-            if (response.isSuccessful && body?.code == 0) {
+        // 2) roomPlaceId 유효성 체크
+        val roomPlaceId = place.placeId
+        if (roomPlaceId == null) {
+            Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
+            Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
+            onResult(null)
+            return
+        }
 
-                // 🚀 서버 응답에서 scheduleId 추출
-                val newScheduleId = body.data?.scheduleId
+        // 3) 요청 DTO 생성
+        val request = CreateScheduleRequest(
+            roomPlaceId = roomPlaceId,
+            dayIndex = dayIndex + 1,  // 서버는 1일차부터 시작하니까 +1
+            startTime = startTime,
+            endTime = endTime,
+            memo = null
+        )
 
-                if (newScheduleId == null) {
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 성공, ID가 누락되었습니다.", Toast.LENGTH_LONG).show()
+        // 4) 서버 요청 시작
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService.createSchedule(
+                    roomId = roomId,
+                    request = request
+                )
+
+                val body = response.body()
+
+                if (response.isSuccessful && body?.code == 0) {
+                    val newScheduleId = body.data?.scheduleId
+
+                    if (newScheduleId == null) {
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "일정 생성 성공, ID가 누락되었습니다.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onResult(null)
+                        return@launch
+                    }
+
+                    // 정상 성공
+                    onResult(newScheduleId)
+                } else {
+                    // 응답 오류 메시지 추출
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 생성 실패 (HTTP: ${response.code()})"
+                    )
+
+                    Log.e("ScheduleAPI", "일정 생성 실패: $msg")
+
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                     onResult(null)
-                    return@launch
                 }
 
-                // ✅ 성공: 추출한 ID를 콜백으로 전달
-                onResult(newScheduleId)
+            } catch (e: Exception) {
+                e.printStackTrace()
 
-            } else {
-                // 🔍 실패 처리
-                val msg = body?.message ?: "알 수 없는 오류"
-                Log.e("ScheduleAPI", "일정 생성 실패: http=${response.code()}, code=${body?.code}, msg=$msg")
-                Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 실패: $msg", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@RoomScheduleTestActivity,
+                    "네트워크 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+
                 onResult(null)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this@RoomScheduleTestActivity, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
-            onResult(null)
         }
     }
-}
-    // 서버로부터 일정을 가져옴(조회)
+
+
 
     // 서버로부터 일정을 가져옴(조회)
 
@@ -1207,6 +1279,7 @@ private fun createScheduleOnServer(
             }
         }
     }
+
     // 🟩 특정 일차(localDayIndex)에 대해 서버에서 받아온 일정 리스트를 dailySchedules에 반영
     private fun applySchedulesForDay(
         localDayIndex: Int,              // 0-based (0 = 1일차)
@@ -1240,7 +1313,7 @@ private fun createScheduleOnServer(
         onSuccess: () -> Unit
     ) {
         // 1. 클라이언트 측 방장 권한 체크 (UX)
-        if (!isHost) {
+        if (!currentUserIsHost) {
             Toast.makeText(this, "방장만 일정을 수정할 수 있어요.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1259,10 +1332,6 @@ private fun createScheduleOnServer(
                 val response = RetrofitClient.roomApiService.updateSchedule(
                     roomId = roomId,
                     scheduleId = scheduleId,
-
-                    // 🚨 [수정]: 헤더로 전달할 memberId 추가
-                    memberId = memberId,
-
                     startTime = newStartTime,
                     endTime = newEndTime,
                     memo = oldMemo
@@ -1273,14 +1342,19 @@ private fun createScheduleOnServer(
 
 
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val msg = response.body()?.message ?: "일정 수정 실패 (HTTP 코드: ${response.code()})"
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 수정 실패 (HTTP 코드: ${response.code()})"
+                    )
 
                     Log.e("ScheduleAPI", "일정 수정 실패: $msg")
-                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
-
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 실패: $msg", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@RoomScheduleTestActivity, "일정 수정 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1294,7 +1368,7 @@ private fun createScheduleOnServer(
         onSuccess: () -> Unit
     ) {
         // 1. 클라이언트 측 방장 권한 체크 (UX)
-        if (!isHost) {
+        if (!currentUserIsHost) {
             Toast.makeText(this, "방장만 일정을 삭제할 수 있어요.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1314,29 +1388,118 @@ private fun createScheduleOnServer(
                 val response = RetrofitClient.roomApiService.deleteSchedule(
                     roomId = roomId,
                     scheduleId = scheduleId,
-                    memberId = memberId // 👈 @Header("X-MEMBER-ID") 값으로 전달
                 )
 
                 if (response.isSuccessful && response.body()?.code == 0) {
                     // ✅ 성공: 로컬 일정 목록에서 항목을 제거하는 로직이 onSuccess() 람다 내부에 있어야 합니다.
                     onSuccess()
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정이 완전히 삭제되었습니다.", Toast.LENGTH_SHORT).show()
                 } else {
-                    // 🚨 오류 발생 시 상세 로그 출력 및 메시지 처리
-                    val errorBody = response.errorBody()?.string()
-                    val msg = response.body()?.message ?: "일정 삭제 실패 (HTTP 코드: ${response.code()})"
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 삭제 실패 (HTTP 코드: ${response.code()})"
+                    )
 
                     Log.e("ScheduleAPI", "일정 삭제 실패: $msg")
-                    Log.e("ScheduleAPI", "서버 ErrorBody 상세: $errorBody")
-
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 실패: $msg", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@RoomScheduleTestActivity, "일정 삭제 중 통신 오류: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    private fun loadRoomDetailFromServer() {
+        if (roomId == -1L) return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService.getRoomDetail(roomId)
+                Log.d("RoomDetail", "raw response = $response")
+
+                val data = response.data ?: run {
+                    Log.w(
+                        "RoomDetail",
+                        "data is null: code=${response.code}, message=${response.message}"
+                    )
+                    return@launch
+                }
+
+                // 🔹 방 상세 정보 보관
+                roomDetailData = data
+
+                // 🔹 현재 로그인한 멤버 ID 기준으로 방장 여부 계산
+                val loginMemberId = MemberSession.currentMemberId
+                currentUserIsHost = data.members.any { member ->
+                    member.memberId == loginMemberId && member.host
+                }
+                Log.d(
+                    "RoomDetail",
+                    "loginMemberId=$loginMemberId, currentUserIsHost=$currentUserIsHost"
+                )
+
+                // ⭐ 위시리스트 어댑터에도 최신 방장 여부 전달
+                if (::wishlistAdapter.isInitialized) {
+                    wishlistAdapter.updateHost(currentUserIsHost)
+                }
+
+                // 🔎 서버가 실제로 내려주는 members 확인
+                Log.d("RoomDetail", "members from server = ${data.members}")
+                Log.d("RoomDetail", "members.size = ${data.members.size}")
+
+                // 1) 방 이름/메모는 그냥 덮어써도 크게 문제 없음
+                roomName = data.roomName
+                roomMemo = data.memo
+
+                // 2) "기존 멤버 정보"와 "서버 응답 멤버" 비교
+                val localCount = memberNicknames.size
+                val serverMembers = data.members
+                val serverCount = serverMembers.size
+
+                Log.d("RoomDetail", "localCount=$localCount, serverCount=$serverCount")
+
+                // 🔹 서버가 더 많은 정보를 줄 때만 덮어쓰기
+                if (serverCount >= localCount && serverCount > 0) {
+                    memberNicknames = serverMembers.map { it.nickname }
+                    Log.d("RoomDetail", "memberNicknames overridden by server: $memberNicknames")
+                } else {
+                    Log.d("RoomDetail", "keep local memberNicknames: $memberNicknames")
+                }
+
+                // ✅ 레포에도 방 멤버 정보 반영 (방 목록 카드용)
+                TravelRoomRepository.updateRoomMembersFromDetail(roomId, memberNicknames)
+
+                // 3) 헤더 갱신
+                val toolbar = findViewById<Toolbar>(R.id.toolbarRoomTitle)
+                toolbar.title = roomName
+
+                val displayMemberCount = when {
+                    memberNicknames.isNotEmpty() -> memberNicknames.size
+                    roomDetailData?.members?.isNotEmpty() == true -> roomDetailData!!.members.size
+                    else -> 1
+                }
+                tvRoomTitle.text = roomName
+                tvRoomMemberCount.text = "${displayMemberCount}명"
+
+                Log.d(
+                    "RoomDetail",
+                    "final memberNicknames=$memberNicknames, displayMemberCount=$displayMemberCount"
+                )
+
+            } catch (e: Exception) {
+                Log.e("RoomDetail", "loadRoomDetail error", e)
+            }
+        }
+    }
+
+
+
+
 
 
 
@@ -1367,8 +1530,18 @@ private fun createScheduleOnServer(
             memberNicknames = memberNicknames,
             imageUris = images
         )
+
+        // 🔹 상세조회에서 받아온 실제 멤버 정보 전달 (있으면)
+        dialog.setMembers(roomDetailData?.members ?: emptyList())
+
+        // 🔹 방장 양도 버튼 눌렀을 때 실행할 함수 연결
+        dialog.setOnTransferHostListener { memberId, nickname ->
+            delegateHostTo(memberId, nickname)
+        }
+
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
+
 
 
     // ------------------------------------------------------------
@@ -1391,6 +1564,309 @@ private fun createScheduleOnServer(
         }
         return list
     }
+
+    //오류메시지잡기
+
+    private fun extractServerMessage(response: Response<*>?, defaultMessage: String): String {
+        if (response == null) return defaultMessage
+
+        // 1) body 쪽(message) 먼저 시도 (200인데 code != 0 인 케이스 대비)
+        val bodyMessage = try {
+            val bodyObj = response.body()
+            // bodyObj가 ApiResponse 형식이라면 message 프로퍼티가 있을 것
+            val messageField = bodyObj?.javaClass?.getDeclaredField("message")
+            messageField?.isAccessible = true
+            messageField?.get(bodyObj) as? String
+        } catch (e: Exception) {
+            null
+        }
+
+        if (!bodyMessage.isNullOrBlank()) return bodyMessage
+
+        // 2) errorBody(JSON)에서 message 추출 (403 같은 케이스)
+        val errorBodyString = try {
+            response.errorBody()?.string()
+        } catch (e: Exception) {
+            null
+        }
+
+        if (!errorBodyString.isNullOrBlank()) {
+            try {
+                val json = JSONObject(errorBodyString)
+                val msgFromJson = json.optString("message")
+                if (!msgFromJson.isNullOrBlank()) {
+                    return msgFromJson
+                }
+            } catch (_: Exception) { }
+        }
+
+        return defaultMessage
+    }
+
+
+   // 방장 위임
+   private fun delegateHostTo(targetMemberId: Long, targetNickname: String) {
+       // 1️⃣ 현재 유저가 방장인지 먼저 체크
+       if (!currentUserIsHost) {
+           Toast.makeText(this, "방장이 아닙니다.", Toast.LENGTH_SHORT).show()
+           return
+       }
+
+       // 2️⃣ 방장일 때만 확인 다이얼로그 노출
+       AlertDialog.Builder(this)
+           .setTitle("방장 위임")
+           .setMessage("$targetNickname 님에게 방장을 위임하시겠습니까?")
+           .setPositiveButton("위임") { _, _ ->
+               lifecycleScope.launch {
+                   try {
+                       val request = DelegateHostRequest(newHostId = targetMemberId)
+                       val response = RetrofitClient.roomApiService
+                           .delegateHost(roomId = roomId, request = request)
+
+                       if (response.isSuccessful) {
+                           val body = response.body()
+                           if (body?.code == 0) {
+                               Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "$targetNickname 님에게 방장을 위임했습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               // ✅ 단일 기준인 상세조회로 다시 UI 보정
+                               loadRoomDetailFromServer()
+                           } else {
+                               Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   body?.message ?: "방장 위임에 실패했습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+                           }
+                       } else {
+                           // status code 기반 처리 (403, 404 등)
+                           when (response.code()) {
+                               400 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "요청 정보가 올바르지 않습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               401 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "다시 로그인 후 시도해주세요.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               403 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "방장만 위임할 수 있거나, 선택한 멤버가 방 멤버가 아닙니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               404 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "해당 방 정보를 찾을 수 없습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               else -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "방장 위임 중 오류가 발생했습니다. (${response.code()})",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+                           }
+                       }
+                   } catch (e: Exception) {
+                       e.printStackTrace()
+                       Toast.makeText(
+                           this@RoomScheduleTestActivity,
+                           "네트워크 오류로 방장 위임에 실패했습니다.",
+                           Toast.LENGTH_SHORT
+                       ).show()
+                   }
+               }
+           }
+           .setNegativeButton("취소", null)
+           .show()
+   }
+
+
+    //채팅연결
+    // STOMP 구독 함수
+    // 채팅연결
+// STOMP 구독 함수
+    // 채팅 연결 - STOMP 구독 함수
+    // 채팅 연결 - STOMP 구독 함수
+    private fun startChatSubscription() {
+        Log.d("STOMP_DEBUG", "startChatSubscription() 호출됨")
+
+        // 이미 onCreate에서 roomId를 세팅했으니, 인텐트에서 다시 꺼내지 않고 필드 사용
+        if (roomId <= 0L) {
+            Log.d("STOMP_DEBUG", "roomId 유효하지 않음 → 구독 안 함 (roomId=$roomId)")
+            return
+        }
+
+        val myId = MemberSession.currentMemberId
+        Log.d("STOMP_DEBUG", "현재 로그인 memberId = $myId")
+
+        ChatStompClient.subscribeRoom(roomId) { dto ->
+            Log.d("STOMP_TEST", "실시간 메시지 수신: $dto")
+
+            // 1) 항상 로컬 저장 (탭이 어디든 간에)
+            ChatRepository.addIncomingMessageFromServer(
+                roomId = roomId,
+                dto = dto,
+                currentMemberId = myId
+            )
+
+            // 2) 현재 CHAT 탭을 보고 있다면 → 바로 UI 갱신
+            if (currentBottomTab == BottomTab.CHAT) {
+                runOnUiThread {
+                    if (recyclerView.adapter !== chatAdapter) {
+                        recyclerView.adapter = chatAdapter
+                    }
+
+                    val updated = ChatRepository.getMessages(roomId).toList()
+                    chatAdapter.submitList(updated)
+                    if (updated.isNotEmpty()) {
+                        recyclerView.scrollToPosition(updated.size - 1)
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+    //채팅 불러오기
+
+    private fun loadInitialChats() {
+        if (roomId <= 0L) return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.chatApiService.getRecentChats(roomId)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body?.code == 0) {
+                        val dtoList = body.data ?: emptyList()
+                        val myId = MemberSession.currentMemberId
+
+                        ChatRepository.setMessagesFromDtos(
+                            roomId = roomId,
+                            dtos = dtoList,
+                            currentMemberId = myId
+                        )
+
+                        runOnUiThread {
+                            chatAdapter.submitList(
+                                ChatRepository.getMessages(roomId).toList()
+                            )
+                            if (chatAdapter.itemCount > 0) {
+                                recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                            }
+                        }
+                    } else {
+                        Log.w("ChatInit", "code=${body?.code}, msg=${body?.message}")
+                    }
+                } else {
+                    Log.w("ChatInit", "HTTP=${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatInit", "초기 채팅 로딩 오류", e)
+            }
+        }
+    }
+
+
+    // 과거 채팅 더 불러오기 (/api/rooms/{roomId}/chats/history)
+    private fun loadOlderChats(size: Int = 50) {
+        if (roomId <= 0L) return
+        if (isLoadingHistory) return
+
+        // 현재 메시지 중에서 "가장 오래된(위쪽)" 메시지의 id 사용
+        val currentList = ChatRepository.getMessages(roomId)
+        if (currentList.isEmpty()) return
+
+        val oldestMessageId = currentList.minOf { it.id }   // ChatMessage.id ← 서버 messageId와 동일하게 사용 중
+
+        isLoadingHistory = true
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.chatApiService.getChatHistory(
+                    roomId = roomId,
+                    beforeMessageId = oldestMessageId,
+                    size = size
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body?.code == 0) {
+                        val dtoList = body.data ?: emptyList()
+
+                        // 더 이상 가져올게 없으면 플래그 내려두기
+                        if (dtoList.isEmpty()) {
+                            hasMoreHistory = false
+                            isLoadingHistory = false
+                            return@launch
+                        }
+
+                        val myId = MemberSession.currentMemberId
+
+                        // 1) 새로 가져온 DTO들을 ChatMessage로 변환
+                        val newMessages = dtoList.map { dto ->
+                            ChatRepository.addIncomingMessageFromServer(
+                                roomId = roomId,
+                                dto = dto,
+                                currentMemberId = myId
+                            )
+                        }
+
+                        // 2) 기존 리스트 앞쪽에 붙이기
+                        val merged = (newMessages + currentList).sortedBy { it.id }
+
+                        ChatRepository.setMessages(roomId, merged)
+
+                        runOnUiThread {
+                            chatAdapter.submitList(merged.toList())
+                            // 스크롤 위치 보정은 나중에 필요하면 추가해도 됨
+                        }
+                    } else {
+                        Log.w("ChatHistory", "code=${body?.code}, msg=${body?.message}")
+                    }
+                } else {
+                    Log.w("ChatHistory", "HTTP=${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatHistory", "history 로딩 오류", e)
+            } finally {
+                isLoadingHistory = false
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 // ====== 모델 ======

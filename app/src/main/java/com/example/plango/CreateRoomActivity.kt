@@ -27,25 +27,14 @@ class CreateRoomActivity : AppCompatActivity() {
     // ⭐ [여행방 생성에 필요한 상태들 저장용 필드]
     var startDate: LocalDate? = null
     var endDate: LocalDate? = null
+
+    var selectedFriendIds: List<Long> = emptyList()   // 🔥 추가
     var selectedFriendNicknames: List<String> = emptyList()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_room)
-
-        // 🔹 친구 더미 데이터 세팅 (한 번만)
-        if (FriendRepository.getFriends().isEmpty()) {
-            FriendRepository.setFriends(
-                listOf(
-                    Friend("음주헌터", "송현재", null, false),
-                    Friend("디자인광", "남유정", null, true),
-                    Friend("팬티헌터", "신진성", null, true),
-                    Friend("로또누나", "곽주희", null, false),
-                    Friend("개폐급쓰레기","강석환",null,false),
-                    Friend("디자인싫어","헌재송",null,true)
-                )
-            )
-        }
 
         initHeaderViews()
         setStep(1)   // 처음 진입은 1단계
