@@ -8,5 +8,5 @@ data class LoginRequest(
 
 data class KakaoLoginRequest(
     val accessToken: String,
-    val idToken: String
+    val idToken: String?
 )
