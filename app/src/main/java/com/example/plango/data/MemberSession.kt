@@ -38,6 +38,10 @@ object MemberSession {
         // notificationSettings = null
     }
 
+    fun applyNotificationSettings(new: NotificationSettings) {
+        notificationSettings = new
+    }
+
     // ✅ 전체 채팅방 알림 ON 여부 (기본값 ON)
     fun isAllChatNotificationOn(): Boolean {
         return notificationSettings?.allChatRoomEnabled ?: true
