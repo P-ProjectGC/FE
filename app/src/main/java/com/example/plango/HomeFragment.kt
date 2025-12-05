@@ -23,7 +23,10 @@ import com.example.plango.model.RoomRangeType
 import com.example.plango.model.TravelRoom
 import java.time.temporal.ChronoUnit
 import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.AppNotificationHelper
 import com.example.plango.data.MemberSession
+import com.example.plango.data.RetrofitClient
+import com.example.plango.model.NotificationSettings
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -49,11 +52,44 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         (activity as? MainActivity)?.apply {
-            showMainHeader(true)     // ✅ 헤더 다시 살리기
-            showAlarmIcon(false)     // 홈에서는 알람 숨김
-            showProfileButton(true)  // 홈에서는 프로필 버튼 보이게
+            showMainHeader(true)
+            showAlarmIcon(false)
+            showProfileButton(true)
+        }
+
+        // 🔹 홈에 돌아올 때마다 방 목록 & 리마인드 체크
+        viewLifecycleOwner.lifecycleScope.launch {
+            // 1) 여행방 목록 서버에서 한번 가져오기 (캘린더 색칠 문제도 동시에 해결됨)
+            try {
+                val success = TravelRoomRepository.fetchRoomsFromServer(keyword = null)
+                if (success) {
+                    refreshCalendar()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // 2) 알림 설정 조회해서 tripReminderEnabled 가 true 인지 확인
+            try {
+                val response = RetrofitClient.memberApiService.getNotificationSettings()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val settings: NotificationSettings? = body?.data
+
+                    if (body?.code == 0 && settings != null) {
+                        MemberSession.applyNotificationSettings(settings)
+                        if (settings.tripReminderEnabled) {
+                            // 3) 리마인드 알림 체크
+                            checkTomorrowTripsAndNotify()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
+
 
 
     override fun onCreateView(
@@ -473,6 +509,43 @@ class HomeFragment : Fragment() {
             refreshCalendar()
         }
     }
+
+    /**
+     * 🔔 내일 출발하는 여행방이 있으면 로컬 알림 띄우기
+     */
+    private fun checkTomorrowTripsAndNotify() {
+        val rooms = TravelRoomRepository.getRooms()
+        if (rooms.isEmpty()) {
+            println("👉 [TripReminder] rooms empty, skip")
+            return
+        }
+
+        val today = LocalDate.now()
+        val tomorrow = today.plusDays(1)
+        println("👉 [TripReminder] today=$today, tomorrow=$tomorrow")
+
+        val tomorrowRooms = rooms.filter { room ->
+            val start = parseToLocalDate(room.startDate).also {
+                println("   room=${room.title}, raw='${room.startDate}', parsed=$it")
+            }
+            start == tomorrow
+        }
+
+        println("👉 [TripReminder] tomorrowRooms size=${tomorrowRooms.size}")
+
+        if (tomorrowRooms.isEmpty()) return
+
+        for (room in tomorrowRooms) {
+            println("👉 [TripReminder] notify room=${room.title}")
+            AppNotificationHelper.showTripReminderIfNeeded(
+                requireContext(),
+                room,
+                today
+            )
+        }
+    }
+
+
 
 
 

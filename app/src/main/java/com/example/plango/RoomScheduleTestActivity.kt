@@ -131,7 +131,7 @@ class RoomScheduleTestActivity :
     private lateinit var btnSendChat: ImageButton
     private lateinit var btnPickPhoto: ImageButton
 
-    // 편집 모드 플래그
+    private var isForeground: Boolean = false   // 👈 이거 추가
 
 
     private enum class BottomTab { WISHLIST, SCHEDULE, CHAT }
@@ -1690,16 +1690,12 @@ class RoomScheduleTestActivity :
    }
 
 
-    //채팅연결
-    // STOMP 구독 함수
     // 채팅연결
-// STOMP 구독 함수
-    // 채팅 연결 - STOMP 구독 함수
     // 채팅 연결 - STOMP 구독 함수
     private fun startChatSubscription() {
         Log.d("STOMP_DEBUG", "startChatSubscription() 호출됨")
 
-        // 이미 onCreate에서 roomId를 세팅했으니, 인텐트에서 다시 꺼내지 않고 필드 사용
+        // 이미 onCreate에서 roomId 세팅된 상태
         if (roomId <= 0L) {
             Log.d("STOMP_DEBUG", "roomId 유효하지 않음 → 구독 안 함 (roomId=$roomId)")
             return
@@ -1711,8 +1707,9 @@ class RoomScheduleTestActivity :
         ChatStompClient.subscribeRoom(roomId) { dto ->
             Log.d("STOMP_TEST", "실시간 메시지 수신: $dto")
 
-            // 1) 항상 로컬 저장 (탭이 어디든 간에)
-            ChatRepository.addIncomingMessageFromServer(
+            // 1) 서버에서 온 DTO를 ChatMessage로 변환 + 로컬 저장
+            //    addIncomingMessageFromServer 가 ChatMessage를 반환하는 구조라고 가정
+            val savedMessage = ChatRepository.addIncomingMessageFromServer(
                 roomId = roomId,
                 dto = dto,
                 currentMemberId = myId
@@ -1732,8 +1729,37 @@ class RoomScheduleTestActivity :
                     }
                 }
             }
+
+            // 3) 시스템 알림 조건 체크 후 띄우기
+            //    - 내가 보낸 메시지(savedMessage.isMe == true)라면 알림 X
+            //    - 현재 이 액티비티에서 CHAT 탭을 보고 있고, 창이 포커스를 가지고 있으면 알림 X
+            //    - 그 외(다른 탭 / 다른 화면 / 백그라운드)에서만 알림 울림
+            val isMyMessage = savedMessage.isMe
+            val isWatchingThisChatScreen =
+                (currentBottomTab == BottomTab.CHAT) && this@RoomScheduleTestActivity.hasWindowFocus()
+
+            if (!isMyMessage && !isWatchingThisChatScreen) {
+                // 알림 내용으로 쓸 미리보기 텍스트
+                val preview = when (savedMessage.type) {
+                    ChatContentType.IMAGE -> "[사진]"
+                    else -> savedMessage.message ?: ""
+                }
+
+                // 내용이 완전 비어 있으면 굳이 알림 띄울 필요는 없음
+                if (preview.isNotBlank()) {
+                    NotificationHelper.showChatNotification(
+                        context = this@RoomScheduleTestActivity,
+                        roomId = roomId,
+                        roomName = roomName,
+                        senderName = savedMessage.senderName ?: "알 수 없음",
+                        messagePreview = preview
+                    )
+                }
+            }
         }
     }
+
+
 
 
 
