@@ -69,7 +69,7 @@ class RoomScheduleTestActivity :
     private lateinit var startDate: String
     private lateinit var endDate: String
     private var memberNicknames: List<String> = emptyList()
-    private var isHost: Boolean = false
+
     // 🔹 방 상세 정보(서버 응답) 보관용
     private var roomDetailData: RoomDetailData? = null
 
@@ -193,11 +193,6 @@ class RoomScheduleTestActivity :
             if (endDate.isBlank()) endDate = roomFromRepo.endDate
         }
 
-        // 3) ⭐ isHost는 "Intent → Repo → 기본값 false" 순서로 결정
-        isHost = intent.getBooleanExtra(
-            "IS_HOST",
-            roomFromRepo?.isHost ?: false
-        )
 
 
 
@@ -284,7 +279,7 @@ class RoomScheduleTestActivity :
 
         wishlistAdapter = WishlistAdapter(
             items = wishlistItems,
-            isHost = isHost,
+            isHost = currentUserIsHost,
             onConfirmClick = { item ->
                 openConfirmScheduleBottomSheet(item)
             },
@@ -495,7 +490,7 @@ class RoomScheduleTestActivity :
             if (currentBottomTab != BottomTab.SCHEDULE) return@setOnClickListener
 
             // 2. 🚨 [추가] 방장 권한 체크
-            if (!isHost) {
+            if (!currentUserIsHost) {
                 Toast.makeText(this, "방장이 사용할 수 있습니다!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener // 🚨 방장이 아니면 여기서 함수 실행을 종료
             }
@@ -1075,92 +1070,98 @@ class RoomScheduleTestActivity :
 
 
     // 서버로부터 일정 확정(생성)
-private fun createScheduleOnServer(
-    place: WishlistPlaceItem,
-    dayIndex: Int,
-    startTime: String,
-    endTime: String,
-    // 🚨 [수정]: 성공 시 scheduleId를 Long? 타입으로 반환합니다.
-    onResult: (scheduleId: Long?) -> Unit
-) {
-    // 1. 권한 체크 및 방 ID 유효성 체크
-    if (!isHost) {
-        Toast.makeText(this, "방장만 일정을 생성할 수 있어요.", Toast.LENGTH_SHORT).show()
-        onResult(null) // 실패 시 null 반환
-        return
-    }
+    private fun createScheduleOnServer(
+        place: WishlistPlaceItem,
+        dayIndex: Int,
+        startTime: String,
+        endTime: String,
+        onResult: (scheduleId: Long?) -> Unit
+    ) {
+        // 1) 방 ID 체크
+        if (roomId == -1L) {
+            onResult(null)
+            return
+        }
 
-    if (roomId == -1L) {
-        onResult(null)
-        return
-    }
+        // ❌ (삭제됨) 프론트 방장 체크
+        // if (!currentUserIsHost) { ... }
 
-    // 2. roomPlaceId 유효성 체크 및 추출 (기존 로직 유지)
-    val roomPlaceId = place.placeId
-    if (roomPlaceId == null) {
-        Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
-        Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
-        onResult(null)
-        return
-    }
+        // 2) roomPlaceId 유효성 체크
+        val roomPlaceId = place.placeId
+        if (roomPlaceId == null) {
+            Log.e("ScheduleAPI", "일정 생성 요청 실패: WishlistPlaceItem에 유효한 placeId가 없습니다.")
+            Toast.makeText(this, "선택된 장소의 ID가 유효하지 않아 일정을 생성할 수 없어요.", Toast.LENGTH_LONG).show()
+            onResult(null)
+            return
+        }
 
-    // 3. 요청 DTO 생성 (기존 로직 유지)
-    val request = CreateScheduleRequest(
-        roomPlaceId = roomPlaceId,
-        dayIndex = dayIndex + 1,
-        startTime = startTime,
-        endTime = endTime,
-        memo = null
-    )
+        // 3) 요청 DTO 생성
+        val request = CreateScheduleRequest(
+            roomPlaceId = roomPlaceId,
+            dayIndex = dayIndex + 1,  // 서버는 1일차부터 시작하니까 +1
+            startTime = startTime,
+            endTime = endTime,
+            memo = null
+        )
 
-    // 4. API 호출
-    lifecycleScope.launch {
-        try {
-            val response = RetrofitClient.roomApiService.createSchedule(
-                roomId = roomId,
-                request = request
-            )
-            val body = response.body()
+        // 4) 서버 요청 시작
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.roomApiService.createSchedule(
+                    roomId = roomId,
+                    request = request
+                )
 
-            if (response.isSuccessful && body?.code == 0) {
-                // ✅ 성공 처리
-                val newScheduleId = body.data?.scheduleId
-                if (newScheduleId == null) {
-                    Toast.makeText(this@RoomScheduleTestActivity, "일정 생성 성공, ID가 누락되었습니다.", Toast.LENGTH_LONG).show()
+                val body = response.body()
+
+                if (response.isSuccessful && body?.code == 0) {
+                    val newScheduleId = body.data?.scheduleId
+
+                    if (newScheduleId == null) {
+                        Toast.makeText(
+                            this@RoomScheduleTestActivity,
+                            "일정 생성 성공, ID가 누락되었습니다.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onResult(null)
+                        return@launch
+                    }
+
+                    // 정상 성공
+                    onResult(newScheduleId)
+                } else {
+                    // 응답 오류 메시지 추출
+                    val msg = extractServerMessage(
+                        response,
+                        defaultMessage = "일정 생성 실패 (HTTP: ${response.code()})"
+                    )
+
+                    Log.e("ScheduleAPI", "일정 생성 실패: $msg")
+
+                    Toast.makeText(
+                        this@RoomScheduleTestActivity,
+                        msg,
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                     onResult(null)
-                    return@launch
                 }
-                onResult(newScheduleId)
 
-            } else {
-                // 🔍 실패 처리: 서버 메시지 우선 추출
-                val msg = extractServerMessage(
-                    response,
-                    defaultMessage = "일정 생성 실패 (HTTP 코드: ${response.code()})"
-                )
-
-                Log.e(
-                    "ScheduleAPI",
-                    "일정 생성 실패: http=${response.code()}, msg=$msg"
-                )
+            } catch (e: Exception) {
+                e.printStackTrace()
 
                 Toast.makeText(
                     this@RoomScheduleTestActivity,
-                    msg,   // ✅ 여기서 "방장만 수행할 수 있는 작업입니다." 같은 문구가 그대로 뜸
+                    "네트워크 오류: ${e.message}",
                     Toast.LENGTH_SHORT
                 ).show()
 
                 onResult(null)
             }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this@RoomScheduleTestActivity, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
-            onResult(null)
         }
     }
-}
-    // 서버로부터 일정을 가져옴(조회)
+
+
 
     // 서버로부터 일정을 가져옴(조회)
 
@@ -1232,6 +1233,7 @@ private fun createScheduleOnServer(
             }
         }
     }
+
     // 🟩 특정 일차(localDayIndex)에 대해 서버에서 받아온 일정 리스트를 dailySchedules에 반영
     private fun applySchedulesForDay(
         localDayIndex: Int,              // 0-based (0 = 1일차)
@@ -1265,7 +1267,7 @@ private fun createScheduleOnServer(
         onSuccess: () -> Unit
     ) {
         // 1. 클라이언트 측 방장 권한 체크 (UX)
-        if (!isHost) {
+        if (!currentUserIsHost) {
             Toast.makeText(this, "방장만 일정을 수정할 수 있어요.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1320,7 +1322,7 @@ private fun createScheduleOnServer(
         onSuccess: () -> Unit
     ) {
         // 1. 클라이언트 측 방장 권한 체크 (UX)
-        if (!isHost) {
+        if (!currentUserIsHost) {
             Toast.makeText(this, "방장만 일정을 삭제할 수 있어요.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1375,18 +1377,34 @@ private fun createScheduleOnServer(
                 Log.d("RoomDetail", "raw response = $response")
 
                 val data = response.data ?: run {
-                    Log.w("RoomDetail", "data is null: code=${response.code}, message=${response.message}")
+                    Log.w(
+                        "RoomDetail",
+                        "data is null: code=${response.code}, message=${response.message}"
+                    )
                     return@launch
                 }
 
+                // 🔹 방 상세 정보 보관
+                roomDetailData = data
 
-                currentUserIsHost = data.host   // ✅ 이 한 줄이면 끝!
+                // 🔹 현재 로그인한 멤버 ID 기준으로 방장 여부 계산
+                val loginMemberId = MemberSession.currentMemberId
+                currentUserIsHost = data.members.any { member ->
+                    member.memberId == loginMemberId && member.host
+                }
+                Log.d(
+                    "RoomDetail",
+                    "loginMemberId=$loginMemberId, currentUserIsHost=$currentUserIsHost"
+                )
+
+                // ⭐ 위시리스트 어댑터에도 최신 방장 여부 전달
+                if (::wishlistAdapter.isInitialized) {
+                    wishlistAdapter.updateHost(currentUserIsHost)
+                }
 
                 // 🔎 서버가 실제로 내려주는 members 확인
                 Log.d("RoomDetail", "members from server = ${data.members}")
                 Log.d("RoomDetail", "members.size = ${data.members.size}")
-
-                roomDetailData = data
 
                 // 1) 방 이름/메모는 그냥 덮어써도 크게 문제 없음
                 roomName = data.roomName
@@ -1406,6 +1424,7 @@ private fun createScheduleOnServer(
                 } else {
                     Log.d("RoomDetail", "keep local memberNicknames: $memberNicknames")
                 }
+
                 // ✅ 레포에도 방 멤버 정보 반영 (방 목록 카드용)
                 TravelRoomRepository.updateRoomMembersFromDetail(roomId, memberNicknames)
 
@@ -1446,6 +1465,7 @@ private fun createScheduleOnServer(
 
 
 
+
     // ------------------------------------------------------------
     // 채팅방 메뉴 (상단 헤더의 오른쪽 아이콘)
     // ------------------------------------------------------------
@@ -1465,16 +1485,17 @@ private fun createScheduleOnServer(
             imageUris = images
         )
 
-        // 🔥 여기 추가!
+        // 🔹 상세조회에서 받아온 실제 멤버 정보 전달 (있으면)
         dialog.setMembers(roomDetailData?.members ?: emptyList())
 
-        // 🔥 방장 위임 콜백도 연결!
+        // 🔹 방장 양도 버튼 눌렀을 때 실행할 함수 연결
         dialog.setOnTransferHostListener { memberId, nickname ->
             delegateHostTo(memberId, nickname)
         }
 
         dialog.show(supportFragmentManager, "RoomMenuDialog")
     }
+
 
 
     // ------------------------------------------------------------
@@ -1536,90 +1557,92 @@ private fun createScheduleOnServer(
         return defaultMessage
     }
 
-   //방장위임
-    private fun delegateHostTo(targetMemberId: Long, targetNickname: String) {
-        // 현재 유저가 방장인지 체크 (이미 isHost 같은 플래그를 갖고 있을 가능성 높음)
-        if (!currentUserIsHost) {
-            Toast.makeText(this, "방장만 방장 위임을 할 수 있습니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
 
-        // 한번 더 확인하는 다이얼로그
-        AlertDialog.Builder(this)
-            .setTitle("방장 위임")
-            .setMessage("$targetNickname 님에게 방장을 위임하시겠습니까?")
-            .setPositiveButton("위임") { _, _ ->
-                lifecycleScope.launch {
-                    try {
-                        val request = DelegateHostRequest(newHostId = targetMemberId)
-                        val response = RetrofitClient.roomApiService
-                            .delegateHost(roomId = roomId, request = request)
+   // 방장 위임
+   private fun delegateHostTo(targetMemberId: Long, targetNickname: String) {
+       // 1️⃣ 현재 유저가 방장인지 먼저 체크
+       if (!currentUserIsHost) {
+           Toast.makeText(this, "방장이 아닙니다.", Toast.LENGTH_SHORT).show()
+           return
+       }
 
-                        if (response.isSuccessful) {
-                            val body = response.body()
-                            if (body?.code == 0) {
-                                Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "$targetNickname 님에게 방장을 위임했습니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+       // 2️⃣ 방장일 때만 확인 다이얼로그 노출
+       AlertDialog.Builder(this)
+           .setTitle("방장 위임")
+           .setMessage("$targetNickname 님에게 방장을 위임하시겠습니까?")
+           .setPositiveButton("위임") { _, _ ->
+               lifecycleScope.launch {
+                   try {
+                       val request = DelegateHostRequest(newHostId = targetMemberId)
+                       val response = RetrofitClient.roomApiService
+                           .delegateHost(roomId = roomId, request = request)
 
-                                // ✅ 단일 기준인 상세조회로 다시 UI 보정
-                                loadRoomDetailFromServer()
-                            } else {
-                                Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    body?.message ?: "방장 위임에 실패했습니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        } else {
-                            // status code 기반 처리 (403, 404 등)
-                            when (response.code()) {
-                                400 -> Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "요청 정보가 올바르지 않습니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                       if (response.isSuccessful) {
+                           val body = response.body()
+                           if (body?.code == 0) {
+                               Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "$targetNickname 님에게 방장을 위임했습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
 
-                                401 -> Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "다시 로그인 후 시도해주세요.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                               // ✅ 단일 기준인 상세조회로 다시 UI 보정
+                               loadRoomDetailFromServer()
+                           } else {
+                               Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   body?.message ?: "방장 위임에 실패했습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+                           }
+                       } else {
+                           // status code 기반 처리 (403, 404 등)
+                           when (response.code()) {
+                               400 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "요청 정보가 올바르지 않습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
 
-                                403 -> Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "방장만 위임할 수 있거나, 선택한 멤버가 방 멤버가 아닙니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                               401 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "다시 로그인 후 시도해주세요.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
 
-                                404 -> Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "해당 방 정보를 찾을 수 없습니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                               403 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "방장만 위임할 수 있거나, 선택한 멤버가 방 멤버가 아닙니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
 
-                                else -> Toast.makeText(
-                                    this@RoomScheduleTestActivity,
-                                    "방장 위임 중 오류가 발생했습니다. (${response.code()})",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(
-                            this@RoomScheduleTestActivity,
-                            "네트워크 오류로 방장 위임에 실패했습니다.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-            .setNegativeButton("취소", null)
-            .show()
-    }
+                               404 -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "해당 방 정보를 찾을 수 없습니다.",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+
+                               else -> Toast.makeText(
+                                   this@RoomScheduleTestActivity,
+                                   "방장 위임 중 오류가 발생했습니다. (${response.code()})",
+                                   Toast.LENGTH_SHORT
+                               ).show()
+                           }
+                       }
+                   } catch (e: Exception) {
+                       e.printStackTrace()
+                       Toast.makeText(
+                           this@RoomScheduleTestActivity,
+                           "네트워크 오류로 방장 위임에 실패했습니다.",
+                           Toast.LENGTH_SHORT
+                       ).show()
+                   }
+               }
+           }
+           .setNegativeButton("취소", null)
+           .show()
+   }
+
 
 
 

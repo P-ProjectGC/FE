@@ -209,7 +209,7 @@ class RoomMenuDialogFragment : DialogFragment() {
             roomId: Long,
             roomName: String,
             memberNicknames: List<String>,
-            imageUris: List<Uri>
+            imageUris: List<Uri>,
         ): RoomMenuDialogFragment {
             val args = Bundle().apply {
                 putLong(ARG_ROOM_ID, roomId)
