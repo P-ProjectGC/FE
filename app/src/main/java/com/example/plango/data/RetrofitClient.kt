@@ -1,6 +1,7 @@
 package com.example.plango.data
 
 import android.content.Context
+import com.example.plango.data.login_api.AuthRepository
 import com.example.plango.data.login_api.AuthService
 import com.example.plango.data.token.AuthInterceptor
 import com.example.plango.data.token.TokenManager

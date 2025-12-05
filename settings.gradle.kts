@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven { url = uri("https://devrepo.kakao.com/nexus/content/groups/public/") }
     }
 }
 
@@ -17,6 +18,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://devrepo.kakao.com/nexus/content/groups/public/") }
         maven("https://jitpack.io")   // ✅ Kotlin DSL 문법
     }
 }
