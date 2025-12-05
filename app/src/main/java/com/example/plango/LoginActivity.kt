@@ -63,6 +63,18 @@ class LoginActivity : ComponentActivity() {
             //return
        //}
 
+        authViewModel.loading.observe(this) { isLoading ->
+            if (isLoading) {
+                binding.loginLoading.visibility = View.VISIBLE
+                binding.btnLogin.isEnabled = false
+                binding.btnLogin.alpha = 0.5f
+            } else {
+                binding.loginLoading.visibility = View.GONE
+                binding.btnLogin.isEnabled = true
+                binding.btnLogin.alpha = 1f
+            }
+        }
+
         setupTextWatchers()       // 입력 감지 → 로그인 버튼 활성화
         setupButtonListeners()    // 버튼 클릭 이벤트 설정
         observeLogin()            // 일반 로그인 결과 관찰
