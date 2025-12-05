@@ -4,15 +4,22 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.plango.data.RetrofitClient
+import com.example.plango.data.signup_api.SignupRepository
+import com.example.plango.data.signup_api.SignupViewModel
+import com.example.plango.data.signup_api.SignupViewModelFactory
 import com.example.plango.databinding.ActivitySignupBinding
 
 class SignUpActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySignupBinding
+
+    private lateinit var signupViewModel: SignupViewModel
 
     // 정규식 상수들
     private val ID_REGEX = "^[a-z0-9]{4,16}$".toRegex()
@@ -31,6 +38,34 @@ class SignUpActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySignupBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        signupViewModel = SignupViewModelFactory(
+            SignupRepository(RetrofitClient.signupApiService)
+        ).create(SignupViewModel::class.java)
+
+        signupViewModel.signupResult.observe(this) { result ->
+            Log.d("SIGNUP_DEBUG", "response = $result")
+            if (result != null && result.code == 0) {
+                Toast.makeText(this, "회원가입 성공!", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            } else {
+                Toast.makeText(this, "회원가입 실패", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        signupViewModel.loading.observe(this) { isLoading ->
+            if (isLoading) {
+                binding.signUpLoading.visibility = View.VISIBLE
+                binding.signUpBtn.isEnabled = false
+                binding.signUpBtn.alpha = 0.5f
+            } else {
+                binding.signUpLoading.visibility = View.GONE
+                binding.signUpBtn.isEnabled = true
+                binding.signUpBtn.alpha = 1f
+            }
+        }
+
 
         setupTextWatchers()
         setupPasswordToggle()
@@ -86,7 +121,14 @@ class SignUpActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            finish()
+            val name = signUpNameEt.text.toString()
+            val nickname = signUpNicknameEt.text.toString()
+            val loginId = signUpIdEt.text.toString()
+            val password = signUpPwEt.text.toString()
+            val email = signUpEmailEt.text.toString()
+
+            // 🚀 회원가입 API 호출
+            signupViewModel.signup(name, nickname, loginId, password, email)
         }
 
         // 닉네임 중복확인

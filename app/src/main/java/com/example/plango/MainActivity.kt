@@ -26,6 +26,7 @@ import com.example.plango.data.RetrofitClient
 import com.example.plango.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import android.Manifest
+import com.example.plango.data.TravelRoomRepository
 
 class MainActivity : AppCompatActivity() {
 
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        
+
 
 
 
@@ -113,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         loadProfileIcon()
         checkNewFriendRequestsAndNotify()   //  앱이 메인으로 돌아올 때마다 친구 요청 체크
+
     }
 
 
@@ -305,5 +307,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
+
 
 }

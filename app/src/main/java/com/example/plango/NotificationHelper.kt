@@ -63,6 +63,7 @@ object NotificationHelper {
         context: Context,
         roomId: Long,
         roomName: String,
+        senderName: String,          // 🔹 추가
         messagePreview: String
     ) {
         // 1) 프로필 전체 채팅 알림 OFF면 리턴
@@ -153,4 +154,36 @@ object NotificationHelper {
             notify(notificationId, builder.build())
         }
     }
+
+    fun showTripReminderNotification(
+        context: Context,
+        roomId: Long,
+        roomName: String
+    ) {
+        // 프로필에서 일정 리마인더 OFF면 리턴
+        if (!MemberSession.isTripReminderOn()) return
+
+        // Android 13+ 권한 확인
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+        }
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID_FRIEND)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("여행 하루 전 알림")
+            .setContentText("내일 '${roomName}' 여행이 시작됩니다!")
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        with(NotificationManagerCompat.from(context)) {
+            notify(roomId.toInt() + 9999, builder.build())
+        }
+    }
+
 }

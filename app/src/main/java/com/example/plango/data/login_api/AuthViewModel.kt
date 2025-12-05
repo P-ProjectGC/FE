@@ -23,6 +23,11 @@ class AuthViewModel(
     // 닉네임 중복 확인
     private val _nicknameCheckState = MutableLiveData<Result<Boolean>>()
     val nicknameCheckState: LiveData<Result<Boolean>> = _nicknameCheckState
+  
+    // 로딩 면화면
+    private val _loading = MutableLiveData<Boolean>()
+    val loading: LiveData<Boolean> get() = _loading
+
 
 
     /**
@@ -32,9 +37,18 @@ class AuthViewModel(
      */
     fun loginNormal(email: String, password: String) {
         viewModelScope.launch {
-            _normalLoginResult.value = repository.loginNormal(
-                LoginRequest(email, password)
-            )
+
+            _loading.value = true  // 🔥 로딩 시작
+
+            try {
+                val result = repository.loginNormal(
+                    LoginRequest(email, password)
+                )
+                _normalLoginResult.value = result
+
+            } finally {
+                _loading.value = false // 🔥 로딩 끝
+            }
         }
     }
 
