@@ -1,6 +1,7 @@
 package com.example.plango.data
 
 import android.util.Log
+import com.example.plango.model.RoomDetailData
 import com.example.plango.model.RoomDto
 import com.example.plango.model.TravelRoom
 import kotlinx.coroutines.Dispatchers
@@ -8,11 +9,8 @@ import kotlinx.coroutines.withContext
 
 object TravelRoomRepository {
 
-    // 서버에서 받아온 방 목록
+    // 서버에서 받아온 방 목록이 여기에 들어감
     private val rooms = mutableListOf<TravelRoom>()
-
-    // ✅ 상세조회에서 받아온 "멤버 닉네임" 캐시 (방 목록 카드용)
-    private val roomMembersCache = mutableMapOf<Long, List<String>>()
 
     /**
      * 현재 메모리에 올라와 있는 여행방 리스트 반환
@@ -22,7 +20,6 @@ object TravelRoomRepository {
 
     fun clearRooms() {
         rooms.clear()
-        roomMembersCache.clear()
     }
 
     /**
@@ -31,8 +28,6 @@ object TravelRoomRepository {
      */
     fun addRoom(room: TravelRoom) {
         rooms.add(0, room)
-        // 생성 직후에도 멤버 닉네임 캐시에 넣어두면 목록 카드에 바로 반영 가능
-        roomMembersCache[room.id] = room.memberNicknames
     }
 
     /**
@@ -43,31 +38,41 @@ object TravelRoomRepository {
         return rooms.find { it.id == id }
     }
 
+
     /**
-     * ✅ 방 상세조회 결과(멤버 목록)를 레포/캐시에 반영
-     *  - RoomScheduleTestActivity.loadRoomDetailFromServer() 에서 호출
+     * ✅ RoomScheduleTestActivity에서 상세조회로 받은 멤버 정보를
+     *    Repository에 반영해서 방 목록 카드도 최신 상태로 맞춰준다.
      */
     fun updateRoomMembersFromDetail(roomId: Long, memberNicknames: List<String>) {
-        if (memberNicknames.isEmpty()) return
-
-        // 캐시에 저장
-        roomMembersCache[roomId] = memberNicknames
-
-        // rooms 리스트 안의 TravelRoom도 갱신
         val index = rooms.indexOfFirst { it.id == roomId }
-        if (index != -1) {
-            val old = rooms[index]
-            rooms[index] = old.copy(
-                memberCount = memberNicknames.size,
-                memberNicknames = memberNicknames
-            )
+        if (index == -1) {
+            Log.w("TravelRoomRepository", "updateRoomMembersFromDetail: room not found (id=$roomId)")
+            return
         }
+
+        val old = rooms[index]
+        val newCount = if (memberNicknames.isNotEmpty()) memberNicknames.size else old.memberCount
+
+        val updated = old.copy(
+            memberNicknames = memberNicknames,
+            memberCount = newCount
+        )
+
+        rooms[index] = updated
+        Log.d(
+            "TravelRoomRepository",
+            "updateRoomMembersFromDetail: id=$roomId, members=$memberNicknames, count=$newCount"
+        )
     }
+
+
+
+
 
     /**
      * 서버에서 여행방 목록을 가져와 rooms 리스트를 갱신
      *
-     * @param keyword    메모/이름 검색용 키워드(없으면 null)
+     * @param keyword    메모/제목 검색용 키워드(없으면 null)
      *
      * @return true  -> 서버에서 목록을 정상적으로 가져옴
      *         false -> 실패(HTTP 에러, 예외, code != 0 등)
@@ -77,7 +82,7 @@ object TravelRoomRepository {
     ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                // 🔥 JWT 토큰 기반이라 memberId 안 넘김
+                // 🔹 목록 API (이건 Response<...> 형태라고 가정 – 기존 코드 그대로)
                 val response = RetrofitClient.roomApiService.getRooms(keyword)
                 Log.d("TravelRoomRepository", "getRooms response = $response")
 
@@ -88,24 +93,19 @@ object TravelRoomRepository {
                     if (body?.code == 0) {
                         val dtoList: List<RoomDto> = body.data ?: emptyList()
 
-                        // 1) 서버 응답을 기반으로 기본 TravelRoom 리스트 생성
-                        val baseRooms: List<TravelRoom> = dtoList.map { mapDtoToTravelRoom(it) }
-
-                        // 2) ✅ 이미 상세조회로 캐시된 멤버 정보가 있으면 그걸로 덮어쓰기
-                        val mergedRooms = baseRooms.map { room ->
-                            val cachedMembers = roomMembersCache[room.id]
-                            if (!cachedMembers.isNullOrEmpty()) {
-                                room.copy(
-                                    memberCount = cachedMembers.size,
-                                    memberNicknames = cachedMembers
-                                )
-                            } else {
-                                room
-                            }
-                        }
-
                         rooms.clear()
-                        rooms.addAll(mergedRooms)
+
+                        // 1차: 목록 DTO → TravelRoom (기본 정보만)
+                        val baseRooms = dtoList.map { mapDtoToTravelRoom(it) }
+
+                        // ✅ 2차: roomId 기준으로 중복 제거
+                        val distinctBaseRooms = baseRooms.distinctBy { it.id }
+
+                        // 3차: 각 방에 대해 상세조회로 멤버/방장 정보 보정
+                        for (base in distinctBaseRooms) {
+                            val enriched = enrichRoomWithDetail(base)
+                            rooms.add(enriched)
+                        }
 
                         return@withContext true
                     } else {
@@ -136,14 +136,10 @@ object TravelRoomRepository {
 
     /**
      * 서버 RoomDto -> 앱에서 쓰는 TravelRoom 으로 변환
-     * - host: 이 JWT 기준으로 방장인지 여부
-     * - members: 목록 API에서는 null 일 수도 있음
+     * (목록에서 오는 "기본 정보"만 사용)
      */
     private fun mapDtoToTravelRoom(dto: RoomDto): TravelRoom {
-        // 목록에서 members를 안 줄 수도 있어서 방어
-        val memberNicknames = dto.members?.map { it.nickname } ?: emptyList()
-        val memberCount = if (memberNicknames.isNotEmpty()) memberNicknames.size else 1
-
+        // 목록에서는 members 가 안 올 수도 있으니, 여기서는 기본 정보만 세팅
         return TravelRoom(
             id = dto.roomId,
             title = dto.roomName,
@@ -151,10 +147,52 @@ object TravelRoomRepository {
             endDate = dto.endDate,
             dateText = "${dto.startDate} - ${dto.endDate}",
             memo = dto.memo,
-            memberCount = memberCount,
-            memberNicknames = memberNicknames,
-            isHost = dto.host == true      // 서버가 내려준 host 플래그 그대로 사용
+            memberCount = 1,               // 임시값 → 상세조회에서 보정
+            memberNicknames = emptyList(), // 임시값 → 상세조회에서 보정
+            isHost = dto.host == true      // 목록에서도 host가 오면 일단 반영
         )
+    }
+
+    /**
+     * ✅ 상세조회 API를 이용해 방 정보를 보강
+     * - RoomDetailData 기준으로 memberNicknames / memberCount / isHost 등을 덮어씀
+     */
+    private suspend fun enrichRoomWithDetail(base: TravelRoom): TravelRoom {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 🔹 여기서는 Response<T> 가 아니라 RoomDetailResponse 를 바로 받는다고 가정
+                val detailResponse = RetrofitClient.roomApiService.getRoomDetail(base.id)
+                val detail: RoomDetailData? = detailResponse.data
+
+                if (detailResponse.code == "0" && detail != null) {
+                    // 참여자 닉네임 리스트
+                    val memberNicknames: List<String> =
+                        detail.members.map { it.nickname }
+
+                    // 인원 수 (멤버 리스트 크기)
+                    val memberCount: Int =
+                        memberNicknames.size.takeIf { it > 0 } ?: base.memberCount
+
+                    // host 는 Boolean
+                    val isHost = detail.host
+
+                    return@withContext base.copy(
+                        title = detail.roomName,
+                        startDate = detail.startDate,
+                        endDate = detail.endDate,
+                        memo = detail.memo,
+                        memberNicknames = memberNicknames,
+                        memberCount = memberCount,
+                        isHost = isHost
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("TravelRoomRepository", "getRoomDetail exception", e)
+            }
+
+            // 실패하면 그냥 원래 값 그대로 반환
+            base
+        }
     }
 
     /**

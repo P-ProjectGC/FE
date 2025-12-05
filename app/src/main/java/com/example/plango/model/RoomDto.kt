@@ -19,6 +19,7 @@ data class RoomDto(
 
     // 이 요청자(X-MEMBER-ID)가 방장인지?
     val host: Boolean? = null,
+    val memberCount: Int?,
 
     // 상세 조회에서만 채워질 수 있는 멤버 목록
     val members: List<RoomMemberDto>? = null

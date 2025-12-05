@@ -324,13 +324,15 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
             return
         }
 
-        // 서버에서 준 값이 "uploads/xxx.jpg" 같은 상대 경로일 수 있으니 처리
+        // 서버에서 준 값이 "uploads/xxx.jpg" 같은 상대 경로 (S3 object key)
         val imageUrl = if (path.startsWith("http")) {
             path
         } else {
-            // 네가 지금 쓰는 BASE_URL 방식 그대로
-            RetrofitClient.BASE_URL + path
+            // ✅ 이제는 API BASE_URL이 아니라 S3 IMAGE_BASE_URL 사용
+            RetrofitClient.IMAGE_BASE_URL + path
         }
+
+        android.util.Log.d("PROFILE_IMAGE", "path=$path, finalUrl=$imageUrl")
 
         Glide.with(this)
             .load(imageUrl)

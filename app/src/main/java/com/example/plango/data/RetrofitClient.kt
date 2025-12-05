@@ -17,7 +17,14 @@ object RetrofitClient {
     //private const val BASE_URL = "http://172.25.81.234:8080/"
 
 
-    const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev/"
+    //const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev/"
+      const val BASE_URL = "http://10.0.2.2:8080/"
+
+
+    // 🔥 S3용 이미지 BASE URL (네 버킷/리전에 맞게 실제 값으로 바꾸기!)
+    const val IMAGE_BASE_URL =
+        "https://plango-dev.s3.ap-southeast-2.amazonaws.com/"
+
     private lateinit var tokenManager: TokenManager
 
 
