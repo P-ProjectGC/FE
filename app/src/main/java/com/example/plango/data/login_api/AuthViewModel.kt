@@ -18,12 +18,24 @@ class AuthViewModel(
     private val _tokenRefreshResult = MutableLiveData<Result<LoginData>>()
     val tokenRefreshResult: LiveData<Result<LoginData>> = _tokenRefreshResult
 
+    private val _loading = MutableLiveData<Boolean>()
+    val loading: LiveData<Boolean> get() = _loading
+
 
     fun loginNormal(email: String, password: String) {
         viewModelScope.launch {
-            _normalLoginResult.value = repository.loginNormal(
-                LoginRequest(email, password)
-            )
+
+            _loading.value = true  // 🔥 로딩 시작
+
+            try {
+                val result = repository.loginNormal(
+                    LoginRequest(email, password)
+                )
+                _normalLoginResult.value = result
+
+            } finally {
+                _loading.value = false // 🔥 로딩 끝
+            }
         }
     }
 

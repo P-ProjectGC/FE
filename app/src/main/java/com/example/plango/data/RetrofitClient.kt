@@ -3,6 +3,7 @@ package com.example.plango.data
 import android.content.Context
 import com.example.plango.data.login_api.AuthRepository
 import com.example.plango.data.login_api.AuthService
+import com.example.plango.data.signup_api.SignupService
 import com.example.plango.data.token.AuthInterceptor
 import com.example.plango.data.token.TokenManager
 import com.google.gson.GsonBuilder
@@ -85,4 +86,8 @@ object RetrofitClient {
         retrofit.create(ChatApiService::class.java)
     }
 
+    // 회원가입 API
+    val signupApiService: SignupService by lazy {
+        retrofit.create(SignupService::class.java)
+    }
 }
