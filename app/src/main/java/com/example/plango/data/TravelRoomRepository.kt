@@ -8,8 +8,11 @@ import kotlinx.coroutines.withContext
 
 object TravelRoomRepository {
 
-    // 서버에서 받아온 방 목록이 여기에 들어감
+    // 서버에서 받아온 방 목록
     private val rooms = mutableListOf<TravelRoom>()
+
+    // ✅ 상세조회에서 받아온 "멤버 닉네임" 캐시 (방 목록 카드용)
+    private val roomMembersCache = mutableMapOf<Long, List<String>>()
 
     /**
      * 현재 메모리에 올라와 있는 여행방 리스트 반환
@@ -19,6 +22,7 @@ object TravelRoomRepository {
 
     fun clearRooms() {
         rooms.clear()
+        roomMembersCache.clear()
     }
 
     /**
@@ -27,6 +31,8 @@ object TravelRoomRepository {
      */
     fun addRoom(room: TravelRoom) {
         rooms.add(0, room)
+        // 생성 직후에도 멤버 닉네임 캐시에 넣어두면 목록 카드에 바로 반영 가능
+        roomMembersCache[room.id] = room.memberNicknames
     }
 
     /**
@@ -38,10 +44,30 @@ object TravelRoomRepository {
     }
 
     /**
+     * ✅ 방 상세조회 결과(멤버 목록)를 레포/캐시에 반영
+     *  - RoomScheduleTestActivity.loadRoomDetailFromServer() 에서 호출
+     */
+    fun updateRoomMembersFromDetail(roomId: Long, memberNicknames: List<String>) {
+        if (memberNicknames.isEmpty()) return
+
+        // 캐시에 저장
+        roomMembersCache[roomId] = memberNicknames
+
+        // rooms 리스트 안의 TravelRoom도 갱신
+        val index = rooms.indexOfFirst { it.id == roomId }
+        if (index != -1) {
+            val old = rooms[index]
+            rooms[index] = old.copy(
+                memberCount = memberNicknames.size,
+                memberNicknames = memberNicknames
+            )
+        }
+    }
+
+    /**
      * 서버에서 여행방 목록을 가져와 rooms 리스트를 갱신
      *
-     * @param memberId   X-MEMBER-ID 헤더에 들어갈 현재 사용자 ID
-     * @param keyword    메모 검색용 키워드(없으면 null)
+     * @param keyword    메모/이름 검색용 키워드(없으면 null)
      *
      * @return true  -> 서버에서 목록을 정상적으로 가져옴
      *         false -> 실패(HTTP 에러, 예외, code != 0 등)
@@ -62,8 +88,24 @@ object TravelRoomRepository {
                     if (body?.code == 0) {
                         val dtoList: List<RoomDto> = body.data ?: emptyList()
 
+                        // 1) 서버 응답을 기반으로 기본 TravelRoom 리스트 생성
+                        val baseRooms: List<TravelRoom> = dtoList.map { mapDtoToTravelRoom(it) }
+
+                        // 2) ✅ 이미 상세조회로 캐시된 멤버 정보가 있으면 그걸로 덮어쓰기
+                        val mergedRooms = baseRooms.map { room ->
+                            val cachedMembers = roomMembersCache[room.id]
+                            if (!cachedMembers.isNullOrEmpty()) {
+                                room.copy(
+                                    memberCount = cachedMembers.size,
+                                    memberNicknames = cachedMembers
+                                )
+                            } else {
+                                room
+                            }
+                        }
+
                         rooms.clear()
-                        rooms.addAll(dtoList.map { mapDtoToTravelRoom(it) })
+                        rooms.addAll(mergedRooms)
 
                         return@withContext true
                     } else {
@@ -92,15 +134,15 @@ object TravelRoomRepository {
         }
     }
 
-
     /**
      * 서버 RoomDto -> 앱에서 쓰는 TravelRoom 으로 변환
-     * - host: 이 X-MEMBER-ID 기준으로 방장인지 여부
-     * - members: 상세조회/목록에 따라 null 일 수도 있음
+     * - host: 이 JWT 기준으로 방장인지 여부
+     * - members: 목록 API에서는 null 일 수도 있음
      */
     private fun mapDtoToTravelRoom(dto: RoomDto): TravelRoom {
+        // 목록에서 members를 안 줄 수도 있어서 방어
         val memberNicknames = dto.members?.map { it.nickname } ?: emptyList()
-        val memberCount = dto.members?.size ?: 1
+        val memberCount = if (memberNicknames.isNotEmpty()) memberNicknames.size else 1
 
         return TravelRoom(
             id = dto.roomId,
