@@ -6,6 +6,7 @@ import com.example.plango.model.CreateWishlistPlaceRequest
 import com.example.plango.model.RoomDto
 import com.example.plango.model.WishlistPlaceDto
 import com.example.plango.model.CreateScheduleRequest
+import com.example.plango.model.DelegateHostRequest
 import com.example.plango.model.RoomDetailResponse
 import com.example.plango.model.ScheduleDto
 import com.example.plango.model.UpdateScheduleRequest
@@ -88,6 +89,13 @@ interface RoomApiService {
     suspend fun getRoomDetail(
         @Path("roomId") roomId: Long
     ): RoomDetailResponse
+
+    //방장위임
+    @PATCH("api/rooms/{roomId}/host")
+    suspend fun delegateHost(
+        @Path("roomId") roomId: Long,
+        @Body request: DelegateHostRequest
+    ): Response<ApiResponse<Unit>>
 
 
 }

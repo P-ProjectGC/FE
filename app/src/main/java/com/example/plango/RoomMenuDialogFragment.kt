@@ -1,4 +1,4 @@
-// RoomMenuDialogFragment.kt
+// app/src/main/java/com/example/plango/RoomMenuDialogFragment.kt
 package com.example.plango
 
 import android.graphics.Color
@@ -8,13 +8,28 @@ import android.os.Bundle
 import android.view.*
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.example.plango.model.RoomMemberDetail    // ⭐ 이 import 꼭 있어야 함
 
 class RoomMenuDialogFragment : DialogFragment() {
 
     private var roomId: Long = -1L
-    private lateinit var roomName: String
-    private var memberNicknames: List<String> = emptyList()
+    private var roomName: String = ""
+    private var memberNicknames: List<String> = emptyList()   // 원래 쓰던 것 그대로 유지
     private var images: List<Uri> = emptyList()
+
+    // ⭐ Activity가 상세조회 응답에서 직접 넣어주는 실제 멤버 리스트
+    private var members: List<RoomMemberDetail> = emptyList()
+
+    fun setMembers(list: List<RoomMemberDetail>) {
+        members = list
+    }
+
+    // ⭐ 방장 위임 콜백 (Activity에서 delegateHostTo(...) 연결)
+    private var onTransferHostListener: ((Long, String) -> Unit)? = null
+
+    fun setOnTransferHostListener(listener: (Long, String) -> Unit) {
+        onTransferHostListener = listener
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,11 +37,11 @@ class RoomMenuDialogFragment : DialogFragment() {
         val args = arguments
         if (args != null) {
             roomId = args.getLong(ARG_ROOM_ID, -1L)
-            roomName = args.getString(ARG_ROOM_NAME, "")
+            roomName = args.getString(ARG_ROOM_NAME, "") ?: ""
+
             memberNicknames =
                 args.getStringArrayList(ARG_MEMBER_NICKNAMES)?.toList() ?: emptyList()
 
-            // 🔹 문자열 리스트로 받아서 Uri로 변환 (안전)
             val imageStrs = args.getStringArrayList(ARG_IMAGE_URIS) ?: arrayListOf()
             images = imageStrs.map { Uri.parse(it) }
         } else {
@@ -61,30 +76,46 @@ class RoomMenuDialogFragment : DialogFragment() {
         // 상단 제목
         tvTitle.text = "메뉴"
 
-        // 참여자 수
-        tvMemberTitle.text = "참여자 목록 (${memberNicknames.size}명)"
+        // 참여자 수: members가 있으면 그걸 기준, 없으면 기존 닉네임 리스트 기준
+        val memberCount = if (members.isNotEmpty()) members.size else memberNicknames.size
+        tvMemberTitle.text = "참여자 목록 (${memberCount}명)"
 
-        //이미지
+        // 이미지 섹션
         if (images.isEmpty()) {
             layoutImageSection.visibility = View.VISIBLE
+            tvImageCount.text = "(0개)"
+            ivImagePreview.setImageDrawable(null)
         } else {
             layoutImageSection.visibility = View.VISIBLE
             tvImageCount.text = "(${images.size}개)"
 
-            // 🔐 권한 없어서 죽는 것 방지
             val lastUri = images.last()
             try {
                 ivImagePreview.setImageURI(lastUri)
             } catch (e: SecurityException) {
-                // 더 이상 접근 권한 없으면 썸네일 숨기기
                 layoutImageSection.visibility = View.GONE
             }
         }
 
-
         // 참여자 리스트
         memberListLayout.removeAllViews()
-        memberNicknames.forEachIndexed { index, nickname ->
+
+        // ⭐ 실제 멤버 리스트가 있으면 그걸 우선 사용, 없으면 예전 방식 fallback
+        val displayMembers: List<RoomMemberDetail> =
+            if (members.isNotEmpty()) {
+                members
+            } else {
+                memberNicknames.mapIndexed { index, name ->
+                    RoomMemberDetail(
+                        memberId = -1L,          // 실제 ID 모를 때는 -1
+                        nickname = name,
+                        profileImageUrl = null,
+                        host = (index == 0)      // 예전처럼 첫 번째를 임시 방장으로
+                    )
+                }
+            }
+
+        displayMembers.forEach { member ->
             val itemView = layoutInflater.inflate(
                 R.layout.item_room_member,
                 memberListLayout,
@@ -96,20 +127,25 @@ class RoomMenuDialogFragment : DialogFragment() {
             val tvHostBadge = itemView.findViewById<TextView>(R.id.tvHostBadge)
             val btnTransfer = itemView.findViewById<Button>(R.id.btnTransferHost)
 
-            tvNickname.text = nickname
+            tvNickname.text = member.nickname
             tvRealName.visibility = View.GONE
 
-            // 임시: 첫 번째 멤버를 방장으로 가정
-            val isHost = (index == 0)
+            val isHost = member.host
             tvHostBadge.visibility = if (isHost) View.VISIBLE else View.GONE
             btnTransfer.visibility = if (isHost) View.GONE else View.VISIBLE
 
             btnTransfer.setOnClickListener {
-                Toast.makeText(
-                    requireContext(),
-                    "${nickname}님에게 방장을 양도하는 기능은 나중에 붙이자 😄",
-                    Toast.LENGTH_SHORT
-                ).show()
+                // 실제 멤버 id가 -1이 아니면 위임 콜백 호출
+                if (member.memberId != -1L) {
+                    onTransferHostListener?.invoke(member.memberId, member.nickname)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "${member.nickname}님의 ID 정보를 알 수 없어 위임할 수 없습니다.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                dismiss()
             }
 
             memberListLayout.addView(itemView)
@@ -173,13 +209,12 @@ class RoomMenuDialogFragment : DialogFragment() {
             roomId: Long,
             roomName: String,
             memberNicknames: List<String>,
-            imageUris: List<Uri>
+            imageUris: List<Uri>,
         ): RoomMenuDialogFragment {
             val args = Bundle().apply {
                 putLong(ARG_ROOM_ID, roomId)
                 putString(ARG_ROOM_NAME, roomName)
                 putStringArrayList(ARG_MEMBER_NICKNAMES, ArrayList(memberNicknames))
-                // 🔹 Uri를 문자열로 변환해서 넣기 (안전)
                 putStringArrayList(
                     ARG_IMAGE_URIS,
                     ArrayList(imageUris.map { it.toString() })

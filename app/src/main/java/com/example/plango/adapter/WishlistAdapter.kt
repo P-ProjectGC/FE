@@ -3,27 +3,23 @@ package com.example.plango
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
 class WishlistAdapter(
     private val items: MutableList<WishlistPlaceItem>,
-    private val isHost: Boolean,
+    private var isHost: Boolean,
     private val onConfirmClick: (WishlistPlaceItem) -> Unit,
     private val onDeleteClick: (WishlistPlaceItem) -> Unit
-) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>()
- {
-
+) : RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder>() {
 
     inner class WishlistViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textPlaceName: TextView = itemView.findViewById(R.id.textPlaceNameWishlist)
         val textAddress: TextView = itemView.findViewById(R.id.textAddressWishlist)
         val textAddedBy: TextView = itemView.findViewById(R.id.textAddedBy)
         val btnConfirm: TextView = itemView.findViewById(R.id.btnConfirmSchedule)
-        val btnDelete: TextView = itemView.findViewById(R.id.btnDeleteWishlist)   // ← 추가!!
-
+        val btnDelete: TextView = itemView.findViewById(R.id.btnDeleteWishlist)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WishlistViewHolder {
@@ -39,7 +35,7 @@ class WishlistAdapter(
         holder.textAddress.text = item.address
         holder.textAddedBy.text = "추가: ${item.addedBy}"
 
-        // 👇 버튼 모양은 그대로 두고, 동작만 권한으로 막기
+        // ✅ 일정 확정 버튼
         holder.btnConfirm.setOnClickListener {
             if (!isHost) {
                 Toast.makeText(
@@ -49,29 +45,34 @@ class WishlistAdapter(
                 ).show()
                 return@setOnClickListener
             }
-
-            // 방장일 때만 실제 일정 확정 로직 실행
             onConfirmClick(item)
         }
-        // 🔴 삭제 버튼 클릭 시 → Activity/Fragment로 콜백 보내기
+
+        // ✅ 삭제 버튼
         holder.btnDelete.setOnClickListener {
             onDeleteClick(item)
         }
-
     }
 
     override fun getItemCount(): Int = items.size
-     //아이템 삭제 함수
+
+    // 전체 갱신
     fun refresh() {
         notifyDataSetChanged()
     }
-     fun removeItem(item: WishlistPlaceItem) {
-         val index = items.indexOf(item)
-         if (index != -1) {
-             items.removeAt(index)
-             notifyItemRemoved(index)
-         }
-     }
 
- }
+    // 개별 삭제
+    fun removeItem(item: WishlistPlaceItem) {
+        val index = items.indexOf(item)
+        if (index != -1) {
+            items.removeAt(index)
+            notifyItemRemoved(index)
+        }
+    }
 
+    // ⭐ 방장 여부를 나중에 서버 기준으로 다시 넣어주는 함수
+    fun updateHost(isHost: Boolean) {
+        this.isHost = isHost
+        notifyDataSetChanged()
+    }
+}
