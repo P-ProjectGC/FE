@@ -293,13 +293,14 @@ class RoomScheduleTestActivity :
                 openDeleteWishlistConfirmDialog(item)
             }
         )
+        // 🔹 방 상세 정보(멤버 목록, 방 제목/메모)를 서버 기준으로 덮어쓰기
+        loadRoomDetailFromServer()
 
         // ✅ 어댑터 세팅 끝난 뒤에 호출
         loadWishlistFromServer()
+
         loadSchedulesFromServer()
 
-        // 🔹 방 상세 정보(멤버 목록, 방 제목/메모)를 서버 기준으로 덮어쓰기
-        loadRoomDetailFromServer()
         loadInitialChats()
 
 
@@ -636,8 +637,7 @@ class RoomScheduleTestActivity :
             address = place.address ?: "",
             lat = latLng.latitude,
             lng = latLng.longitude,
-            addedBy = "나",
-            // 여기까지는 선택이지만, 이제는 placeId 도 같이 넣어줄 수 있음
+            addedBy = MemberSession.nickname ?: "나",   // ✅ 닉네임 사용
             googlePlaceId = place.id,
             formattedAddress = place.address
         )
@@ -990,8 +990,10 @@ class RoomScheduleTestActivity :
                     if (body?.code == 0) {
                         val dto = body.data   // WishlistPlaceDto
 
+
                         // dto 가 null 아님을 체크
                         if (dto != null) {
+                            val creatorNickname = findNicknameByMemberId(dto.createdByMemberId)
                             val newItem = WishlistPlaceItem(
                                 placeName = dto.name,
                                 address = if (dto.formattedAddress.isNotBlank()) {
@@ -1001,7 +1003,7 @@ class RoomScheduleTestActivity :
                                 },
                                 lat = dto.latitude,
                                 lng = dto.longitude,
-                                addedBy = dto.createdByMemberId.toString(),
+                                addedBy = creatorNickname ?: "알 수 없음",
                                 googlePlaceId = dto.googlePlaceId,
                                 formattedAddress = dto.formattedAddress,
                                 placeId = dto.id           // 🔴 여기 중요
@@ -1061,6 +1063,7 @@ class RoomScheduleTestActivity :
                         wishlistItems.clear()
 
                         dtoList.forEach { dto ->
+                            val creatorNickname = findNicknameByMemberId(dto.createdByMemberId)
                             val item = WishlistPlaceItem(
                                 placeName = dto.name,
                                 // formattedAddress 가 있으면 그걸, 없으면 address 사용
@@ -1072,8 +1075,7 @@ class RoomScheduleTestActivity :
                                 },
                                 lat = dto.latitude,
                                 lng = dto.longitude,
-                                // 지금은 createdByMemberId 를 문자열로 넣어두기 (닉네임 연동 전 임시)
-                                addedBy = dto.createdByMemberId.toString(),
+                                addedBy = creatorNickname ?: "알 수 없음",
                                 googlePlaceId = dto.googlePlaceId,
                                 formattedAddress = dto.formattedAddress,
                                         placeId = dto.id   // 🔴 여기!!
@@ -1455,6 +1457,11 @@ class RoomScheduleTestActivity :
                 // 1) 방 이름/메모는 그냥 덮어써도 크게 문제 없음
                 roomName = data.roomName
                 roomMemo = data.memo
+                // 🔹 방 상세 정보 보관
+                roomDetailData = data
+
+                // 🔹 캐시: 채팅에서 쓸 멤버별 프로필 URL
+                ChatRepository.setMemberProfiles(roomId, data.members)
 
                 // 2) "기존 멤버 정보"와 "서버 응답 멤버" 비교
                 val localCount = memberNicknames.size
@@ -1874,6 +1881,12 @@ class RoomScheduleTestActivity :
             }
         }
     }
+
+    private fun findNicknameByMemberId(memberId: Long): String? {
+        val members = roomDetailData?.members ?: return null
+        return members.firstOrNull { it.memberId == memberId }?.nickname
+    }
+
 
 
 

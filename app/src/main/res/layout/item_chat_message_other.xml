@@ -24,12 +24,17 @@
         android:gravity="start"
         android:layout_marginTop="2dp">
 
-        <!-- (필요하면 프로필 이미지 자리에) -->
-        <!-- 지금은 그냥 여백용 뷰로 남겨두고 나중에 이미지 넣어도 됨 -->
-        <View
+
+        <!-- 발신자 프로필 이미지 -->
+        <ImageView
+            android:id="@+id/ivSenderProfile"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/profile_basic"
+            android:scaleType="centerCrop"
+            android:background="@android:color/transparent" />
+
 
         <!-- 말풍선 -->
         <TextView

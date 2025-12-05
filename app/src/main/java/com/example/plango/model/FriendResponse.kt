@@ -6,5 +6,6 @@ data class FriendResponse(
     val memberId: Long,
     val nickname: String,
     val profileImageUrl: String?,
-    val loginType: String        // "NORMAL" 또는 "KAKAO"
+    val loginType: String, // "NORMAL" 또는 "KAKAO"
+    val name:String
 )

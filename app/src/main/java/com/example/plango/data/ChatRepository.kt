@@ -3,12 +3,16 @@ package com.example.plango.data
 import com.example.plango.model.ChatContentType
 import com.example.plango.model.ChatMessage
 import com.example.plango.model.ChatMessageDto
+import com.example.plango.model.RoomMemberDetail      // 🔹 추가
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 object ChatRepository {
 
     private val roomMessages: MutableMap<Long, MutableList<ChatMessage>> = mutableMapOf()
+
+    // 🔹 방별 (memberId -> profileImageUrl) 캐시
+    private val memberProfileMapByRoom: MutableMap<Long, Map<Long, String?>> = mutableMapOf()
 
     // 서버 포맷: "2025-12-05T14:21:33" (ms 없을 수도 있음)
     private val serverFormats = listOf(
@@ -37,6 +41,24 @@ object ChatRepository {
 
     fun clearAll() {
         roomMessages.clear()
+        memberProfileMapByRoom.clear()
+    }
+
+    // ─────────────────────────────────────────────
+    // 🔹 방 멤버 → 프로필 URL 매핑 세팅
+    //    (RoomDetailData.members 를 그대로 넘겨서 사용)
+    // ─────────────────────────────────────────────
+    fun setMemberProfiles(roomId: Long, members: List<RoomMemberDetail>) {
+        val map = members.associate { m ->
+            m.memberId to m.profileImageUrl
+        }
+        memberProfileMapByRoom[roomId] = map
+    }
+
+    private fun getProfileUrl(roomId: Long, memberId: Long?): String? {
+        if (memberId == null) return null
+        val roomMap = memberProfileMapByRoom[roomId] ?: return null
+        return roomMap[memberId]
     }
 
     /**
@@ -47,7 +69,8 @@ object ChatRepository {
         dto: ChatMessageDto,
         currentMemberId: Long?
     ): ChatMessage {
-        val chatMessage = dto.toDomain(currentMemberId)
+        // 🔹 roomId 도 같이 넘기도록 변경
+        val chatMessage = dto.toDomain(roomId, currentMemberId)
         addMessage(roomId, chatMessage)
         return chatMessage
     }
@@ -59,15 +82,22 @@ object ChatRepository {
         dtos: List<ChatMessageDto>,
         currentMemberId: Long?
     ) {
-        val list = dtos.map { it.toDomain(currentMemberId) }
+        val list = dtos.map { it.toDomain(roomId, currentMemberId) }
         setMessages(roomId, list)
     }
 
-    private fun ChatMessageDto.toDomain(currentMemberId: Long?): ChatMessage {
+    // 🔹 roomId 를 같이 받도록 변경
+    private fun ChatMessageDto.toDomain(
+        roomId: Long,
+        currentMemberId: Long?
+    ): ChatMessage {
         val isMe = currentMemberId != null && senderId == currentMemberId
 
         val timeText = parseServerTime(sentAt)?.format(displayTimeFormatter)
             ?: LocalDateTime.now().format(displayTimeFormatter)
+
+        // 🔹 senderId 기준으로 프로필 URL 찾아오기
+        val profileUrl = getProfileUrl(roomId, senderId)
 
         // content 가 URL이면 나중에 IMAGE 타입으로도 바꿀 수 있음
         return ChatMessage(
@@ -77,7 +107,8 @@ object ChatRepository {
             timeText = timeText,
             isMe = isMe,
             imageUri = null,
-            type = ChatContentType.TEXT
+            type = ChatContentType.TEXT,
+            profileImageUrl = profileUrl              // ← 여기!
         )
     }
 
@@ -91,8 +122,6 @@ object ChatRepository {
         return null
     }
 
-    // ChatRepository.kt 안에 추가
-
     /**
      * /chats/history 응답을 기존 목록 앞에 붙일 때 사용
      */
@@ -105,13 +134,11 @@ object ChatRepository {
 
         val existing = roomMessages[roomId] ?: mutableListOf()
 
-        // 서버에서 내려온 과거 메시지들을 도메인 모델로 변환
-        val newMessages = dtos.map { it.toDomain(currentMemberId) }
+        // 🔹 여기서도 roomId 넘겨줌
+        val newMessages = dtos.map { it.toDomain(roomId, currentMemberId) }
 
         // 과거 → 현재 순서로 왼쪽(앞)에 붙이는 형태
         val merged = newMessages + existing
         roomMessages[roomId] = merged.toMutableList()
     }
-
-
 }

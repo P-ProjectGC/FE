@@ -24,11 +24,17 @@
         android:gravity="start"
         android:layout_marginTop="2dp">
 
-        <!-- (프로필 자리) -->
-        <View
+
+        <!-- 발신자 프로필 이미지 -->
+        <ImageView
+            android:id="@+id/ivSenderProfile"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/profile_basic"
+            android:scaleType="centerCrop"
+            android:background="@android:color/transparent" />
+
 
         <!-- 이미지 말풍선 -->
         <ImageView
