@@ -131,4 +131,23 @@ object ChatStompClient {
         stompClient?.disconnect()
         stompClient = null
     }
+
+
+    fun sendChatMessage(roomId: Long, memberId: Long, content: String) {
+        val json = gson.toJson(
+            mapOf(
+                "memberId" to memberId,
+                "content" to content
+            )
+        )
+
+        stompClient?.send("/app/rooms/$roomId", json)
+            ?.subscribeOn(Schedulers.io())
+            ?.subscribe({
+                Log.d(TAG, "STOMP send 성공: $json")
+            }, { error ->
+                Log.e(TAG, "STOMP send 실패", error)
+            })
+    }
+
 }

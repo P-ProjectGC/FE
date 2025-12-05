@@ -53,6 +53,7 @@ import com.example.plango.data.ChatStompClient
 import com.example.plango.model.CreateScheduleRequest
 import com.example.plango.model.ScheduleDto
 import com.example.plango.data.MemberSession
+import com.example.plango.model.ChatMessageSendRequest
 import com.example.plango.model.DelegateHostRequest
 import com.example.plango.model.UpdateScheduleRequest
 import com.example.plango.model.toTravelScheduleItem
@@ -478,39 +479,48 @@ class RoomScheduleTestActivity :
         val text = etChatMessage.text.toString().trim()
         if (text.isEmpty()) return
 
+        if (roomId == -1L) {
+            Toast.makeText(this, "방 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val myId = MemberSession.currentMemberId
+        if (myId == -1L) {
+            Toast.makeText(this, "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 🔹 1) UI에 먼저 "내 말풍선"을 추가 (낙관적 업데이트)
         val currentMillis = System.currentTimeMillis()
         val timeText = java.text.SimpleDateFormat(
             "HH:mm",
             java.util.Locale.getDefault()
         ).format(java.util.Date(currentMillis))
 
-        val message = ChatMessage(
-            id = System.currentTimeMillis(),
-            senderName = "나",
+        val tempMessage = ChatMessage(
+            id = currentMillis,
+            senderName = MemberSession.nickname ?: "나",
             message = text,
             timeText = timeText,
             isMe = true
         )
 
-        chatAdapter.addMessage(message)
-
-        if (roomId != -1L) {
-            ChatRepository.addMessage(roomId, message)
-            // 🔔 테스트용: 내가 보낸 메시지도 알림으로 띄워보기
-            NotificationHelper.showChatNotification(
-                context = this,
-                roomId = roomId,
-                roomName = roomName,
-                messagePreview = text
-            )
-        }
-
+        chatAdapter.addMessage(tempMessage)
         etChatMessage.setText("")
 
         recyclerView.post {
             recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
         }
+
+        // 🔹 2) REST API ❌ → STOMP SEND 방식으로 전송
+        ChatStompClient.sendChatMessage(
+            roomId = roomId,
+            memberId = myId,
+            content = text
+        )
     }
+
+
 
     private fun setupEditButton() {
         btnEditSchedule.setOnClickListener {
@@ -706,12 +716,20 @@ class RoomScheduleTestActivity :
                 setRecyclerTopTo(R.id.layoutRoomHeader)
 
                 recyclerView.adapter = chatAdapter
+
+                // ⭐ CHAT 탭으로 들어올 때, 항상 Repo 기준으로 최신 메시지 로딩
+                if (roomId != -1L) {
+                    val updated = ChatRepository.getMessages(roomId).toList()
+                    chatAdapter.submitList(updated)
+                }
+
                 recyclerView.post {
                     if (chatAdapter.itemCount > 0) {
                         recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
                     }
                 }
             }
+
         }
     }
 
@@ -1674,39 +1692,51 @@ class RoomScheduleTestActivity :
 
     //채팅연결
     // STOMP 구독 함수
+    // 채팅연결
+// STOMP 구독 함수
+    // 채팅 연결 - STOMP 구독 함수
+    // 채팅 연결 - STOMP 구독 함수
     private fun startChatSubscription() {
         Log.d("STOMP_DEBUG", "startChatSubscription() 호출됨")
 
-        val roomId = intent.getLongExtra("ROOM_ID", -1L)
-        Log.d("STOMP_DEBUG", "ROOM_ID: $roomId")
-
+        // 이미 onCreate에서 roomId를 세팅했으니, 인텐트에서 다시 꺼내지 않고 필드 사용
         if (roomId <= 0L) {
-            Log.d("STOMP_DEBUG", "roomId 유효하지 않음 → 구독 안 함")
+            Log.d("STOMP_DEBUG", "roomId 유효하지 않음 → 구독 안 함 (roomId=$roomId)")
             return
         }
 
-        // 로그인된 사용자 ID (현 JWT 기반)
-        val myId = MemberSession.currentMemberId   // ⭐️ 이거 쓰면 됨
+        val myId = MemberSession.currentMemberId
+        Log.d("STOMP_DEBUG", "현재 로그인 memberId = $myId")
 
         ChatStompClient.subscribeRoom(roomId) { dto ->
             Log.d("STOMP_TEST", "실시간 메시지 수신: $dto")
 
-            // 1) ChatRepository에 저장
+            // 1) 항상 로컬 저장 (탭이 어디든 간에)
             ChatRepository.addIncomingMessageFromServer(
                 roomId = roomId,
                 dto = dto,
                 currentMemberId = myId
             )
 
-            // 2) UI 반영
-            runOnUiThread {
-                chatAdapter.submitList(
-                    ChatRepository.getMessages(roomId).toList()
-                )
-                recyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+            // 2) 현재 CHAT 탭을 보고 있다면 → 바로 UI 갱신
+            if (currentBottomTab == BottomTab.CHAT) {
+                runOnUiThread {
+                    if (recyclerView.adapter !== chatAdapter) {
+                        recyclerView.adapter = chatAdapter
+                    }
+
+                    val updated = ChatRepository.getMessages(roomId).toList()
+                    chatAdapter.submitList(updated)
+                    if (updated.isNotEmpty()) {
+                        recyclerView.scrollToPosition(updated.size - 1)
+                    }
+                }
             }
         }
     }
+
+
+
 
     //채팅 불러오기
 
@@ -1818,6 +1848,8 @@ class RoomScheduleTestActivity :
             }
         }
     }
+
+
 
 
 

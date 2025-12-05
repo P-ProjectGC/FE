@@ -40,7 +40,10 @@
                     android:text="“남유정”의\nPlanGo"
                     android:textSize="28sp"
                     android:textStyle="bold"
-                    android:textColor="#222222" />
+                    android:textColor="#222222"
+                    android:gravity="center"
+                android:textAlignment="center" />
+
 
                 <LinearLayout
                     android:id="@+id/layout_search"

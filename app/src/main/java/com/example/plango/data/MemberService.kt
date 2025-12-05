@@ -3,6 +3,8 @@ package com.example.plango.data
 import com.example.plango.model.ApiResponse
 import com.example.plango.model.ChangePasswordRequest
 import com.example.plango.model.MemberProfileResponse
+import com.example.plango.model.NotificationSettings
+import com.example.plango.model.NotificationSettingsUpdateRequest
 import com.example.plango.model.ProfileUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -36,6 +38,17 @@ interface MemberService {
     suspend fun withdrawMember(
         @Path("memberId") memberId: Long
     ): Response<ApiResponse<Any>>
+
+   //알림 설정
+   @GET("/api/v1/members/me/notifications")
+   suspend fun getNotificationSettings(
+   ): Response<ApiResponse<NotificationSettings>>
+
+    @PATCH("/api/v1/members/me/notifications")
+    suspend fun updateNotificationSettings(
+        @Body request: NotificationSettingsUpdateRequest
+    ): Response<ApiResponse<NotificationSettings>>
+
 
 
 

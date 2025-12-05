@@ -13,10 +13,10 @@ import retrofit2.http.Query
 interface ChatApiService {
 
     @POST("/api/rooms/{roomId}/chats")
-    suspend fun sendChatMessage(
+    suspend fun sendChat(
         @Path("roomId") roomId: Long,
         @Body request: ChatMessageSendRequest
-    ): ApiResponse<ChatMessageDto>   // ← 여기 ApiResponse<T> 는 네가 이미 쓰고 있는 공통 래퍼 타입 이름으로 맞춰줘
+    ): Response<ApiResponse<ChatMessageDto>>   // ← 여기 ApiResponse<T> 는 네가 이미 쓰고 있는 공통 래퍼 타입 이름으로 맞춰줘
 
 
     @GET("/api/rooms/{roomId}/chats")

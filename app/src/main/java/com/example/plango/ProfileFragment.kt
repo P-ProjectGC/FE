@@ -14,6 +14,8 @@ import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
 import com.example.plango.databinding.FragmentProfileBinding
 import com.example.plango.model.MemberProfileData
+import com.example.plango.model.NotificationSettings
+import com.example.plango.model.NotificationSettingsUpdateRequest
 import com.example.plango.model.ProfileUpdateRequest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -27,6 +29,12 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
     // 🔹 선택된 프로필 이미지 Uri (로컬)
     private var selectedProfileImageUri: Uri? = null
+
+    // 🔔 알림 스위치 UI 업데이트 중인지 플래그 (서버 값 반영할 때 리스너 막기)
+    private var isNotificationUiUpdating: Boolean = false
+
+    // 🔔 마지막으로 서버에서 받은 알림 설정 (실패 시 롤백용)
+    private var lastNotificationSettings: NotificationSettings? = null
 
     // 🔹 갤러리에서 이미지 선택 런처
     private val pickImageLauncher =
@@ -93,7 +101,7 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                 .show(parentFragmentManager, "MemberWithdrawDialog")
         }
 
-        //세션에 저장된 프로필 정보 먼저 적용
+        // 🔹 로그인 타입에 따른 UI 적용 (카카오 뱃지, 비밀번호 변경 row 노출 등)
         applyLoginTypeFromSession()
 
         // 🔹 세션에 저장된 프로필 이미지 먼저 적용
@@ -101,6 +109,12 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
         // 🔹 서버에서 프로필 로드
         loadProfileFromServer()
+
+        // 🔔 알림 스위치 리스너 설정
+        setupNotificationSwitches()
+
+        // 🔔 서버에서 알림 설정 불러오기
+        loadNotificationSettingsFromServer()
     }
 
     override fun onResume() {
@@ -122,7 +136,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
      * ✅ 서버에서 받은 프로필 데이터를 UI에 바인딩
      */
     private fun bindProfile(profile: MemberProfileData) {
-
         binding.tvProfileName.text = profile.name ?: ""
         binding.tvProfileNickname.text = profile.nickname
         binding.tvProfileEmail.text = profile.email
@@ -132,14 +145,10 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         binding.tvKakaoBadge.visibility = if (isKakao) View.VISIBLE else View.GONE
         binding.rowChangePassword.visibility = if (isKakao) View.GONE else View.VISIBLE
 
-        // 이미지 로그 찍는 건 남겨도 되고 빼도 됨
         android.util.Log.d("PROFILE_IMAGE", "raw from server = ${profile.profileImageUrl}")
 
-        // ✅ 여기서도 공통 함수만 호출
         loadProfileImage(profile.profileImageUrl)
     }
-
-
 
     /**
      * ✅ /api/members/{memberId} 호출해서 프로필 가져오기
@@ -158,7 +167,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                     val data = body?.data
 
                     if (data != null) {
-                        // 이전 URL 저장
                         val oldUrl = MemberSession.profileImageUrl
 
                         // 세션 업데이트
@@ -168,10 +176,10 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                         MemberSession.loginId = data.loginId
                         MemberSession.loginType = data.loginType
 
-                        // 텍스트/로그인 타입 바인딩
+                        // UI 텍스트/로그인 타입 바인딩
                         bindProfile(data)
 
-                        // 🔥 이미지 URL이 바뀐 경우에만 다시 로드
+                        // 이미지 URL이 바뀐 경우에만 다시 로드
                         if (oldUrl != data.profileImageUrl) {
                             loadProfileImage(data.profileImageUrl)
                         }
@@ -183,7 +191,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         }
     }
 
-
     /**
      * ✅ 갤러리에서 고른 Uri → /api/files/upload 로 업로드
      * 성공 시 fileUrl 받아서 updateProfileImageOnServer 호출
@@ -193,22 +200,19 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // 1) Uri → ByteArray 로 읽기
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 if (bytes == null) {
                     Toast.makeText(requireContext(), "이미지 파일을 읽을 수 없습니다.", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
-                // 2) RequestBody & Multipart 파트 만들기
                 val requestBody = bytes.toRequestBody("image/*".toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData(
-                    name = "file",                // 서버에서 받는 필드 이름
+                    name = "file",
                     filename = "profile_${MemberSession.currentMemberId}.jpg",
                     body = requestBody
                 )
 
-                // 3) 업로드 API 호출
                 val response = RetrofitClient.fileApiService.uploadFile(part)
 
                 if (response.isSuccessful) {
@@ -218,10 +222,7 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                     if (body?.code == 0 && uploadData != null) {
                         val fileUrl = uploadData.fileUrl
 
-                        // 세션에 최신 이미지 URL 저장
                         MemberSession.profileImageUrl = fileUrl
-
-                        // 4) 프로필 PATCH로 이미지 URL 저장
                         updateProfileImageOnServer(fileUrl)
                     } else {
                         Toast.makeText(
@@ -246,7 +247,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
     /**
      * ✅ fileUrl 을 프로필에 반영 (PATCH /api/members/{memberId})
-     * 닉네임은 변경 안 하므로 null
      */
     private fun updateProfileImageOnServer(fileUrl: String) {
         val memberId = MemberSession.currentMemberId
@@ -255,7 +255,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
             return
         }
 
-        // 🔹 현재 닉네임 가져오기 (세션 → 없으면 화면에서)
         val currentNickname = MemberSession.nickname
             ?: binding.tvProfileNickname.text.toString()
                 .takeIf { it.isNotBlank() }
@@ -266,8 +265,8 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         }
 
         val request = ProfileUpdateRequest(
-            nickname = currentNickname,   // ⭐️ 서버가 필수로 요구
-            profileImageUrl = fileUrl     // 새로 업로드된 이미지 URL
+            nickname = currentNickname,
+            profileImageUrl = fileUrl
         )
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -277,7 +276,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body?.code == 0) {
-                        // 세션에도 최신 이미지 반영
                         MemberSession.profileImageUrl = fileUrl
                         Toast.makeText(requireContext(), "프로필 이미지가 변경되었습니다.", Toast.LENGTH_SHORT).show()
                     } else {
@@ -301,7 +299,6 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         }
     }
 
-
     /**
      * ✅ 닉네임 변경 다이얼로그에서 저장 성공 시 콜백
      */
@@ -319,16 +316,13 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
 
     private fun loadProfileImage(path: String?) {
         if (path.isNullOrBlank()) {
-            // 아무 것도 없으면 기본 이미지
             binding.ivProfileImage.setImageResource(R.drawable.profile_basic)
             return
         }
 
-        // 서버에서 준 값이 "uploads/xxx.jpg" 같은 상대 경로 (S3 object key)
         val imageUrl = if (path.startsWith("http")) {
             path
         } else {
-            // ✅ 이제는 API BASE_URL이 아니라 S3 IMAGE_BASE_URL 사용
             RetrofitClient.IMAGE_BASE_URL + path
         }
 
@@ -342,9 +336,167 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
             .into(binding.ivProfileImage)
     }
 
+    // ─────────────────────────────
+    // 🔔 알림 설정 관련
+    // ─────────────────────────────
 
+    /**
+     * 🔔 세 개 스위치에 공통 리스너 달기
+     */
+    private fun setupNotificationSwitches() {
+        binding.swAlarmAllChat.setOnCheckedChangeListener { _, _ ->
+            onNotificationSwitchChanged()
+        }
+        binding.swAlarmSchedule.setOnCheckedChangeListener { _, _ ->
+            onNotificationSwitchChanged()
+        }
+        binding.swAlarmFriend.setOnCheckedChangeListener { _, _ ->
+            onNotificationSwitchChanged()
+        }
+    }
 
+    /**
+     * 🔔 아무 스위치나 바뀌었을 때 호출되는 공통 처리
+     */
+    private fun onNotificationSwitchChanged() {
+        // 서버 값 적용 중이면 PATCH 안 보냄
+        if (isNotificationUiUpdating) return
 
+        val allChatOn = binding.swAlarmAllChat.isChecked
+        val tripReminderOn = binding.swAlarmSchedule.isChecked
+        val friendReqOn = binding.swAlarmFriend.isChecked
 
+        updateNotificationSettingsOnServer(
+            allChatRoomEnabled = allChatOn,
+            tripReminderEnabled = tripReminderOn,
+            friendRequestEnabled = friendReqOn
+        )
+    }
 
+    /**
+     * 🔔 GET /api/v1/members/me/notifications
+     *     현재 로그인 유저의 알림 설정 조회
+     */
+    private fun loadNotificationSettingsFromServer() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.memberApiService.getNotificationSettings()
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val data = body?.data
+
+                    android.util.Log.d("Notification", "GET settings = $body")
+
+                    if (body?.code == 0 && data != null) {
+                        lastNotificationSettings = data
+                        applyNotificationSettingsToUi(data)
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            body?.message ?: "알림 설정을 불러오지 못했습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    val msg = when (response.code()) {
+                        401 -> "로그인 정보가 만료되었습니다. 다시 로그인해주세요."
+                        404 -> "알림 설정 정보를 찾을 수 없습니다."
+                        else -> "알림 설정 조회 실패 (${response.code()})"
+                    }
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(
+                    requireContext(),
+                    "알림 설정을 불러오는 중 오류가 발생했습니다.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    /**
+     * 🔔 서버에서 받은 값으로 스위치 상태 반영
+     */
+    private fun applyNotificationSettingsToUi(settings: NotificationSettings) {
+        isNotificationUiUpdating = true
+
+        binding.swAlarmAllChat.isChecked = settings.allChatRoomEnabled
+        binding.swAlarmSchedule.isChecked = settings.tripReminderEnabled
+        binding.swAlarmFriend.isChecked = settings.friendRequestEnabled
+
+        isNotificationUiUpdating = false
+    }
+
+    /**
+     * 🔔 PATCH /api/v1/members/me/notifications
+     *     세 가지 알림 설정을 한 번에 서버에 반영
+     */
+    private fun updateNotificationSettingsOnServer(
+        allChatRoomEnabled: Boolean,
+        tripReminderEnabled: Boolean,
+        friendRequestEnabled: Boolean
+    ) {
+        val request = NotificationSettingsUpdateRequest(
+            allChatRoomEnabled = allChatRoomEnabled,
+            tripReminderEnabled = tripReminderEnabled,
+            friendRequestEnabled = friendRequestEnabled
+        )
+
+        android.util.Log.d("Notification", "PATCH request = $request")
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response =
+                    RetrofitClient.memberApiService.updateNotificationSettings(request)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val data = body?.data
+
+                    android.util.Log.d("Notification", "PATCH response = $body")
+
+                    if (body?.code == 0 && data != null) {
+                        // 서버 반영 성공 → 로컬 상태 동기화
+                        lastNotificationSettings = data
+                        applyNotificationSettingsToUi(data)
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            body?.message ?: "알림 설정 저장에 실패했습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // 실패 시 이전 값으로 롤백
+                        lastNotificationSettings?.let { applyNotificationSettingsToUi(it) }
+                    }
+                } else {
+                    val msg = when (response.code()) {
+                        400 -> "알림 설정 값이 올바르지 않습니다."
+                        401 -> "로그인 정보가 만료되었습니다. 다시 로그인해주세요."
+                        else -> "알림 설정 저장 실패 (${response.code()})"
+                    }
+
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+
+                    // HTTP 에러 시에도 이전 값으로 되돌리기
+                    lastNotificationSettings?.let { applyNotificationSettingsToUi(it) }
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(
+                    requireContext(),
+                    "알림 설정 저장 중 오류가 발생했습니다.",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                // 네트워크 예외 시 롤백
+                lastNotificationSettings?.let { applyNotificationSettingsToUi(it) }
+            }
+        }
+    }
 }
