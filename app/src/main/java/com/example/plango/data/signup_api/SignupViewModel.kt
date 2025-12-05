@@ -17,6 +17,18 @@ class SignupViewModel(private val repository: SignupRepository) : ViewModel() {
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> get() = _loading
 
+    // 닉네임 중복 확인
+    private val _nicknameCheckState = MutableLiveData<Result<Boolean>>()
+    val nicknameCheckState: LiveData<Result<Boolean>> = _nicknameCheckState
+
+    // id 중복 확인
+    private val _loginIdCheckState = MutableLiveData<Result<Boolean>>()
+    val loginIdCheckState: LiveData<Result<Boolean>> = _loginIdCheckState
+
+    // email 중복 확인
+    private val _emailCheckState = MutableLiveData<Result<Boolean>>()
+    val emailCheckState: LiveData<Result<Boolean>> = _emailCheckState
+
 
     fun signup(name: String, nickname: String, loginId: String, password: String, email: String) {
         viewModelScope.launch {
@@ -42,6 +54,27 @@ class SignupViewModel(private val repository: SignupRepository) : ViewModel() {
             } finally {
                 _loading.value = false  // 🔥 로딩 끝
             }
+        }
+    }
+
+    // 닉네임 중복 확인
+    fun checkNickname(nickname: String) {
+        viewModelScope.launch {
+            _nicknameCheckState.value = repository.checkNickname(nickname)
+        }
+    }
+
+    // id 중복 확인
+    fun checkLoginId(loginId: String) {
+        viewModelScope.launch {
+            _loginIdCheckState.value = repository.checkLoginId(loginId)
+        }
+    }
+
+    // email 중복 확인
+    fun checkEmail(email: String) {
+        viewModelScope.launch {
+            _emailCheckState.value = repository.checkEmail(email)
         }
     }
 }

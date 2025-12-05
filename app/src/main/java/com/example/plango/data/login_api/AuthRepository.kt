@@ -87,23 +87,4 @@ class AuthRepository(
 //    } catch (e: Exception) {
 //        Result.failure(e)
 //    }
-
-    // 닉네임 중복 확인 API
-    suspend fun checkNickname(nickname: String): Result<Boolean> = try {
-        val response = service.checkNickname(nickname)
-
-        if (response.isSuccessful) {
-            val body = response.body()
-            if (body != null) {
-                Result.success(body.data.available)   // 여기!
-            } else {
-                Result.failure(Exception("Response body is null"))
-            }
-        } else {
-            Result.failure(Exception("HTTP ${response.code()}"))
-        }
-
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
 }

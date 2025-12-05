@@ -8,9 +8,13 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
+import com.example.plango.data.signup_api.SignupRepository
+import com.example.plango.data.signup_api.SignupViewModel
+import com.example.plango.data.signup_api.SignupViewModelFactory
 import com.example.plango.databinding.DialogNicknameEditBinding
 import com.example.plango.model.ProfileUpdateRequest
 import kotlinx.coroutines.launch
@@ -27,8 +31,15 @@ class NicknameEditDialogFragment : DialogFragment() {
     // ✅ 중복확인 완료 + 사용 가능 여부
     private var isNicknameAvailable: Boolean = false
 
+    private lateinit var signupViewModel: SignupViewModel
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         _binding = DialogNicknameEditBinding.inflate(LayoutInflater.from(context))
+
+        signupViewModel = ViewModelProvider(
+            this,
+            SignupViewModelFactory(SignupRepository(RetrofitClient.signupApiService))
+        )[SignupViewModel::class.java]
 
         val currentNickname = arguments?.getString(ARG_CURRENT_NICKNAME).orEmpty()
         binding.etNickname.setText(currentNickname)
@@ -111,31 +122,25 @@ class NicknameEditDialogFragment : DialogFragment() {
      * GET /api/auth/check/nickname?nickname=...
      */
     private fun checkNicknameAvailable(nickname: String) {
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.authService.checkNickname(nickname)
 
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val available = body?.data?.available == true
+        signupViewModel.checkNickname(nickname)
 
-                    if (available) {
-                        isNicknameAvailable = true
-                        Toast.makeText(requireContext(), "사용 가능한 닉네임입니다.", Toast.LENGTH_SHORT).show()
-                    } else {
-                        isNicknameAvailable = false
-                        Toast.makeText(requireContext(), "이미 사용 중인 닉네임입니다.", Toast.LENGTH_SHORT).show()
-                    }
+        // 🚀 DialogFragment에서는 viewLifecycleOwner 사용 금지!
+        signupViewModel.nicknameCheckState.observe(this) { result ->
+
+            result.onSuccess { available ->
+                if (available) {
+                    isNicknameAvailable = true
+                    Toast.makeText(requireContext(), "사용 가능한 닉네임입니다.", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "중복확인 실패 (${response.code()})",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    isNicknameAvailable = false
+                    Toast.makeText(requireContext(), "이미 사용 중인 닉네임입니다.", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(requireContext(), "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+            }
+
+            result.onFailure {
+                isNicknameAvailable = false
+                Toast.makeText(requireContext(), "닉네임 확인 실패", Toast.LENGTH_SHORT).show()
             }
         }
     }

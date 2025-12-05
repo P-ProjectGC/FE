@@ -19,15 +19,10 @@ class AuthViewModel(
     // 🔵 (추후용) 토큰 재발급
     private val _tokenRefreshResult = MutableLiveData<Result<LoginData>>()
     val tokenRefreshResult: LiveData<Result<LoginData>> = _tokenRefreshResult
-
-    // 닉네임 중복 확인
-    private val _nicknameCheckState = MutableLiveData<Result<Boolean>>()
-    val nicknameCheckState: LiveData<Result<Boolean>> = _nicknameCheckState
   
-    // 로딩 면화면
+    // 로딩 화면
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> get() = _loading
-
 
 
     /**
@@ -85,10 +80,4 @@ class AuthViewModel(
 //            _tokenRefreshResult.value = repository.refreshToken(refreshToken)
 //        }
 //    }
-
-    fun checkNickname(nickname: String) {
-        viewModelScope.launch {
-            _nicknameCheckState.value = repository.checkNickname(nickname)
-        }
-    }
 }
