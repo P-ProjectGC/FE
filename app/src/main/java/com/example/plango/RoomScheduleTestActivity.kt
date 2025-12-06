@@ -685,7 +685,7 @@ class RoomScheduleTestActivity :
 
                 setRecyclerTopTo(R.id.btnEditSchedule)
                 recyclerView.adapter = scheduleAdapter
-                showDay(currentDayIndex)
+                loadSchedulesFromServer()
             }
 
             BottomTab.WISHLIST -> {
@@ -699,7 +699,7 @@ class RoomScheduleTestActivity :
 
                 setRecyclerTopTo(R.id.layoutWishlistHeader)
                 recyclerView.adapter = wishlistAdapter
-                wishlistAdapter.refresh()
+                loadWishlistFromServer()
             }
 
             BottomTab.CHAT -> {

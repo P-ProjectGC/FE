@@ -173,7 +173,7 @@ object FriendRepository {
                     Friend(
                         memberId = api.memberId,
                         nickname = api.nickname,
-                        realName = api.name,              // realName 없음 → nickname 재사용
+                        realName = api.name?:api.nickname,              // realName 없음 → nickname 재사용
                         profileImageUrl = fullUrl,            // 🔥 여기!
                         isKakaoUser = api.loginType == "KAKAO"
                     )
