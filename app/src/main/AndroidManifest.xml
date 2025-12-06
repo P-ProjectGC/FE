@@ -53,7 +53,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <!-- 네이티브 앱 키로 스킴 설정 필수 -->
-                <data android:scheme="kakao565207f78fbd8da404f0288d6d5f9ebd" />
+                <data android:scheme="565207f78fbd8da404f0288d6d5f9ebd" />
             </intent-filter>
         </activity>
 
