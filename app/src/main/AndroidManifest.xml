@@ -62,10 +62,35 @@
             android:name=".SignUpActivity"
             android:exported="true" />
 
+      <!-- 카카오 닉네임 설정 화면 -->
         <activity
             android:name=".KakaoNicknameActivity"
             android:exported="true" />
+      
+        <!-- 아이디 찾기 화면 -->
+        <activity
+            android:name=".ui.findid.FindIdActivity"
+            android:exported="false" />
 
+        <!--비밀번호 찾기 화면-->
+        <activity
+            android:name=".ui.findpw.FindPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.findpw.ResetPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.findid.FindIdResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.findid.VerifyFindIdCodeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.findid.FindIdFullResultActivity"
+            android:exported="false" />
 
         <!-- mainActivity 화면 -->
         <activity

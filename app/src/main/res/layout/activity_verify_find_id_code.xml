@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_logo_2">
+
+    <!-- ===== 상단 헤더 (뒤로 + 로고) ===== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/verify_header"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:paddingTop="20dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:id="@+id/btn_back"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:padding="4dp"
+            android:orientation="horizontal"
+            android:layout_marginStart="10dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_back_room_making" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="뒤로"
+                android:textSize="14sp"
+                android:textColor="#51BDEB"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/verify_logo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/main_logo"
+            android:adjustViewBounds="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ===== 내용 영역 ===== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/verify_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:paddingHorizontal="32dp"
+        android:paddingBottom="40dp"
+        app:layout_constraintTop_toBottomOf="@id/verify_header"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <!-- 단계 점 3개 (디자인용) -->
+        <LinearLayout
+            android:id="@+id/step_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp">
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/bg_circle_blue"
+                android:layout_marginHorizontal="4dp"/>
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/bg_circle_blue"
+                android:layout_marginHorizontal="4dp"/>
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/bg_circle_blue"
+                android:layout_marginHorizontal="4dp"/>
+        </LinearLayout>
+
+        <!-- 제목 -->
+        <TextView
+            android:id="@+id/tv_verify_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="이메일로 발송된 인증번호를 입력해주세요"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/step_indicator"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 설명 (maskedEmail 표시) -->
+        <TextView
+            android:id="@+id/tv_verify_desc"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="nam***@email.com 으로 발송된\n6자리 인증번호를 입력해주세요."
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_verify_title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 인증번호 입력 -->
+        <EditText
+            android:id="@+id/et_verify_code"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/bg_signup_button"
+            android:gravity="center"
+            android:hint="인증번호 6자리"
+            android:inputType="number"
+            android:maxLength="6"
+            android:textSize="18sp"
+            app:layout_constraintTop_toBottomOf="@id/tv_verify_desc"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 에러 메시지 -->
+        <TextView
+            android:id="@+id/tv_verify_error"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="인증번호가 올바르지 않습니다."
+            android:textColor="@color/error_red"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/et_verify_code"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 인증번호 재전송 -->
+        <TextView
+            android:id="@+id/tv_resend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="인증번호 재전송"
+            android:textSize="13sp"
+            android:textColor="#51BDEB"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_verify_error"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 확인 버튼 -->
+        <Button
+            android:id="@+id/btn_verify"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="28dp"
+            android:text="인증번호 확인"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:alpha="1.0"
+
+            android:background="@drawable/bg_login_button"
+            android:backgroundTint="@null"
+            app:backgroundTint="@null"
+
+            app:layout_constraintTop_toBottomOf="@id/tv_resend"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            />
+
+
+
+        <!-- 타이머 -->
+        <TextView
+            android:id="@+id/tv_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="남은 시간: 5:00"
+            android:textSize="12sp"
+            android:textColor="#FF4C4C"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/btn_verify"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 중앙 로딩 -->
+    <ProgressBar
+        android:id="@+id/verifyLoading"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:visibility="gone"
+        android:indeterminate="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

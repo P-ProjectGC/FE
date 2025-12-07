@@ -926,7 +926,9 @@ class RoomScheduleTestActivity :
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body?.code == 0) {
+                        // ✅ 실제 삭제 성공했을 때만 로컬 목록에서 제거
                         wishlistAdapter.removeItem(item)
+
                         if (showToastOnSuccess) {
                             Toast.makeText(
                                 this@RoomScheduleTestActivity,
@@ -942,11 +944,31 @@ class RoomScheduleTestActivity :
                         ).show()
                     }
                 } else {
-                    Toast.makeText(
-                        this@RoomScheduleTestActivity,
-                        "HTTP 오류: ${response.code()}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    // ❗ HTTP 에러 코드에 따라 분기
+                    when (response.code()) {
+                        403 -> {
+                            // 🔒 서버 도메인 로직에서 "삭제 권한 없음"으로 막은 경우
+                            Toast.makeText(
+                                this@RoomScheduleTestActivity,
+                                "다른 멤버가 만든 위시리스트입니다!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        404 -> {
+                            Toast.makeText(
+                                this@RoomScheduleTestActivity,
+                                "이미 삭제되었거나 존재하지 않는 위시리스트입니다.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        else -> {
+                            Toast.makeText(
+                                this@RoomScheduleTestActivity,
+                                "HTTP 오류: ${response.code()}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(
@@ -957,6 +979,7 @@ class RoomScheduleTestActivity :
             }
         }
     }
+
 
     //위시리스트 post용
     private fun addPlaceToWishlistOnServer(place: WishlistPlaceItem) {

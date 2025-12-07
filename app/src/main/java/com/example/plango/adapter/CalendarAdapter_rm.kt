@@ -59,6 +59,7 @@ class CalendarAdapter_rm(
         val item = days[position]
         val tv = holder.tvDay
         val date = item.date
+        val container = holder.itemView as ViewGroup  // FrameLayout 전체
 
         // 0. 날짜 숫자
         tv.text = date.dayOfMonth.toString()
@@ -71,40 +72,38 @@ class CalendarAdapter_rm(
             tv.alpha = 0.3f
             tv.setTextColor(Color.parseColor("#999999"))
         }
-        tv.background = null   // 배경 초기화
 
-        // 2. 🔵 여행 기간 배경(#B2DEF2) 적용
+        // 🔹 배경/foreground 초기화
+        tv.background = null
+        container.background = null
+        container.foreground = null   // ⭐ 이거 중요! 재활용 방지
+
+        // 2. 🔵 여행 기간 배경 (#B2DEF2) → TextView 쪽만
         if (item.isCurrentMonth) {
             when (item.roomRangeType) {
-                RoomRangeType.SINGLE -> {
-                    tv.setBackgroundResource(R.drawable.bg_room_single)
-                }
-                RoomRangeType.START -> {
-                    tv.setBackgroundResource(R.drawable.bg_room_start)
-                }
-                RoomRangeType.MIDDLE -> {
-                    tv.setBackgroundResource(R.drawable.bg_room_middle)
-                }
-                RoomRangeType.END -> {
-                    tv.setBackgroundResource(R.drawable.bg_room_end)
-                }
-                RoomRangeType.NONE -> {
-                    // 여행 없는 날은 배경 없음
-                }
+                RoomRangeType.SINGLE -> tv.setBackgroundResource(R.drawable.bg_room_single)
+                RoomRangeType.START  -> tv.setBackgroundResource(R.drawable.bg_room_start)
+                RoomRangeType.MIDDLE -> tv.setBackgroundResource(R.drawable.bg_room_middle)
+                RoomRangeType.END    -> tv.setBackgroundResource(R.drawable.bg_room_end)
+                RoomRangeType.NONE   -> { /* 배경 없음 */ }
             }
         }
 
-        // ❌ 여기서부터 있던 "선택 범위(검은 동그라미)" 로직은 전부 제거함
-        //    홈화면은 그냥 날짜 탭 → 아래 안내/방 카드만 보여주면 되니까,
-        //    캘린더 셀에는 따로 선택 스타일을 주지 않는다.
-        //
-        // 만약 나중에 "선택된 날짜만 살짝 스타일" 주고 싶으면,
-        // 아래처럼 단일 선택만 처리하는 코드를 추가하면 됨:
-        //
-        // val isSelected = startDate != null && date == startDate
-        // if (isSelected && item.isCurrentMonth) {
-        //     tv.setTypeface(tv.typeface, Typeface.BOLD)
-        //     tv.setTextColor(Color.parseColor("#1A1A1A"))
-        // }
+        // 3. 🔽 오늘 날짜 회색 테두리 처리 (foreground)
+
+        val today = LocalDate.now()
+
+        if (item.isCurrentMonth && date == today) {
+            // 파란 배경이 있든 없든, 셀 전체 위에 테두리를 얹음
+            container.foreground =
+                androidx.core.content.ContextCompat.getDrawable(
+                    container.context,
+                    R.drawable.bg_today_light_gray   // ← 위에 만든 xml 이름
+                )
+            tv.setTextColor(Color.parseColor("#111111"))
+        }
     }
+
+
 }
+

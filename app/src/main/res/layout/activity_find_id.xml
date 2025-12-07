@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_logo_2">
+
+    <!-- ============================= -->
+    <!-- 상단 헤더: 뒤로가기 + 로고 -->
+    <!-- ============================= -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/find_id_header"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:paddingTop="20dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- 뒤로가기 -->
+        <LinearLayout
+            android:id="@+id/btn_back"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="4dp"
+            android:layout_marginStart="10dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_back_room_making"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="뒤로"
+                android:textSize="14sp"
+                android:textColor="#51BDEB"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <!-- 로고 -->
+        <ImageView
+            android:id="@+id/find_id_logo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/main_logo"
+            android:adjustViewBounds="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <!-- ============================= -->
+    <!-- 제목/설명 영역 -->
+    <!-- ============================= -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/find_id_inner_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="32dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        app:layout_constraintTop_toBottomOf="@id/find_id_header">
+
+        <TextView
+            android:id="@+id/tv_find_id_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="아이디를 잊으셨나요?"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:textAlignment="center"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/tv_find_id_desc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="가입 시 입력한 정보를 통해\n아이디를 확인할 수 있습니다."
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:textAlignment="center"
+            app:layout_constraintTop_toBottomOf="@id/tv_find_id_title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <!-- ============================= -->
+    <!-- 입력 영역 스크롤 -->
+    <!-- ============================= -->
+    <ScrollView
+        android:id="@+id/find_id_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/find_id_inner_title"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/find_id_inner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="32dp"
+            android:paddingBottom="40dp">
+
+            <!-- 이메일 라벨 -->
+            <TextView
+                android:id="@+id/tv_email_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="이메일"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginTop="60dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- 이메일 입력 -->
+            <EditText
+                android:id="@+id/et_email"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_signup_button"
+                android:hint="이메일을 입력하세요"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="10dp"
+                android:textSize="13sp"
+                app:layout_constraintTop_toBottomOf="@id/tv_email_label"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- 에러 텍스트 -->
+            <TextView
+                android:id="@+id/tv_find_id_error"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="입력하신 정보와 일치하는 아이디를 찾을 수 없습니다."
+                android:textColor="#FF4C4C"
+                android:textSize="11sp"
+                android:visibility="gone"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@id/et_email"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- 아이디 찾기 버튼 -->
+            <Button
+                android:id="@+id/btn_find_id"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="100dp"
+                android:background="@drawable/bg_login_button"
+                android:backgroundTint="@null"
+                android:text="아이디 찾기"
+                android:textAllCaps="false"
+                android:textSize="16sp"
+                android:textColor="#000000"
+                app:backgroundTint="@null"
+                app:layout_constraintTop_toBottomOf="@id/tv_find_id_error"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+    <!-- ✅ 원래 쓰던 로딩바 id 그대로 복구 -->
+    <ProgressBar
+        android:id="@+id/findIdLoading"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:visibility="gone"
+        android:indeterminate="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

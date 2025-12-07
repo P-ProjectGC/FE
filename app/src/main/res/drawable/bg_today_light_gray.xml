@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 안쪽으로 2dp씩 들어간 영역에 테두리 그림 -->
+    <item
+        android:left="2dp"
+        android:top="2dp"
+        android:right="2dp"
+        android:bottom="2dp">
+
+        <shape>
+            <solid android:color="@android:color/transparent" />
+
+            <!-- 파란 계열 테두리 -->
+            <stroke
+                android:width="2dp"
+                android:color="#47A8D4" />
+
+            <!-- 파란 여행 네모랑 비슷하게 둥글게 -->
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+
+</layer-list>
