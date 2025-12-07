@@ -76,6 +76,18 @@
             android:name=".ui.findpw.ResetPasswordActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.findid.FindIdResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.findid.VerifyFindIdCodeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.findid.FindIdFullResultActivity"
+            android:exported="false" />
+
+
 
 
 

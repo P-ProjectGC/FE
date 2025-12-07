@@ -1,5 +1,6 @@
 package com.example.plango.ui.findid
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.util.Patterns
@@ -105,7 +106,6 @@ class FindIdActivity : AppCompatActivity() {
                 // 여기까지 왔다 = 이메일 존재 + maskedLoginId 도착
                 val maskedLoginId = body.data.maskedLoginId
                 Log.d("FIND_ID", "maskedLoginId = $maskedLoginId")
-                // TODO: 필요하면 UI에 "아이디 힌트: ji***g01" 이런 식으로 보여줘도 됨
 
                 // 2) 존재하는 이메일이면 인증번호 발송 API 호출
                 val sendCodeResponse = RetrofitClient.authService.sendFindIdCode(
@@ -128,7 +128,10 @@ class FindIdActivity : AppCompatActivity() {
                 Log.d("FIND_ID", "sendCode body = $sendCodeBody")
                 Log.d("FIND_ID", "sendCode apiCode = ${sendCodeBody?.code}")
                 Log.d("FIND_ID", "sendCode data = ${sendCodeBody?.data}")
-                Log.d("FIND_ID", "sendCode verificationCode = ${sendCodeBody?.data?.verificationCode}")
+                Log.d(
+                    "FIND_ID",
+                    "sendCode verificationCode = ${sendCodeBody?.data?.verificationCode}"
+                )
 
                 if (sendCodeBody == null || sendCodeBody.code != 0 || sendCodeBody.data == null) {
                     Toast.makeText(
@@ -140,13 +143,8 @@ class FindIdActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // 🔎 개발 단계에서: 메일이 안 와도 verificationCode 로직 테스트 가능
-                // Toast로 찍어서 바로 verify 테스트할 수도 있음 (원하면 주석 해제)
-                // Toast.makeText(
-                //     this@FindIdActivity,
-                //     "테스트용 인증번호: ${sendCodeBody.data.verificationCode}",
-                //     Toast.LENGTH_LONG
-                // ).show()
+                // ✅ 여기서 maskedEmail 뽑아옴
+                val maskedEmail = sendCodeBody.data.maskedEmail
 
                 // 성공: 이메일로 인증번호 발송 완료
                 tvError.visibility = View.GONE
@@ -156,10 +154,14 @@ class FindIdActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // TODO: 여기서 인증번호 입력 화면으로 이동할 예정 (2단계에서 구현)
-                // startActivity(Intent(this@FindIdActivity, VerifyCodeActivity::class.java).apply {
-                //     putExtra("email", email)
-                // })
+                // ✅ 마스킹 아이디 결과 화면으로 이동
+                val intent = Intent(this@FindIdActivity, FindIdResultActivity::class.java).apply {
+                    putExtra("maskedLoginId", maskedLoginId)   // /find-id 에서 받은 값
+                    putExtra("email", email)                   // 원본 이메일
+                    putExtra("maskedEmail", maskedEmail)       // 화면 안내용 마스킹 이메일
+                }
+                startActivity(intent)
+                finish()   // 뒤로 가기 눌렀을 때 다시 이메일 입력 화면 안 보이게
 
             } catch (e: Exception) {
                 e.printStackTrace()
