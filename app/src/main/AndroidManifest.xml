@@ -62,6 +62,23 @@
             android:name=".SignUpActivity"
             android:exported="true" />
 
+        <!-- 아이디 찾기 화면 -->
+        <activity
+            android:name=".ui.findid.FindIdActivity"
+            android:exported="false" />
+
+        <!--비밀번호 찾기 화면-->
+        <activity
+            android:name=".ui.findpw.FindPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.findpw.ResetPasswordActivity"
+            android:exported="false" />
+
+
+
+
         <!-- mainActivity 화면 -->
         <activity
             android:name=".MainActivity"
