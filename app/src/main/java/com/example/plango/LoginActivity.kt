@@ -19,6 +19,8 @@ import com.example.plango.data.login_api.AuthViewModel
 import com.example.plango.data.login_api.AuthViewModelFactory
 import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivityLoginBinding
+import com.example.plango.ui.findid.FindIdActivity
+import com.example.plango.ui.findpw.FindPasswordActivity
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.util.Utility
 import com.kakao.sdk.user.UserApiClient
@@ -268,10 +270,11 @@ class LoginActivity : ComponentActivity() {
 
         // 아이디/비밀번호 찾기
         binding.tvFindId.setOnClickListener {
-            Toast.makeText(this, "아이디 찾기 화면으로 이동", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, FindIdActivity::class.java))
         }
+
         binding.tvFindPw.setOnClickListener {
-            Toast.makeText(this, "비밀번호 찾기 화면으로 이동", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, FindPasswordActivity::class.java))
         }
     }
 }
