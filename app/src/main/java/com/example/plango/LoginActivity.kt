@@ -49,6 +49,9 @@ class LoginActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        authViewModel.clearState()
+
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -105,7 +108,6 @@ class LoginActivity : ComponentActivity() {
         binding.btnLogin.alpha = if (enabled) 1f else 0.5f
     }
 
-
     // ------------------------------
     //  일반 로그인 결과 처리
     // ------------------------------
@@ -113,6 +115,8 @@ class LoginActivity : ComponentActivity() {
         authViewModel.normalLoginResult.observe(this) { result ->
 
             binding.tvError.visibility = View.GONE
+
+            if (result == null) return@observe
 
             result.onSuccess { data ->
   
@@ -212,7 +216,11 @@ class LoginActivity : ComponentActivity() {
     private fun observeKakaoLogin() {
         authViewModel.kakaoLoginState.observe(this) { result ->
 
+            if (result == null) return@observe
+
             result.onSuccess { data ->
+
+                binding.loginLoading.visibility = View.VISIBLE  // 🔥 로딩 시작
 
                 Log.d("KAKAO_FLOW", "3️⃣ observeKakaoLogin 성공 → newMember=${data.newMember}")
 
@@ -221,23 +229,41 @@ class LoginActivity : ComponentActivity() {
                 tokenManager.saveRefreshToken(data.refreshToken)
 
                 // 2) 회원 타입 분기
-                if (data.newMember) {
-                    // 신규 회원 → 닉네임 설정 화면으로 이동
-                    val intent = Intent(this, KakaoNicknameActivity::class.java)
-                    intent.putExtra("memberId", data.memberId)
-                    intent.putExtra("email", data.email)
-                    intent.putExtra("profileImageUrl", data.profileImageUrl)
-                    startActivity(intent)
-                    finish()
+                if (data.newMember || data.nickname.isNullOrBlank()) {
+
+                    // 신규 회원 또는 닉네임 없는 회원 → 닉네임 설정 화면 이동
+                    // 🔥 0.4초 로딩 후 화면 이동 (사용자 경험 ↑)
+                    binding.loginLoading.postDelayed({
+
+                        val intent = Intent(this, KakaoNicknameActivity::class.java)
+                        intent.putExtra("memberId", data.memberId)
+                        intent.putExtra("email", data.email)
+                        intent.putExtra("profileImageUrl", data.profileImageUrl)
+
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(intent)
+
+                    }, 400)
 
                 } else {
+                    // ⭐ 기존 회원도 FE 세션 저장해야 함 (여기가 핵심!!!)
+                    MemberSession.currentMemberId = data.memberId.toLong()
+                    MemberSession.email = data.email
+                    MemberSession.nickname = data.nickname
+                    MemberSession.profileImageUrl = data.profileImageUrl
+                    MemberSession.accessToken = data.accessToken
+                    MemberSession.refreshToken = data.refreshToken
+
                     // 기존 회원 → 메인 화면
-                    startActivity(Intent(this, MainActivity::class.java))
-                    finish()
+                    binding.loginLoading.postDelayed({
+                        startActivity(Intent(this, MainActivity::class.java))
+                        finish()
+                    }, 400)
                 }
             }
 
             result.onFailure {
+                binding.loginLoading.visibility = View.GONE
                 Log.e("KAKAO_FLOW", "3️⃣ observeKakaoLogin 실패", it)
                 Toast.makeText(this, "카카오 로그인 실패", Toast.LENGTH_SHORT).show()
             }

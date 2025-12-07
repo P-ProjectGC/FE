@@ -59,25 +59,30 @@ class MemberWithdrawDialogFragment : DialogFragment() {
                     val body = response.body()
 
                     if (body?.code == 200) {
-                        // 🔹 탈퇴 성공
+
                         Toast.makeText(requireContext(), "회원탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
 
-                        // ✅ 1) 로컬 토큰/세션 정리
-                        val appContext = requireContext().applicationContext
-                        val tokenManager = TokenManager(appContext)
-                        tokenManager.clearTokens()      // access / refresh 토큰 삭제
-                        MemberSession.clear()           // 세션 초기화
+                        // 1) 토큰 삭제
+                        val tokenManager = TokenManager(requireContext())
+                        tokenManager.clearTokens()
 
-                        // ✅ 2) 로그인 화면으로 이동 (기존 액티비티 스택 제거)
-                        val intent = Intent(appContext, LoginActivity::class.java).apply {
-                            addFlags(
-                                Intent.FLAG_ACTIVITY_NEW_TASK or
-                                        Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            )
+                        // 2) 세션 삭제
+                        MemberSession.clear()
+
+                        // 로그인 화면으로 이동 (로그아웃과 동일한 방식)
+                        val intent = Intent(requireContext().applicationContext, LoginActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         }
-                        startActivity(intent)
+
+                        // 🔥 이걸 appContext 로 실행해야 Task 가 새로 만들어짐
+                        requireContext().applicationContext.startActivity(intent)
+
+                        // 🔥 메인 액티비티 완전 종료
+                        requireActivity().finishAffinity()
 
                         dismiss()
+
+
                     } else {
                         Toast.makeText(
                             requireContext(),

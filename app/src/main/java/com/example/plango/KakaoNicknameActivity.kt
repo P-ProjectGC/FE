@@ -1,43 +1,41 @@
 package com.example.plango
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
-import com.example.plango.data.login_api.AuthRepository
 import com.example.plango.data.signup_api.SignupRepository
 import com.example.plango.data.signup_api.SignupViewModel
 import com.example.plango.data.signup_api.SignupViewModelFactory
-import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivityKakaoNicknameBinding
+import com.example.plango.model.ProfileUpdateRequest
+import com.kakao.sdk.user.UserApiClient
+import kotlinx.coroutines.launch
 
 class KakaoNicknameActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityKakaoNicknameBinding
 
-    private val authService = RetrofitClient.authService
-    private val authRepository = AuthRepository(authService)
     private val viewModel: SignupViewModel by viewModels {
         SignupViewModelFactory(SignupRepository(RetrofitClient.signupApiService))
     }
 
-    private lateinit var tokenManager: TokenManager
-
-    private var email: String? = null
-    private var profileImageUrl: String? = null
-
     private var isNicknameValid = false
+    private var profileImageUrl: String? = null
+    private var email: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityKakaoNicknameBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        tokenManager = TokenManager(this)
 
         email = intent.getStringExtra("email")
         profileImageUrl = intent.getStringExtra("profileImageUrl")
@@ -45,9 +43,24 @@ class KakaoNicknameActivity : AppCompatActivity() {
         setupTextWatcher()
         setupButtonListeners()
         observeNicknameCheck()
+        setupBackButton()
+    }
 
-        // ❌ BE API 미완성 → 임시로 주석 처리
-        // observeKakaoSignup()
+    // -----------------------------
+    // 🔙 뒤로가기 버튼 처리
+    // -----------------------------
+    private fun setupBackButton() {
+        binding.btnBack.setOnClickListener {
+
+            // 카카오 SDK 로그아웃
+            UserApiClient.instance.logout { error ->
+
+                // 로그인 화면 복귀
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+        }
+
     }
 
     private fun setupTextWatcher() {
@@ -58,7 +71,6 @@ class KakaoNicknameActivity : AppCompatActivity() {
                 binding.btnSignup.alpha = 0.5f
                 binding.btnSignup.isEnabled = false
             }
-
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
@@ -66,7 +78,6 @@ class KakaoNicknameActivity : AppCompatActivity() {
 
     private fun setupButtonListeners() {
 
-        // 닉네임 중복확인
         binding.btnNicknameCheck.setOnClickListener {
             val nickname = binding.signUpNicknameEt.text.toString().trim()
 
@@ -78,45 +89,31 @@ class KakaoNicknameActivity : AppCompatActivity() {
             viewModel.checkNickname(nickname)
         }
 
-        // 카카오 회원가입 완료 버튼 (현재 API 없음 → 임시 비활성)
         binding.btnSignup.setOnClickListener {
-
             if (!isNicknameValid) {
-                Toast.makeText(this, "닉네임 중복 확인을 해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "닉네임 중복 확인을 해주세요!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            Toast.makeText(this, "BE API 준비 중입니다.", Toast.LENGTH_SHORT).show()
-
-            // ❌ BE API 없는 부분 임시 삭제
-            /*
             val nickname = binding.signUpNicknameEt.text.toString().trim()
-
-            viewModel.signupKakao(
-                nickname = nickname,
-                email = email ?: "",
-                profileImageUrl = profileImageUrl
-            )
-            */
+            saveKakaoNickname(nickname)
         }
     }
 
     private fun observeNicknameCheck() {
         viewModel.nicknameCheckState.observe(this) { result ->
+
             result.onSuccess { available ->
                 if (available) {
                     binding.tvNicknameStatus.setTextColor(Color.parseColor("#51BDEB"))
                     binding.tvNicknameStatus.text = "사용 가능한 닉네임입니다."
                     isNicknameValid = true
-
                     binding.btnSignup.alpha = 1f
                     binding.btnSignup.isEnabled = true
-
                 } else {
                     binding.tvNicknameStatus.setTextColor(Color.parseColor("#FF4C4C"))
                     binding.tvNicknameStatus.text = "이미 사용 중인 닉네임입니다."
                     isNicknameValid = false
-
                     binding.btnSignup.alpha = 0.5f
                     binding.btnSignup.isEnabled = false
                 }
@@ -130,30 +127,58 @@ class KakaoNicknameActivity : AppCompatActivity() {
         }
     }
 
-    // ❌ 아직 API 없음 → 임시 주석
-    /*
-    private fun observeKakaoSignup() {
-        viewModel.kakaoSignupState.observe(this) { result ->
-            result.onSuccess { data ->
+    // -----------------------------
+    // 🔥 닉네임 저장 (로딩 포함)
+    // -----------------------------
+    private fun saveKakaoNickname(newNickname: String) {
 
-                tokenManager.saveAccessToken(data.accessToken)
-                tokenManager.saveRefreshToken(data.refreshToken)
+        val memberId = intent.getIntExtra("memberId", -1).toLong()
 
-                MemberSession.currentMemberId = data.memberId.toLong()
-                MemberSession.email = data.email
-                MemberSession.nickname = data.nickname
-                MemberSession.profileImageUrl = data.profileImageUrl
+        if (memberId == -1L) {
+            Toast.makeText(this, "memberId가 전달되지 않았습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-                Toast.makeText(this, "회원가입 완료!", Toast.LENGTH_SHORT).show()
+        val request = ProfileUpdateRequest(
+            nickname = newNickname,
+            profileImageUrl = profileImageUrl
+        )
 
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
-            }
+        // 🔥 로딩 시작
+        binding.loadingLayout.visibility = View.VISIBLE
+        binding.btnSignup.isEnabled = false
 
-            result.onFailure {
-                Toast.makeText(this, "회원가입 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.memberApiService.updateProfile(memberId, request)
+
+                if (response.isSuccessful && response.body()?.code == 0) {
+
+                    MemberSession.currentMemberId = memberId
+                    MemberSession.nickname = newNickname
+                    MemberSession.email = email
+                    MemberSession.profileImageUrl = profileImageUrl
+
+                    Toast.makeText(this@KakaoNicknameActivity, "닉네임 설정 완료!", Toast.LENGTH_SHORT).show()
+
+                    startActivity(Intent(this@KakaoNicknameActivity, MainActivity::class.java))
+                    finish()
+
+                } else {
+                    Toast.makeText(
+                        this@KakaoNicknameActivity,
+                        "닉네임 저장 실패: ${response.body()?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(this@KakaoNicknameActivity, "네트워크 오류 발생", Toast.LENGTH_SHORT).show()
+            } finally {
+                // 🔥 로딩 종료
+                binding.loadingLayout.visibility = View.GONE
+                binding.btnSignup.isEnabled = true
             }
         }
     }
-    */
 }

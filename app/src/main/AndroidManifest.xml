@@ -53,7 +53,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <!-- 네이티브 앱 키로 스킴 설정 필수 -->
-                <data android:scheme="565207f78fbd8da404f0288d6d5f9ebd" />
+                <data android:scheme="kakao565207f78fbd8da404f0288d6d5f9ebd" />
             </intent-filter>
         </activity>
 
@@ -62,6 +62,11 @@
             android:name=".SignUpActivity"
             android:exported="true" />
 
+      <!-- 카카오 닉네임 설정 화면 -->
+        <activity
+            android:name=".KakaoNicknameActivity"
+            android:exported="true" />
+      
         <!-- 아이디 찾기 화면 -->
         <activity
             android:name=".ui.findid.FindIdActivity"
@@ -86,10 +91,6 @@
         <activity
             android:name=".ui.findid.FindIdFullResultActivity"
             android:exported="false" />
-
-
-
-
 
         <!-- mainActivity 화면 -->
         <activity
