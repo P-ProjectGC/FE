@@ -10,12 +10,12 @@ class AuthViewModel(
 ) : ViewModel() {
 
     // ⚫ 일반 로그인 결과
-    private val _normalLoginResult = MutableLiveData<Result<LoginData>>()
-    val normalLoginResult: LiveData<Result<LoginData>> = _normalLoginResult
+    private val _normalLoginResult = MutableLiveData<Result<LoginData>?>()
+    val normalLoginResult: LiveData<Result<LoginData>?> = _normalLoginResult
 
     // 🟡 카카오 로그인 결과
-    private val _kakaoLoginState = MutableLiveData<Result<KakaoLoginData>>()
-    val kakaoLoginState: LiveData<Result<KakaoLoginData>> get() = _kakaoLoginState
+    private val _kakaoLoginState = MutableLiveData<Result<KakaoLoginData>?>()
+    val kakaoLoginState: LiveData<Result<KakaoLoginData>?> get() = _kakaoLoginState
 
     // 🔵 (추후용) 토큰 재발급
     private val _tokenRefreshResult = MutableLiveData<Result<LoginData>>()
@@ -23,8 +23,8 @@ class AuthViewModel(
   
     // 로딩 화면
     private val _loading = MutableLiveData<Boolean>()
-    val loading: LiveData<Boolean> get() = _loading
 
+    val loading: LiveData<Boolean> get() = _loading
 
     /**
      * ------------------------
@@ -83,6 +83,11 @@ class AuthViewModel(
                 _kakaoLoginState.postValue(Result.failure(e))
             }
         }
+    }
+
+    fun clearState() {
+        _normalLoginResult.value = null
+        _kakaoLoginState.value = null
     }
 
     /**
