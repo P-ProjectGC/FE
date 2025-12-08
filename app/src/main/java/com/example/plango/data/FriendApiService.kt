@@ -9,6 +9,7 @@ import com.example.plango.model.FriendResponse
 import com.example.plango.model.SentFriendRequestItem
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -53,4 +54,9 @@ interface FriendApiService {
     suspend fun cancelFriendRequest(
         @Path("friendId") friendId: Long
     ): Response<ApiResponse<Void>>
+
+    @DELETE("/api/friends/{friendId}")
+    suspend fun deleteFriend(
+        @Path("friendId") friendId: Long
+    ): Response<Response<Unit>>
 }

@@ -24,7 +24,6 @@ import com.example.plango.data.FriendRepository
 import com.example.plango.data.FriendRequestRepository
 import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
-import com.example.plango.data.TravelRoomRepository
 import com.example.plango.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 
@@ -83,9 +82,10 @@ class MainActivity : AppCompatActivity() {
         // 인셋 처리
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0) // bottom 제거
             insets
         }
+
 
         initBottomNavigation()
         initAlarmIcon()
@@ -189,11 +189,8 @@ class MainActivity : AppCompatActivity() {
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
 
         ivProfile.setOnClickListener {
-            // 프로필 화면 띄우기
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.main_frm, ProfileFragment())
-                .addToBackStack(null)
-                .commitAllowingStateLoss()
+            val intent = Intent(this, ProfileActivity::class.java)
+            startActivity(intent)
 
             // 프로필 화면 들어갈 때는 버튼/알림/헤더 숨김
             showProfileButton(false)

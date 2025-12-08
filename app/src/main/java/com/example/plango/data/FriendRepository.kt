@@ -9,6 +9,7 @@ import com.example.plango.model.ApiResponse
 import com.example.plango.data.RetrofitClient.friendApiService
 import com.example.plango.model.FriendRequestItem
 import com.example.plango.model.SentFriendRequestItem
+import retrofit2.Response
 
 // 🟢 RetrofitClient에서 API Service 인스턴스를 직접 가져와 사용합니다.
 private val apiService: FriendApiService = RetrofitClient.friendApiService
@@ -331,4 +332,8 @@ object FriendRepository {
     fun getSentRequestIdByNickname(nickname: String): Long? {
         return sentFriendRequests.firstOrNull { it.nickname == nickname }?.friendId
     }
+
+//    suspend fun deleteFriend(friendId: Long): Response<BaseResponse<Unit>> {
+//        return api.deleteFriend(friendId)
+//    }
 }
