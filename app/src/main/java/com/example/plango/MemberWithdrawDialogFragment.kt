@@ -58,30 +58,23 @@ class MemberWithdrawDialogFragment : DialogFragment() {
                 if (response.isSuccessful) {
                     val body = response.body()
 
-                    if (body?.code == 200) {
+                    android.util.Log.d(
+                        "Withdraw",
+                        "HTTP=${response.code()}, bodyCode=${body?.code}, msg=${body?.message}"
+                    )
 
-                        Toast.makeText(requireContext(), "회원탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                    // ✅ 성공 코드 유연하게 처리 (0 또는 200 둘 다 성공으로 인정)
+                    val isSuccessCode = (body?.code == 0 || body?.code == 200)
 
-                        // 1) 토큰 삭제
-                        val tokenManager = TokenManager(requireContext())
-                        tokenManager.clearTokens()
+                    if (isSuccessCode) {
+                        Toast.makeText(
+                            requireContext(),
+                            "회원탈퇴가 완료되었습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
-                        // 2) 세션 삭제
-                        MemberSession.clear()
-
-                        // 로그인 화면으로 이동 (로그아웃과 동일한 방식)
-                        val intent = Intent(requireContext().applicationContext, LoginActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        }
-
-                        // 🔥 이걸 appContext 로 실행해야 Task 가 새로 만들어짐
-                        requireContext().applicationContext.startActivity(intent)
-
-                        // 🔥 메인 액티비티 완전 종료
-                        requireActivity().finishAffinity()
-
-                        dismiss()
-
+                        // ✅ 탈퇴 성공 시 공통 로그아웃 처리
+                        performLocalSignOut()
 
                     } else {
                         Toast.makeText(
@@ -91,7 +84,11 @@ class MemberWithdrawDialogFragment : DialogFragment() {
                         ).show()
                     }
                 } else {
-                    // ... (HTTP 에러 처리 기존 그대로) ...
+                    Toast.makeText(
+                        requireContext(),
+                        "회원탈퇴 실패 (${response.code()})",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -100,27 +97,30 @@ class MemberWithdrawDialogFragment : DialogFragment() {
         }
     }
 
-
     /**
      * ✅ 로컬 토큰/세션 정리 + 로그인 화면으로 이동
      */
     private fun performLocalSignOut() {
-        val context = requireContext()
-        val appContext = context.applicationContext
+        val activity = requireActivity()
+        val appContext = activity.applicationContext
 
-        // 토큰 삭제
+        // 1) 토큰 삭제
         val tokenManager = TokenManager(appContext)
         tokenManager.clearTokens()
 
-        // 세션 초기화
+        // 2) 세션 초기화
         MemberSession.clear()
 
-        // 로그인 화면으로 이동
-        val intent = Intent(appContext, LoginActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        // 3) 로그인 화면으로 이동 (Task 초기화)
+        val intent = Intent(activity, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
 
+        // 4) 현재 액티비티 종료
+        activity.finish()
+
+        // 5) 다이얼로그 닫기
         dismiss()
     }
 
