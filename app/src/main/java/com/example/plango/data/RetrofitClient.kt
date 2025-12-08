@@ -90,4 +90,14 @@ object RetrofitClient {
     val signupApiService: SignupService by lazy {
         retrofit.create(SignupService::class.java)
     }
+
+    // 🔽🔽🔽 이거 추가
+    val noticeApiService: NoticeService by lazy {
+        retrofit.create(NoticeService::class.java)
+    }
+
+    // 🔹 불편사항 신고 API
+    val reportApiService: ReportService by lazy {
+        retrofit.create(ReportService::class.java)
+    }
 }

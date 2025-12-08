@@ -1,0 +1,6 @@
+<!-- res/drawable/bg_notice_type_update.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="999dp"/>
+    <solid android:color="#4CAF50"/> <!-- 업데이트: 초록 -->
+</shape>

@@ -101,6 +101,21 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
                 .show(parentFragmentManager, "MemberWithdrawDialog")
         }
 
+        // 🔹 🔔 공지사항 row 클릭 → NoticeListActivity 이동 (★ 요거 추가 ★)
+        binding.rowNotice.setOnClickListener {
+            val intent = android.content.Intent(requireContext(), NoticeListActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.rowReport.setOnClickListener {
+            InconvenienceReportDialogFragment
+                .newInstance()
+                .show(parentFragmentManager, "InconvenienceReportDialog")
+        }
+
+
+
+
         // 🔹 로그인 타입에 따른 UI 적용 (카카오 뱃지, 비밀번호 변경 row 노출 등)
         applyLoginTypeFromSession()
 

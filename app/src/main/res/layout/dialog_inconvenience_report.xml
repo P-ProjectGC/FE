@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/bg_dialog_round">
+
+    <!-- 제목 + 닫기 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="불편사항 신고"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center_horizontal"/>
+
+        <TextView
+            android:id="@+id/tvClose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textSize="16sp"
+            android:padding="4dp"/>
+    </LinearLayout>
+
+    <!-- 설명 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="겪으신 문제나 불편사항을 자세히 작성해주세요."
+        android:textSize="13sp"/>
+
+    <!-- 라벨 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="불편사항"
+        android:textSize="14sp"
+        android:textStyle="bold"/>
+
+    <!-- 입력 박스 -->
+    <EditText
+        android:id="@+id/etContent"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_report_edittext"
+        android:padding="12dp"
+        android:gravity="top|start"
+        android:hint="불편사항을 입력해주세요"
+        android:inputType="textMultiLine"
+        android:maxLines="5" />
+
+    <!-- 버튼 영역 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="vertical">
+
+        <!-- 신고 버튼: 기본은 연회색(비활성 느낌), tint 완전 차단 -->
+        <Button
+            android:id="@+id/btnSubmit"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="신고"
+            android:textSize="15sp"
+            android:textColor="@android:color/white"
+            android:background="@drawable/bg_report_submit_disabled"
+            android:enabled="false"
+            android:backgroundTint="@null" />
+
+
+        <!-- 취소 버튼: 투명 배경 + 검정 텍스트, tint 차단 -->
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:text="취소"
+            android:textSize="15sp"
+            android:textColor="@android:color/black"
+            android:background="@android:color/transparent"
+            android:backgroundTint="@null" />
+
+    </LinearLayout>
+
+</LinearLayout>

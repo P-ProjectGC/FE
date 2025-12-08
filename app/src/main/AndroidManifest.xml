@@ -86,6 +86,12 @@
         <activity
             android:name=".ui.findid.FindIdFullResultActivity"
             android:exported="false" />
+        <activity
+            android:name=".NoticeListActivity"
+            android:exported="false" />
+
+
+
 
 
 
