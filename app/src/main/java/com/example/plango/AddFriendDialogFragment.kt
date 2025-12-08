@@ -221,6 +221,7 @@ class AddFriendDialogFragment : DialogFragment() {
      */
     private fun mapToFriend(data: MemberSearchData): Friend {
         return Friend(
+            friendId = 0L,
             memberId = data.memberId,         // ✅ 새로 추가된 필드
             nickname = data.nickname,
             realName = "",                    // 아직 실명 정보 없으면 빈 문자열로

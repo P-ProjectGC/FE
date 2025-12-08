@@ -172,6 +172,7 @@ object FriendRepository {
                     }
 
                     Friend(
+                        friendId = api.friendId,
                         memberId = api.memberId,
                         nickname = api.nickname,
                         realName = api.name?:api.nickname,              // realName 없음 → nickname 재사용
@@ -333,7 +334,23 @@ object FriendRepository {
         return sentFriendRequests.firstOrNull { it.nickname == nickname }?.friendId
     }
 
-//    suspend fun deleteFriend(friendId: Long): Response<BaseResponse<Unit>> {
-//        return api.deleteFriend(friendId)
-//    }
+    suspend fun deleteFriend(friendId: Long): Result<Unit> {
+        return try {
+            val response = apiService.deleteFriend(friendId)
+
+            if (response.isSuccessful && response.body()?.code == 0) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    Exception(
+                        response.body()?.message
+                            ?: "친구 삭제 실패 (HTTP ${response.code()})"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
 }

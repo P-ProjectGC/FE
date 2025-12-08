@@ -111,6 +111,7 @@ class FriendRequestDialogFragment : DialogFragment() {
 
                 // 친구 목록에 추가
                 val newFriend = Friend(
+                    friendId = 0L,
                     memberId = item.senderMemberId,
                     nickname = item.senderNickname,
                     realName = item.senderNickname,

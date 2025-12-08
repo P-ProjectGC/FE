@@ -17,8 +17,11 @@ import com.example.plango.model.Friend
  * - 카카오 유저 뱃지 표시/숨김 처리
  */
 class FriendAdapter(
-    private var items: List<Friend>
+    private var items: MutableList<Friend>
 ) : RecyclerView.Adapter<FriendAdapter.FriendViewHolder>() {
+
+    // 🔥 삭제 버튼 클릭 이벤트 콜백
+    var onDeleteClick: ((Friend, Int) -> Unit)? = null
 
     /**
      * ViewHolder
@@ -29,6 +32,9 @@ class FriendAdapter(
         val tvRealName: TextView = view.findViewById(R.id.tv_real_name)       // 실명
         val ivProfile: ImageView = view.findViewById(R.id.iv_profile)         // 프로필 이미지
         val ivKakaoBadge: ImageView = view.findViewById(R.id.iv_kakao_badge)  // 카카오 뱃지
+
+        // 🔥 삭제 버튼
+        val btnDelete: TextView = view.findViewById(R.id.btn_reject) // or btn_delete
     }
 
     /**
@@ -67,6 +73,11 @@ class FriendAdapter(
                 .centerCrop()
                 .into(holder.ivProfile)
         }
+
+        // 🔥 삭제 버튼 클릭 이벤트 전달
+        holder.btnDelete.setOnClickListener {
+            onDeleteClick?.invoke(friend, position)
+        }
     }
 
     /**
@@ -74,11 +85,19 @@ class FriendAdapter(
      */
     override fun getItemCount(): Int = items.size
 
+    // 🔥 리스트에서 아이템 삭제하는 함수 (삭제 성공 시 사용)
+    fun removeItem(position: Int) {
+        items.removeAt(position)
+        notifyItemRemoved(position)
+    }
+
     /**
      * RecyclerView 갱신 함수
      */
     fun submitList(newItems: List<Friend>) {
-        items = newItems
+        items.clear()
+        items.addAll(newItems)
         notifyDataSetChanged()
     }
+
 }

@@ -21,7 +21,6 @@
         android:layout_width="match_parent"
         android:layout_height="300dp">
 
-        <!-- TODO: 약관 내용 적기 -->
         <TextView
             android:id="@+id/terms_content"
             android:layout_width="match_parent"
@@ -29,8 +28,7 @@
             android:textSize="13sp"
             android:textColor="#555555"
             android:lineSpacingExtra="4dp"
-            android:text="여기에 약관 내용을 적어주세요.\n\n1. 개인정보 수집 목적…\n2. 수집 항목…\n3. 보관 기간…\n\n(실제 약관 내용 넣으면 됨)"
-            />
+            android:text="@string/terms_content" />
     </ScrollView>
 
     <Button
@@ -44,4 +42,5 @@
         android:textSize="15sp"
         android:textColor="@android:color/black"
         android:background="#A8DEF5"/>
+
 </LinearLayout>

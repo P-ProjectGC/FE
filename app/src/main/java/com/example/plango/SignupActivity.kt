@@ -8,14 +8,30 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.example.plango.data.MemberSession
 import com.example.plango.data.RetrofitClient
+import com.example.plango.data.login_api.AuthRepository
+import com.example.plango.data.login_api.AuthViewModel
+import com.example.plango.data.login_api.AuthViewModelFactory
 import com.example.plango.data.signup_api.SignupRepository
 import com.example.plango.data.signup_api.SignupViewModel
 import com.example.plango.data.signup_api.SignupViewModelFactory
+import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivitySignupBinding
+import com.kakao.sdk.user.UserApiClient
 
 class SignUpActivity : AppCompatActivity() {
+
+    private val authService = RetrofitClient.authService
+    private val authRepository = AuthRepository(authService)
+
+    private val authViewModel: AuthViewModel by viewModels {
+        AuthViewModelFactory(authRepository)
+    }
+
+    private lateinit var tokenManager: TokenManager
 
     private lateinit var binding: ActivitySignupBinding
 
@@ -36,8 +52,12 @@ class SignUpActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivitySignupBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        tokenManager = TokenManager(this)
+
 
         signupViewModel = SignupViewModelFactory(
             SignupRepository(RetrofitClient.signupApiService)
@@ -71,6 +91,7 @@ class SignUpActivity : AppCompatActivity() {
         setupPasswordToggle()
         setupClickListeners()
         observeDuplicateChecks()
+        observeKakaoLogin()
     }
 
     // ---------------------------
@@ -167,8 +188,79 @@ class SignUpActivity : AppCompatActivity() {
 
         // 카카오 가입
         btnKakao.setOnClickListener {
-            Toast.makeText(this@SignUpActivity, "카카오 회원가입 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
-            // TODO: API 연동
+            Log.d("KAKAO_FLOW", "0️⃣ 카카오 회원가입 버튼 클릭됨")
+            startKakaoLogin()
+        }
+    }
+
+    private fun startKakaoLogin() {
+        Log.d("KAKAO_FLOW", "1️⃣ startKakaoLogin() 호출")
+
+        UserApiClient.instance.loginWithKakaoAccount(this) { token, error ->
+            if (error != null) {
+                Log.e("KAKAO", "카카오 로그인 실패: $error")
+            } else if (token != null) {
+
+                val accessToken = token.accessToken
+                val idToken = token.idToken
+
+                Log.d("KAKAO_FLOW",
+                    "2️⃣ 카카오 SDK 로그인 성공 → access=$accessToken | idToken=$idToken"
+                )
+
+                authViewModel.loginKakao(accessToken, idToken)
+            }
+        }
+    }
+
+    private fun observeKakaoLogin() {
+        authViewModel.kakaoLoginState.observe(this) { result ->
+
+            if (result == null) return@observe
+
+            result.onSuccess { data ->
+
+                binding.signUpLoading.visibility = View.VISIBLE
+
+                tokenManager.saveAccessToken(data.accessToken)
+                tokenManager.saveRefreshToken(data.refreshToken)
+
+                if (data.newMember || data.nickname.isNullOrBlank()) {
+
+                    binding.signUpLoading.postDelayed({
+
+                        val intent = Intent(this, KakaoNicknameActivity::class.java)
+                        intent.putExtra("memberId", data.memberId)
+                        intent.putExtra("email", data.email)
+                        intent.putExtra("profileImageUrl", data.profileImageUrl)
+
+                        intent.flags =
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+
+                        startActivity(intent)
+
+                    }, 400)
+
+                } else {
+
+                    MemberSession.currentMemberId = data.memberId.toLong()
+                    MemberSession.email = data.email
+                    MemberSession.nickname = data.nickname
+                    MemberSession.profileImageUrl = data.profileImageUrl
+                    MemberSession.accessToken = data.accessToken
+                    MemberSession.refreshToken = data.refreshToken
+
+                    binding.signUpLoading.postDelayed({
+                        startActivity(Intent(this, MainActivity::class.java))
+                        finish()
+                    }, 400)
+                }
+            }
+
+            result.onFailure {
+                binding.signUpLoading.visibility = View.GONE
+                Toast.makeText(this, "카카오 로그인 실패", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

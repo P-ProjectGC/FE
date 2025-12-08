@@ -6,84 +6,126 @@
     android:layout_height="match_parent"
     android:background="@drawable/main_logo_2">
 
-    <!-- 로고 -->
-    <ImageView
-        android:id="@+id/full_id_result_logo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/main_logo"
-        android:adjustViewBounds="true"
-        android:layout_marginTop="40dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    <!-- ===== 상단 헤더 (뒤로 + 로고) ===== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/find_id_header"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:paddingTop="20dp"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- 초록 체크 아이콘 -->
-    <ImageView
-        android:id="@+id/iv_check_full"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:src="@drawable/ic_check_green"
-        android:layout_marginTop="32dp"
-        app:layout_constraintTop_toBottomOf="@id/full_id_result_logo"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <!-- 결과 문구: 회원님의 아이디는 skadbw12345 입니다. -->
-    <TextView
-        android:id="@+id/tv_full_id_result"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="회원님의 아이디는 skadbw12345 입니다."
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:gravity="center"
-        android:layout_marginTop="24dp"
-        android:paddingHorizontal="32dp"
-        app:layout_constraintTop_toBottomOf="@id/iv_check_full"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <!-- 안내 박스 -->
-    <LinearLayout
-        android:id="@+id/layout_full_id_info"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginHorizontal="32dp"
-        android:background="@drawable/bg_signup_button"
-        app:layout_constraintTop_toBottomOf="@id/tv_full_id_result"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <TextView
-            android:id="@+id/tv_full_id_info"
-            android:layout_width="0dp"
+        <!-- 로고 -->
+        <ImageView
+            android:id="@+id/find_id_result_logo"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="인증이 완료되어 전체 아이디가 표시됩니다.\n해당 아이디로 로그인하시면 서비스를 이용하실 수 있습니다."
-            android:textColor="#555555"
-            android:textSize="11sp"/>
-    </LinearLayout>
+            android:src="@drawable/main_logo"
+            android:adjustViewBounds="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 로그인 하기 버튼 -->
-    <Button
-        android:id="@+id/btn_full_go_login"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:text="로그인 하기"
-        android:textSize="14sp"
-        android:textColor="#000000"
-        android:background="@drawable/bg_login_button"
-        android:backgroundTint="@null"
-        app:backgroundTint="@null"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="40dp"
-        app:layout_constraintTop_toBottomOf="@id/layout_full_id_info"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ===== 내용 영역 ===== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/find_id_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/find_id_header"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/topContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="32dp"
+            android:paddingBottom="40dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/bottomContent">
+
+            <!-- 초록 체크 아이콘 -->
+            <ImageView
+                android:id="@+id/iv_check_full"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_check_green"
+                android:layout_marginTop="32dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- 결과 문구: 회원님의 아이디는 skadbw12345 입니다. -->
+            <TextView
+                android:id="@+id/tv_full_id_result"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="회원님의 아이디는\nskadbw12345 입니다."
+                android:textSize="25sp"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:gravity="center"
+                android:layout_marginTop="24dp"
+                android:paddingHorizontal="32dp"
+                app:layout_constraintTop_toBottomOf="@id/iv_check_full"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- 안내 박스 -->
+            <LinearLayout
+                android:id="@+id/layout_full_id_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:paddingTop="15dp"
+                android:paddingBottom="15dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginHorizontal="10dp"
+                android:background="@drawable/bg_signup_button"
+                app:layout_constraintTop_toBottomOf="@id/tv_full_id_result">
+
+                <TextView
+                    android:id="@+id/tv_full_id_info"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="10dp"
+                    android:text="인증이 완료되어 전체 아이디가 표시됩니다.\n해당 아이디로 로그인하시면 서비스를 이용하실 수 있습니다."
+                    android:textColor="#555555"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottomContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="32dp"
+            android:paddingBottom="40dp"
+            app:layout_constraintBottom_toBottomOf="parent" >
+
+            <!-- 로그인 하기 버튼 -->
+            <Button
+                android:id="@+id/btn_full_go_login"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:text="로그인 하기"
+                android:textSize="14sp"
+                android:textColor="#000000"
+                android:background="@drawable/bg_login_button"
+                android:backgroundTint="@null"
+                app:backgroundTint="@null"
+                android:layout_marginTop="40dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

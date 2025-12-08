@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -39,11 +40,18 @@ class FriendFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // 1) RecyclerView + Adapter 초기화
-        friendAdapter = FriendAdapter(emptyList())
+        friendAdapter = FriendAdapter(mutableListOf())
+
         binding.rvFriends.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = friendAdapter
         }
+
+        // 🔥 삭제 버튼 클릭 시 → 다이얼로그 띄우기
+        friendAdapter.onDeleteClick = { friend, position ->
+            showDeleteDialog(friend.friendId, position) // ✅ 올바른 값
+        }
+
         lifecycleScope.launch {
             val result = FriendRepository.fetchReceivedFriendRequests(
                 MemberSession.currentMemberId
@@ -56,10 +64,6 @@ class FriendFragment : Fragment() {
                 Toast.makeText(requireContext(), "친구 요청 조회 실패: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
-
-
-
-
 
         // 2) 더미 완전 제거 → 처음엔 빈 상태로 시작
         FriendRepository.setFriends(emptyList())
@@ -166,5 +170,38 @@ class FriendFragment : Fragment() {
         }
 
         friendAdapter.submitList(filtered)
+    }
+
+    /** 친구 삭제 확인 다이얼로그 */
+    private fun showDeleteDialog(friendId: Long, position: Int) {
+        val dialog = FriendDeleteDialogFragment(
+            onConfirmDelete = {
+                deleteFriend(friendId, position)
+            }
+        )
+        dialog.show(parentFragmentManager, "FriendDeleteDialog")
+    }
+
+
+    /** 실제 친구 삭제 처리 (API 호출 + 리스트 갱신) */
+    private fun deleteFriend(friendId: Long, position: Int) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = FriendRepository.deleteFriend(friendId)
+
+            if (result.isSuccess) {
+                val updatedList = FriendRepository.getFriends()
+                    .filterNot { it.friendId == friendId }   // 🔥 FIXED
+                FriendRepository.setFriends(updatedList)
+
+                refreshFriendList()
+                Toast.makeText(requireContext(), "친구가 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(
+                    requireContext(),
+                    result.exceptionOrNull()?.message ?: "친구 삭제에 실패했습니다.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 }

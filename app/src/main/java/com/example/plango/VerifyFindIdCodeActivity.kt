@@ -92,6 +92,7 @@ class VerifyFindIdCodeActivity : AppCompatActivity() {
         tvResend.setOnClickListener {
             resendCode(email)
         }
+
     }
 
     private fun showLoading(show: Boolean) {
