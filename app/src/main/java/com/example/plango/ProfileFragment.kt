@@ -66,7 +66,7 @@ class ProfileFragment : Fragment(), NicknameEditDialogFragment.OnNicknameSavedLi
         super.onViewCreated(view, savedInstanceState)
 
         // 🔹 뒤로가기
-        binding.layoutBack.setOnClickListener {
+        binding.btnBack.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
 
