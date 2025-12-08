@@ -85,15 +85,6 @@
 
         </FrameLayout>
 
-
-
-
-
-
-
-
-
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -113,12 +104,18 @@
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_bottom_nav"
+        android:paddingTop="6dp"
+        android:paddingBottom="5dp"
+        app:itemIconSize="26dp"
+        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemTextColor="@color/bottom_nav_item_color"
+        android:fitsSystemWindows="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:menu="@menu/menu_bottom_nav"
-        app:itemIconTint="@color/bottom_nav_item_color"
-        app:itemTextColor="@color/bottom_nav_item_color"/>
+        app:menu="@menu/menu_bottom_nav" />
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

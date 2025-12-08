@@ -4,13 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <item
-        android:id="@+id/menu.friends"
+        android:id="@+id/menu_friends"
         android:icon="@drawable/icon_friend"
         app:showAsAction="always"
         android:title="친구 목록" />
 
     <item
-        android:id="@+id/menu.home"
+        android:id="@+id/menu_home"
         android:icon="@drawable/icon_home"
         app:showAsAction="always"
         android:enabled="true"
@@ -18,7 +18,7 @@
         tools:ignore="AlwaysShowAction"/>
 
     <item
-        android:id="@+id/menu.rooms"
+        android:id="@+id/menu_rooms"
         android:icon="@drawable/icon_rooms"
         app:showAsAction="always"
         android:title="방 목록" />

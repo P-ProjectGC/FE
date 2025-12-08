@@ -18,6 +18,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import android.view.animation.DecelerateInterpolator
 import android.content.Intent
+import android.view.ViewTreeObserver
 import com.example.plango.data.TravelRoomRepository
 import com.example.plango.model.RoomRangeType
 import com.example.plango.model.TravelRoom
@@ -106,6 +107,9 @@ class HomeFragment : Fragment() {
         setupUi()
         setupCalendar()
         setupPageSnapAndFade()
+
+//        adjustTopPanelHeight()
+
         // 🔹 홈 화면 "새로운 여행 만들기" 버튼 → 방 생성 플로우 진입
         binding.btnCreateTrip.setOnClickListener {
             val intent = Intent(requireContext(), CreateRoomActivity::class.java)
@@ -117,10 +121,29 @@ class HomeFragment : Fragment() {
         }
     }
 
+//    private fun adjustTopPanelHeight() {
+//        binding.homeScroll.viewTreeObserver.addOnGlobalLayoutListener(
+//            object : ViewTreeObserver.OnGlobalLayoutListener {
+//                override fun onGlobalLayout() {
+//
+//                    val scrollHeight = binding.homeScroll.height   // 화면에서 보이는 영역 높이
+//                    if (scrollHeight > 0) {
+//                        val params = binding.topPanel.layoutParams
+//                        if (params.height != scrollHeight) {
+//                            params.height = scrollHeight
+//                            binding.topPanel.layoutParams = params
+//                        }
+//                        binding.homeScroll.viewTreeObserver.removeOnGlobalLayoutListener(this)
+//                    }
+//                }
+//            }
+//        )
+//    }
+
     private fun setupUi() {
         // 🔹 세션의 닉네임 사용 (없으면 기본 문구)
         val nickname = MemberSession.nickname ?: "여행자"
-        binding.tvTitle.text = "“$nickname”의\nPlanGo"
+        binding.tvTitle.text = "“$nickname”의"
 
         // 🔹 검색창 클릭시 팝업 띄우기
         val searchClick: (View) -> Unit = {
@@ -367,8 +390,12 @@ class HomeFragment : Fragment() {
         search2.alpha = 0f
         search2.visibility = View.INVISIBLE
 
+        // 🔥 여기 수정
         scroll.post {
-            pageHeight = binding.topPanel.height.toFloat()
+            val h = scroll.height
+            binding.topPanel.minimumHeight = h
+            binding.topPanel.layoutParams.height = h
+            pageHeight = h.toFloat()
         }
 
         scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->

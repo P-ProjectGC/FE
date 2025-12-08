@@ -95,8 +95,9 @@
             android:name=".NoticeListActivity"
             android:exported="false" />
 
-
-
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="true" />
 
         <!-- mainActivity 화면 -->
         <activity

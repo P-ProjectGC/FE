@@ -183,7 +183,8 @@
                 android:gravity="center"
                 android:textSize="12sp"
                 android:textColor="#A8DEF5"
-                android:layout_marginTop="5dp"/>
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="10dp"/>
 
         </LinearLayout>
     </ScrollView>
