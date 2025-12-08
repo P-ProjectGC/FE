@@ -28,19 +28,25 @@ class ProfileActivity : AppCompatActivity(),
     // 🔹 선택된 프로필 이미지 Uri (로컬)
     private var selectedProfileImageUri: Uri? = null
 
+    // 🔔 알림 스위치 UI 업데이트 중인지 플래그
     private var isNotificationUiUpdating = false
+
+    // 🔔 마지막으로 서버에서 받은 알림 설정 (실패 시 롤백용)
     private var lastNotificationSettings: NotificationSettings? = null
 
+    // 🔹 갤러리에서 이미지 선택 런처
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
                 selectedProfileImageUri = uri
 
+                // 1) 바로 화면에 미리보기
                 Glide.with(this)
                     .load(uri)
                     .circleCrop()
                     .into(binding.ivProfileImage)
 
+                // 2) 서버에 업로드 → fileUrl 얻기 → 프로필 PATCH
                 uploadProfileImageToServer(uri)
             }
         }
@@ -51,15 +57,15 @@ class ProfileActivity : AppCompatActivity(),
         binding = ActivityProfileBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 뒤로가기
+        // 🔹 뒤로가기
         binding.btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        // 프로필 이미지 클릭 → 갤러리 열기
+        // 🔹 프로필 이미지 클릭 → 갤러리 열기
         binding.ivProfileImage.setOnClickListener {
             pickImageLauncher.launch("image/*")
         }
 
-        // 닉네임 row 클릭
+        // 🔹 닉네임 row 클릭 → 닉네임 변경 다이얼로그
         binding.rowNickname.setOnClickListener {
             val currentNickname = binding.tvProfileNickname.text.toString()
             NicknameEditDialogFragment
@@ -67,43 +73,55 @@ class ProfileActivity : AppCompatActivity(),
                 .show(supportFragmentManager, "NicknameEditDialog")
         }
 
-        // 비밀번호 변경
+        // 🔹 비밀번호 변경 row 클릭 → 비밀번호 변경 다이얼로그
         binding.rowChangePassword.setOnClickListener {
             ChangePasswordDialogFragment.newInstance()
                 .show(supportFragmentManager, "ChangePasswordDialog")
         }
 
-        // 로그아웃
+        // 🔹 로그아웃 row 클릭
         binding.rowLogout.setOnClickListener {
             LogoutDialogFragment.newInstance()
                 .show(supportFragmentManager, "LogoutDialog")
         }
 
-        // 회원탈퇴
+        // 🔹 회원탈퇴 row 클릭
         binding.rowWithdraw.setOnClickListener {
             MemberWithdrawDialogFragment.newInstance()
                 .show(supportFragmentManager, "MemberWithdrawDialog")
         }
 
-        // 공지사항
+        // 🔹 공지사항 row 클릭
         binding.rowNotice.setOnClickListener {
             startActivity(android.content.Intent(this, NoticeListActivity::class.java))
         }
 
-        // 불편 신고
+        // 🔹 불편 신고 row 클릭
         binding.rowReport.setOnClickListener {
             InconvenienceReportDialogFragment
                 .newInstance()
                 .show(supportFragmentManager, "InconvenienceReportDialog")
         }
 
+        // 🔹 로그인 타입에 따른 UI 적용 (카카오 뱃지, 비밀번호 변경 row 노출 등)
         applyLoginTypeFromSession()
+
+        // 🔹 세션에 저장된 프로필 이미지 먼저 적용
         loadProfileImage(MemberSession.profileImageUrl)
+
+        // 🔹 서버에서 프로필 로드
         loadProfileFromServer()
+
+        // 🔔 알림 스위치 리스너 설정
         setupNotificationSwitches()
+
+        // 🔔 서버에서 알림 설정 불러오기
         loadNotificationSettingsFromServer()
     }
 
+    /**
+     * ✅ 서버에서 받은 프로필 데이터를 UI에 바인딩
+     */
     private fun bindProfile(profile: MemberProfileData) {
         binding.tvProfileName.text = profile.name ?: ""
         binding.tvProfileNickname.text = profile.nickname
@@ -245,8 +263,8 @@ class ProfileActivity : AppCompatActivity(),
                     if (body?.code == 0) {
                         MemberSession.profileImageUrl = fileUrl
                         Toast.makeText(this@ProfileActivity, "프로필 이미지가 변경되었습니다.", Toast.LENGTH_SHORT).show()
-                        // 아이콘 재로드
-                        (this@ProfileActivity as? MainActivity)?.refreshProfileIcon()
+                        // (필요하면: 메인 화면에서 프로필 아이콘 갱신은
+                        //  메인으로 돌아갈 때 세션의 profileImageUrl 로 다시 로드하는 식으로 처리)
                     } else {
                         Toast.makeText(
                             this@ProfileActivity,
