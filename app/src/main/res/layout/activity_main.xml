@@ -35,17 +35,15 @@
             android:id="@+id/iv_profile"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:src="@drawable/icon_profile"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="20dp"
-            android:src="@drawable/icon_profile"
+            android:background="@drawable/bg_profile_button"
+            android:padding="5dp"
             android:clickable="true"
             android:focusable="true"
-            android:padding="0dp"
-            android:background="@null"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
-
 
         <!-- 알림 버튼 (왼쪽) 홈화면에서는 안보이지만 친구목록 관련 화면에서 필요함 -->
         <!-- 알림 버튼 + 배지 (왼쪽) -->
