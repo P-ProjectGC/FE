@@ -58,5 +58,5 @@ interface FriendApiService {
     @DELETE("/api/friends/{friendId}")
     suspend fun deleteFriend(
         @Path("friendId") friendId: Long
-    ): Response<Response<Unit>>
+    ): Response<ApiResponse<Void>>
 }

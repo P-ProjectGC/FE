@@ -7,12 +7,18 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
+import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.plango.LoginActivity
 import com.example.plango.R
+import com.example.plango.data.RetrofitClient
+import com.example.plango.model.findid.SendFindIdCodeRequest
+import kotlinx.coroutines.launch
 
 class FindIdResultActivity : AppCompatActivity() {
 
@@ -39,7 +45,7 @@ class FindIdResultActivity : AppCompatActivity() {
         }
 
         // 아이디 문구 스타일 적용
-        val fullText = "회원님의 아이디는 $maskedLoginId 입니다."
+        val fullText = "회원님의 아이디는\n$maskedLoginId 입니다."
         val spannable = SpannableString(fullText)
         val start = fullText.indexOf(maskedLoginId)
         val end = start + maskedLoginId.length
@@ -66,12 +72,63 @@ class FindIdResultActivity : AppCompatActivity() {
         btnBack.setOnClickListener { finish() }
 
         // ➡ 추가 인증하러 가기 (인증번호 입력 화면)
+//        btnGoVerify.setOnClickListener {
+//            val intent = Intent(this, VerifyFindIdCodeActivity::class.java).apply {
+//                putExtra("email", email)
+//                putExtra("maskedEmail", maskedEmail)
+//            }
+//            startActivity(intent)
+//        }
+
         btnGoVerify.setOnClickListener {
-            val intent = Intent(this, VerifyFindIdCodeActivity::class.java).apply {
-                putExtra("email", email)
-                putExtra("maskedEmail", maskedEmail)
+
+            showLoading(true)
+
+            // 👉 인증번호 발송 API 실행
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.authService.sendFindIdCode(
+                        SendFindIdCodeRequest(email)
+                    )
+
+                    if (response.isSuccessful && response.body()?.code == 0) {
+
+                        val maskedEmailFromServer =
+                            response.body()?.data?.maskedEmail ?: maskedEmail
+
+                        Toast.makeText(
+                            this@FindIdResultActivity,
+                            "입력하신 이메일로 인증번호를 발송했어요.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // 인증번호 입력 화면 이동
+                        val intent = Intent(this@FindIdResultActivity, VerifyFindIdCodeActivity::class.java).apply {
+                            putExtra("email", email)
+                            putExtra("maskedEmail", maskedEmailFromServer)
+                        }
+                        startActivity(intent)
+
+                    } else {
+                        Toast.makeText(
+                            this@FindIdResultActivity,
+                            "인증번호 발송에 실패했습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        this@FindIdResultActivity,
+                        "서버 요청 오류가 발생했습니다.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    e.printStackTrace()
+
+                } finally {
+                    showLoading(false)
+                }
             }
-            startActivity(intent)
         }
 
         // 🔐 로그인 하러 가기
@@ -85,4 +142,10 @@ class FindIdResultActivity : AppCompatActivity() {
             finish()
         }
     }
+
+    private fun showLoading(show: Boolean) {
+        val loading = findViewById<ProgressBar>(R.id.findIdResultLoading)
+        loading.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
 }

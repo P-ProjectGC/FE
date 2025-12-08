@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.plango.LoginActivity
 import com.example.plango.R
 import com.example.plango.data.RetrofitClient
 import com.example.plango.model.findid.FindIdRequest
@@ -33,6 +34,13 @@ class FindIdActivity : AppCompatActivity() {
         btnFindId = findViewById(R.id.btn_find_id)
         tvError = findViewById(R.id.tv_find_id_error)
         loading = findViewById(R.id.findIdLoading)
+
+        // 🔥🔥🔥 여기 바로 아래에 뒤로가기 버튼 코드 넣으면 됨!!
+        val btnBack = findViewById<View>(R.id.btn_back)
+        btnBack.setOnClickListener {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        }
 
         btnFindId.setOnClickListener {
             tvError.visibility = View.GONE   // 버튼 누를 때마다 에러 초기화
@@ -107,61 +115,69 @@ class FindIdActivity : AppCompatActivity() {
                 val maskedLoginId = body.data.maskedLoginId
                 Log.d("FIND_ID", "maskedLoginId = $maskedLoginId")
 
-                // 2) 존재하는 이메일이면 인증번호 발송 API 호출
-                val sendCodeResponse = RetrofitClient.authService.sendFindIdCode(
-                    SendFindIdCodeRequest(email = email)
-                )
+//                // 2) 존재하는 이메일이면 인증번호 발송 API 호출
+//                val sendCodeResponse = RetrofitClient.authService.sendFindIdCode(
+//                    SendFindIdCodeRequest(email = email)
+//                )
+//
+//                Log.d("FIND_ID", "sendCode httpCode = ${sendCodeResponse.code()}")
+//
+//                if (!sendCodeResponse.isSuccessful) {
+//                    Toast.makeText(
+//                        this@FindIdActivity,
+//                        "인증번호 발송 중 오류가 발생했습니다.",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                    showLoading(false)
+//                    return@launch
+//                }
+//
+//                val sendCodeBody = sendCodeResponse.body()
+//                Log.d("FIND_ID", "sendCode body = $sendCodeBody")
+//                Log.d("FIND_ID", "sendCode apiCode = ${sendCodeBody?.code}")
+//                Log.d("FIND_ID", "sendCode data = ${sendCodeBody?.data}")
+//                Log.d(
+//                    "FIND_ID",
+//                    "sendCode verificationCode = ${sendCodeBody?.data?.verificationCode}"
+//                )
+//
+//                if (sendCodeBody == null || sendCodeBody.code != 0 || sendCodeBody.data == null) {
+//                    Toast.makeText(
+//                        this@FindIdActivity,
+//                        sendCodeBody?.message ?: "인증번호 발송에 실패했습니다.",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                    showLoading(false)
+//                    return@launch
+//                }
+//
+//                // ✅ 여기서 maskedEmail 뽑아옴
+//                val maskedEmail = sendCodeBody.data.maskedEmail
+//
+//                // 성공: 이메일로 인증번호 발송 완료
+//                tvError.visibility = View.GONE
+//                Toast.makeText(
+//                    this@FindIdActivity,
+//                    "입력하신 이메일로 인증번호를 발송했어요.",
+//                    Toast.LENGTH_SHORT
+//                ).show()
 
-                Log.d("FIND_ID", "sendCode httpCode = ${sendCodeResponse.code()}")
+//                // ✅ 마스킹 아이디 결과 화면으로 이동
+//                val intent = Intent(this@FindIdActivity, FindIdResultActivity::class.java).apply {
+//                    putExtra("maskedLoginId", maskedLoginId)   // /find-id 에서 받은 값
+//                    putExtra("email", email)                   // 원본 이메일
+//                    putExtra("maskedEmail", maskedEmail)       // 화면 안내용 마스킹 이메일
+//                }
+//                startActivity(intent)
+//                finish()   // 뒤로 가기 눌렀을 때 다시 이메일 입력 화면 안 보이게
 
-                if (!sendCodeResponse.isSuccessful) {
-                    Toast.makeText(
-                        this@FindIdActivity,
-                        "인증번호 발송 중 오류가 발생했습니다.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showLoading(false)
-                    return@launch
-                }
+            val intent = Intent(this@FindIdActivity, FindIdResultActivity::class.java).apply {
+                putExtra("maskedLoginId", maskedLoginId)
+                putExtra("email", email)
+            }
+            startActivity(intent)
+            finish()
 
-                val sendCodeBody = sendCodeResponse.body()
-                Log.d("FIND_ID", "sendCode body = $sendCodeBody")
-                Log.d("FIND_ID", "sendCode apiCode = ${sendCodeBody?.code}")
-                Log.d("FIND_ID", "sendCode data = ${sendCodeBody?.data}")
-                Log.d(
-                    "FIND_ID",
-                    "sendCode verificationCode = ${sendCodeBody?.data?.verificationCode}"
-                )
-
-                if (sendCodeBody == null || sendCodeBody.code != 0 || sendCodeBody.data == null) {
-                    Toast.makeText(
-                        this@FindIdActivity,
-                        sendCodeBody?.message ?: "인증번호 발송에 실패했습니다.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showLoading(false)
-                    return@launch
-                }
-
-                // ✅ 여기서 maskedEmail 뽑아옴
-                val maskedEmail = sendCodeBody.data.maskedEmail
-
-                // 성공: 이메일로 인증번호 발송 완료
-                tvError.visibility = View.GONE
-                Toast.makeText(
-                    this@FindIdActivity,
-                    "입력하신 이메일로 인증번호를 발송했어요.",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                // ✅ 마스킹 아이디 결과 화면으로 이동
-                val intent = Intent(this@FindIdActivity, FindIdResultActivity::class.java).apply {
-                    putExtra("maskedLoginId", maskedLoginId)   // /find-id 에서 받은 값
-                    putExtra("email", email)                   // 원본 이메일
-                    putExtra("maskedEmail", maskedEmail)       // 화면 안내용 마스킹 이메일
-                }
-                startActivity(intent)
-                finish()   // 뒤로 가기 눌렀을 때 다시 이메일 입력 화면 안 보이게
 
             } catch (e: Exception) {
                 e.printStackTrace()

@@ -52,7 +52,7 @@ class FindIdFullResultActivity : AppCompatActivity() {
 
     private fun setResultText(loginId: String) {
         // 이름이 아직 없으니까 일단 "회원님의 아이디는 ~ 입니다."
-        val fullText = "회원님의 아이디는 $loginId 입니다."
+        val fullText = "회원님의 아이디는\n$loginId 입니다."
         val spannable = SpannableString(fullText)
 
         val start = fullText.indexOf(loginId)

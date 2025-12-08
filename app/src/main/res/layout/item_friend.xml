@@ -36,6 +36,24 @@
             app:layout_constraintStart_toEndOf="@id/iv_profile"
             android:layout_marginStart="-12dp" />
 
+        <!-- 🔥 거절 버튼 (오른쪽 끝으로 이동) -->
+        <TextView
+            android:id="@+id/btn_reject"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="삭제"
+            android:textSize="12sp"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:background="@drawable/bg_friend_reject"
+            android:textColor="#555555"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginEnd="6dp" />
+
         <!-- 닉네임 + 실명 텍스트 블록 -->
         <LinearLayout
             android:id="@+id/text_block"
@@ -66,6 +84,7 @@
                 android:textSize="12sp"
                 android:textColor="#777777"
                 android:layout_marginTop="2dp" />
+
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
