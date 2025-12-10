@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log   // ✅ 추가
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,11 +27,18 @@ class RoomFragment : Fragment() {
     // 전체 여행방 목록 (검색용 원본 리스트)
     private var allRooms: List<TravelRoom> = emptyList()
 
+    // 🔹 화면 로딩 시간 측정용
+    private var startMs = 0L
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        // 🔸 화면 진입 시점에서 시간 찍기
+        startMs = System.currentTimeMillis()
+        Log.d("PERF", "ROOM_LIST_LOAD_START=$startMs")
+
         binding = FragmentRoomBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -149,7 +157,6 @@ class RoomFragment : Fragment() {
         }
     }
 
-
     // 검색어로 방 필터링
     private fun filterRooms(query: String) {
         if (allRooms.isEmpty()) {
@@ -171,11 +178,16 @@ class RoomFragment : Fragment() {
         roomAdapter.submitList(filtered)
     }
 
-
     override fun onResume() {
         super.onResume()
         // 여행방 화면에서는 알림 아이콘 숨김
         (activity as? MainActivity)?.showAlarmIcon(false)
+
+        // 🔸 화면이 실제로 그려진 다음에 시간 측정 (view?.post 사용)
+        view?.post {
+            val end = System.currentTimeMillis()
+            Log.d("PERF", "ROOM_LIST_LOAD_DURATION=${end - startMs}ms")
+        }
 
         // 화면에 다시 돌아올 때마다 최신 리스트로 갱신
         loadRooms()

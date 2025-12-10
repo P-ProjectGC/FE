@@ -21,14 +21,15 @@ import com.example.plango.data.token.TokenManager
 import com.example.plango.databinding.ActivityLoginBinding
 import com.example.plango.ui.findid.FindIdActivity
 import com.example.plango.ui.findpw.FindPasswordActivity
-import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.util.Utility
 import com.kakao.sdk.user.UserApiClient
-
 
 class LoginActivity : ComponentActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+
+    // 🔹 앱 실행 속도 측정용 변수
+    private var startMs = 0L
 
     // RetrofitClient에서 AuthService 가져오기
     private val authService = RetrofitClient.authService
@@ -41,7 +42,6 @@ class LoginActivity : ComponentActivity() {
 
     private lateinit var tokenManager: TokenManager
 
-
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -49,6 +49,10 @@ class LoginActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        // 🔹 앱 시작 시간 기록 (실제 런치 타임 측정 시작 지점)
+        startMs = System.currentTimeMillis()
+        Log.d("PERF", "APP_LAUNCH_START=$startMs")
 
         authViewModel.clearState()
 
@@ -61,13 +65,13 @@ class LoginActivity : ComponentActivity() {
         tokenManager = TokenManager(this)
 
         // TODO: 프로필에서 로그아웃 기능 구현 후 자동 로그인 활성화
-       // val savedToken = tokenManager.getAccessToken()
-        //Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
-        //if (!savedToken.isNullOrEmpty()) {
-          // startActivity(Intent(this, MainActivity::class.java))
-           // finish()
-            //return
-       //}
+//        val savedToken = tokenManager.getAccessToken()
+//        Log.d("TOKEN_TEST", "자동 로그인 체크 - 저장된 토큰 = $savedToken")
+//        if (!savedToken.isNullOrEmpty()) {
+//            startActivity(Intent(this, MainActivity::class.java))
+//            finish()
+//            return
+//        }
 
         authViewModel.loading.observe(this) { isLoading ->
             if (isLoading) {
@@ -87,6 +91,14 @@ class LoginActivity : ComponentActivity() {
         observeKakaoLogin()       // 카카오 로그인 결과 관찰
     }
 
+    // 🔹 첫 화면이 완전히 그려졌을 때 실행 시간 측정
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            val end = System.currentTimeMillis()
+            Log.d("PERF", "APP_LAUNCH_DURATION=${end - startMs}ms")
+        }
+    }
 
     // ------------------------------
     //  EditText 변경 → 로그인 버튼 활성화
@@ -119,7 +131,7 @@ class LoginActivity : ComponentActivity() {
             if (result == null) return@observe
 
             result.onSuccess { data ->
-  
+
                 // 1) 서버에서 받은 토큰 저장 (Interceptor에서 사용)
                 tokenManager.saveAccessToken(data.accessToken)
                 tokenManager.saveRefreshToken(data.refreshToken)
@@ -173,42 +185,6 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-
-//    // ------------------------------
-//    //  카카오 계정 로그인
-//    // ------------------------------
-//    private fun loginWithKakaoAccount() {
-//
-//        UserApiClient.instance.loginWithKakaoAccount(this) { token, error ->
-//            if (error != null) {
-//                Log.e("KAKAO", "로그인 실패: $error")
-//            } else if (token != null) {
-//                val accessToken = token.accessToken
-//                val idToken = token.idToken  // ⭐ 서버가 요구하는 idToken
-//
-//                Log.d("KAKAO", "accessToken = $accessToken")
-//                Log.d("KAKAO", "idToken = $idToken")
-//
-//                authViewModel.loginKakao(accessToken, idToken)
-//            }
-//        }
-//    }
-
-
-//    // ------------------------------
-//    //  카카오 토큰을 BE로 전달하는 핵심 함수
-//    // ------------------------------
-//    private fun sendKakaoTokenToServer(token: OAuthToken) {
-//
-//        val access = token.accessToken
-//        val id = token.idToken ?: ""
-//
-//        Log.d("KAKAO_LOGIN", "accessToken: $access")
-//        Log.d("KAKAO_LOGIN", "idToken: $id")
-//
-//        authViewModel.loginKakao(access, id)
-//    }
-
     // ------------------------------
     //  카카오 로그인 결과 처리
     // ------------------------------
@@ -240,7 +216,8 @@ class LoginActivity : ComponentActivity() {
                         intent.putExtra("email", data.email)
                         intent.putExtra("profileImageUrl", data.profileImageUrl)
 
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                        intent.flags =
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                         startActivity(intent)
 
                     }, 400)

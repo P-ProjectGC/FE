@@ -50,10 +50,12 @@ object RetrofitClient {
 
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)                  // 로그 출력
-            .addInterceptor(AuthInterceptor(tokenManager))       // 🔥 토큰 자동 추가
+            .addInterceptor(PerfApiInterceptor())                // ✅ API 시간 측정
+            .addInterceptor(loggingInterceptor)                  // 기존 BODY 로그
+            .addInterceptor(AuthInterceptor(tokenManager))       // 토큰 자동 추가
             .build()
     }
+
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
