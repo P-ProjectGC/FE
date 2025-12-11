@@ -5,11 +5,15 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.plango.R
 import com.example.plango.databinding.ItemNoticeBinding
 import com.example.plango.model.Notice
 
 class NoticeAdapter :
     ListAdapter<Notice, NoticeAdapter.NoticeViewHolder>(diffCallback) {
+
+    // ⭐ 반드시 있어야 함 — NoticeListActivity에서 onItemClick 사용하기 위해
+    var onItemClick: ((Notice) -> Unit)? = null
 
     companion object {
         private val diffCallback = object : DiffUtil.ItemCallback<Notice>() {
@@ -30,18 +34,32 @@ class NoticeAdapter :
             tvContent.text = item.content
             tvDate.text = formatDate(item.createdAt)
 
-            // 타입: UPDATE / EMERGENCY / ERROR → 한글로만 바꿔줌
-            tvType.text = when (item.type) {
+            // 타입 텍스트 매핑
+            val typeLabel = when (item.type) {
                 "UPDATE" -> "업데이트"
                 "EMERGENCY" -> "긴급"
                 "ERROR" -> "오류"
                 else -> item.type
             }
+            tvType.text = typeLabel
+
+            // 타입별 배경색 적용
+            val bgRes = when (item.type) {
+                "UPDATE" -> R.drawable.bg_notice_type_update
+                "EMERGENCY" -> R.drawable.bg_notice_type_urgent
+                "ERROR" -> R.drawable.bg_notice_type_error
+                else -> R.drawable.bg_notice_type_update
+            }
+            tvType.setBackgroundResource(bgRes)
+
+            // ⭐ 카드 클릭 → Activity로 전달
+            root.setOnClickListener {
+                onItemClick?.invoke(item)
+            }
         }
 
         private fun formatDate(iso: String?): String {
             if (iso == null) return ""
-            // "2025-12-08T12:34:56" → "2025.12.08"
             return try {
                 iso.substring(0, 10).replace("-", ".")
             } catch (e: Exception) {
