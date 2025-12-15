@@ -4,7 +4,7 @@ package com.example.plango
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.plango.adapter.NoticeAdapter
@@ -12,7 +12,8 @@ import com.example.plango.data.NoticeRepository
 import com.example.plango.databinding.ActivityNoticeListBinding
 import kotlinx.coroutines.launch
 
-class NoticeListActivity : ComponentActivity() {
+
+class NoticeListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityNoticeListBinding
     private val noticeRepository = NoticeRepository()
@@ -32,11 +33,6 @@ class NoticeListActivity : ComponentActivity() {
 
     private fun setupToolbar() = with(binding.toolbarNotice) {
         setNavigationOnClickListener { finish() }
-    }
-
-    private fun setupRecyclerView() = with(binding.recyclerNotice) {
-        layoutManager = LinearLayoutManager(this@NoticeListActivity)
-        adapter = noticeAdapter
     }
 
     private fun setupRefresh() {
@@ -65,5 +61,20 @@ class NoticeListActivity : ComponentActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun setupRecyclerView() = with(binding.recyclerNotice) {
+        layoutManager = LinearLayoutManager(this@NoticeListActivity)
+        adapter = noticeAdapter
+
+        noticeAdapter.onItemClick = { notice ->
+            NoticeDetailDialog(
+                title = notice.title,
+                content = notice.content,
+                date = notice.createdAt,
+                type = notice.type
+            ).show(supportFragmentManager, "NoticeDetailDialog")
+        }
+
     }
 }
