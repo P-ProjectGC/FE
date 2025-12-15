@@ -19,9 +19,9 @@ object RetrofitClient {
     //private const val BASE_URL = "http://172.25.81.234:8080/"
 
 
-    //const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev"
+    const val BASE_URL = "https://pyrological-nonsalutarily-hobert.ngrok-free.dev"
     //const val BASE_URL = "http://10.0.2.2:8080/"
-    const val BASE_URL = "http://ceprj2.gachon.ac.kr:65028/"
+//    const val BASE_URL = "http://ceprj2.gachon.ac.kr:65028/"
 
 
 
